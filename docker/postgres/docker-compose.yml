@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: audit_pms_postgres
+    environment:
+      POSTGRES_USER: audit
+      POSTGRES_PASSWORD: auditpass
+      POSTGRES_DB: audit_pms
+    ports:
+      - "5432:5432"
+    volumes:
+      - audit_pms_pgdata:/var/lib/postgresql/data
+
+volumes:
+  audit_pms_pgdata:
