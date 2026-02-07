@@ -1,0 +1,11 @@
+Run backend:
+cd apps/api
+pnpm start:dev
+
+http://localhost:4000
+
+Run frontend:
+cd apps/web
+pnpm dev
+
+http://localhost:3000

@@ -11,8 +11,6 @@ model User {
   email         String   @unique
   name          String?
   passwordHash  String?
-  is2faEnabled  Boolean  @default(false)
-  totpSecretEnc String? // encrypted later
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
