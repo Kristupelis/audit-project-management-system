@@ -1,3 +1,8 @@
+Prisijungimai:
+
+test@example.com
+Password123!
+
 Run backend:
 cd apps/api
 pnpm start:dev
@@ -9,3 +14,21 @@ cd apps/web
 pnpm dev
 
 http://localhost:3000
+
+Edit DB:
+
+pnpm prisma studio
+
+Galimai nereikalingi:
+next-auth.d.ts in /types
+
+
+NestJS AuthModule (register/login)
+
+Password hashing + JWT access/refresh
+
+NextAuth Credentials provider calling /auth/login
+
+Add Google OAuth bridge (NextAuth Google → backend token exchange)
+
+Then: projects / nodes / tasks / audit logs / file upload scan
