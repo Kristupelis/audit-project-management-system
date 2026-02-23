@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import type { RequestUser } from '../auth/current-user.decorator'; // <-- updated line
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -20,10 +21,7 @@ export class ProjectsController {
   constructor(private readonly projects: ProjectsService) {}
 
   @Post()
-  create(
-    @CurrentUser() user: { userId: string },
-    @Body() dto: CreateProjectDto,
-  ) {
+  create(@CurrentUser() user: RequestUser, @Body() dto: CreateProjectDto) {
     return this.projects.createProject(user.userId, dto.name, dto.description);
   }
 
