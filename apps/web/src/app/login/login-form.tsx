@@ -64,7 +64,16 @@ export default function LoginPage() {
         <button className="w-full border rounded-md p-2 disabled:opacity-50" disabled={loading}>
           {loading ? "Signing in..." : "Sign in"}
         </button>
+        <button
+          type="button"
+          className="w-full border rounded-md p-2 disabled:opacity-50"
+          onClick={() => router.push("/register")}
+        >
+          Register
+        </button>
+
       </form>
+        
     </main>
   );
 }

@@ -6,6 +6,8 @@ interface CustomUser {
   email: string;
   name: string;
   apiAccessToken: string;
+  apiRefreshToken: string;
+  apiAccessExpiresAt: number | null;
 }
 
 interface CustomSession extends Session {
@@ -43,20 +45,26 @@ export const authOptions: NextAuthOptions = {
           email: data.user.email,
           name: data.user.name,
           apiAccessToken: data.accessToken,
+          apiAccessExpiresAt: data.accessExpiresAt ?? null,
         } as CustomUser;
       },
     }),
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) token.apiAccessToken = (user as CustomUser).apiAccessToken;
-      return token;
-    },
-    async session({ session, token }) {
-      const customSession = session as CustomSession;
-      customSession.apiAccessToken = token.apiAccessToken as string | undefined;
-      return customSession;
-    },
+  async jwt({ token, user }) {
+    if (user) {
+      token.apiAccessToken = (user as CustomUser).apiAccessToken;
+      token.apiAccessExpiresAt = (user as CustomUser).apiAccessExpiresAt;
+    }
+    return token;
   },
+
+  async session({ session, token }) {
+    session.apiAccessToken = token.apiAccessToken as string | undefined;
+    session.apiAccessExpiresAt =
+      (token.apiAccessExpiresAt as number | null | undefined) ?? null;
+    return session;
+  },
+},
 };

@@ -73,7 +73,9 @@ export default function RegisterPage() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm">Password (min 8)</label>
+          <label className="text-sm">
+            Password
+          </label>
           <input
             className="w-full border rounded-md p-2"
             value={password}
@@ -81,6 +83,7 @@ export default function RegisterPage() {
             type="password"
             autoComplete="new-password"
             minLength={8}
+            pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"
             required
           />
         </div>

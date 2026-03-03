@@ -3,6 +3,11 @@ Prisijungimai:
 test@example.com
 Password123!
 
+KristupasTest
+ckristupas@gmail.com
+26KarvesPienas!
+
+
 Run backend:
 cd apps/api
 pnpm start:dev
@@ -19,8 +24,12 @@ Edit DB:
 
 pnpm prisma studio
 
+Print tree:
+
+git ls-files
+
 Galimai nereikalingi:
-next-auth.d.ts in /types
+src/app/api/auth/refresh/route.ts
 
 
 NestJS AuthModule (register/login)

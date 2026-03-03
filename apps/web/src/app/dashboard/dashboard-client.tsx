@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import SessionExpiryPrompt from "./session-expiry-prompt";
 
 type Props = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,22 +16,22 @@ export default function DashboardClient({ session }: Props) {
     const first = window.confirm("Disconnect from session?");
     if (!first) return;
 
+    /*
     const second = window.confirm("Are you sure? You will be redirected to login.");
     if (!second) return;
+    */
 
-    // signOut clears NextAuth session cookie
-    await signOut({ redirect: false });
-
-    // redirect to login
-    router.push("/login");
-    router.refresh();
+    await signOut({ callbackUrl: "/login" });
   }
 
   const name = session?.user?.name ?? "(no name)";
   const email = session?.user?.email ?? "(no email)";
+  const expiresAt = session?.apiAccessExpiresAt ?? null;
+  //console.log("Dashboard render, session:", session);
 
   return (
     <main className="p-6 space-y-4">
+      <SessionExpiryPrompt accessExpiresAt={expiresAt} thresholdMs={5 * 1000} />
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>

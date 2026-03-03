@@ -9,7 +9,6 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as argon2 from 'argon2';
 import { ConfigService } from '@nestjs/config';
-import { createHash } from 'crypto';
 import type { SignOptions } from 'jsonwebtoken';
 
 
@@ -32,10 +31,8 @@ export class AuthService {
       select: { id: true, email: true, name: true, createdAt: true },
     });
 
-    const tokens = await this.issueTokens(user.id, user.email);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
-
-    return { user, ...tokens };
+    const token = await this.issueAccessToken(user.id, user.email);
+    return { user, ...token };
   }
 
   async login(email: string, password: string) {
@@ -46,70 +43,32 @@ export class AuthService {
     const ok = await argon2.verify(user.passwordHash, password);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
 
-    // 2FA will be checked here later (user.is2faEnabled + otp validation)
+    // 2FA will be checked here later
 
-    const tokens = await this.issueTokens(user.id, user.email);
-
-    // Refresh token rotation: delete old tokens (simple v1)
-    await this.prisma.refreshToken.deleteMany({ where: { userId: user.id } });
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
+    const token = await this.issueAccessToken(user.id, user.email);
 
     const safeUser = { id: user.id, email: user.email, name: user.name };
-    return { user: safeUser, ...tokens };
+    return { user: safeUser, ...token };
   }
 
-  async refresh(userId: string, refreshToken: string) {
-    // verify refresh token exists (hashed)
-    const tokenHash = this.hashToken(refreshToken);
 
-    const row = await this.prisma.refreshToken.findUnique({
-      where: { tokenHash },
-    });
-    if (!row || row.userId !== userId)
-      throw new UnauthorizedException('Invalid refresh token');
-    if (row.expiresAt.getTime() < Date.now()) {
-      await this.prisma.refreshToken.delete({ where: { tokenHash } });
-      throw new UnauthorizedException('Refresh token expired');
-    }
-
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException('User not found');
-
-    const tokens = await this.issueTokens(user.id, user.email);
-
-    // rotate: delete old, store new
-    await this.prisma.refreshToken.delete({ where: { tokenHash } });
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
-
-    return {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    };
-  }
-
-  
-
-  private async issueTokens(userId: string, email: string) {
+  private async issueAccessToken(userId: string, email: string) {
     const accessSecret = this.config.get<string>("JWT_ACCESS_SECRET");
-    const refreshSecret = this.config.get<string>("JWT_REFRESH_SECRET");
-    if (!accessSecret || !refreshSecret) throw new Error("JWT secrets missing");
+    if (!accessSecret) throw new Error("JWT_ACCESS_SECRET missing");
 
-    const accessExpRaw = this.config.get<string>("JWT_ACCESS_EXPIRES_IN") ?? "15m";
-    const refreshExpRaw = this.config.get<string>("JWT_REFRESH_EXPIRES_IN") ?? "30d";
-
+    const accessExpRaw = this.config.get<string>("JWT_ACCESS_EXPIRES_IN") ?? "1h";
     const accessExp = this.asExpiresIn(accessExpRaw);
-    const refreshExp = this.asExpiresIn(refreshExpRaw);
 
     const payload = { sub: userId, email };
 
-    const [accessToken, refreshToken] = await Promise.all([
-        this.jwt.signAsync(payload, { secret: accessSecret, expiresIn: accessExp }),
-        this.jwt.signAsync(payload, { secret: refreshSecret, expiresIn: refreshExp }),
-    ]);
+    const accessToken = await this.jwt.signAsync(payload, {
+      secret: accessSecret,
+      expiresIn: accessExp,
+    });
 
-    const refreshExpiresAt = this.computeExpiryDate(refreshExpRaw);
-    return { accessToken, refreshToken, refreshExpiresAt };
-    }
+    const accessExpiresAt = this.computeExpiryDate(accessExpRaw).getTime();
+    return { accessToken, accessExpiresAt };
+  }
 
     private asExpiresIn(value: string): SignOptions["expiresIn"] {
     const trimmed = value.trim();
@@ -117,25 +76,6 @@ export class AuthService {
     if (!Number.isNaN(n) && trimmed !== "") return n; // seconds
     return trimmed; // e.g. "15m", "30d"
     }
-
-  private async storeRefreshToken(userId: string, refreshToken: string) {
-    const tokenHash = this.hashToken(refreshToken);
-    const refreshExp =
-      this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '30d';
-    const expiresAt = this.computeExpiryDate(refreshExp);
-
-    await this.prisma.refreshToken.create({
-      data: { userId, tokenHash, expiresAt },
-    });
-  }
-
-  private hashToken(token: string) {
-    // add a random salt prefix to reduce length-extension style issues (simple)
-    const salt = this.config.get<string>('JWT_REFRESH_SECRET') ?? 'salt';
-    return createHash('sha256')
-      .update(token + salt)
-      .digest('hex');
-  }
 
   private computeExpiryDate(exp: string) {
     // supports "15m", "30d", "1h" style (simple parser)
