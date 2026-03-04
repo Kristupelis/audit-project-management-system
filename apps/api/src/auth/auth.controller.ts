@@ -3,10 +3,11 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { CurrentUser } from './current-user.decorator';
 
 interface AuthenticatedRequest extends Request {
   user?: {
-    id: number;
+    id: string;
     email: string;
     name?: string;
   } | null;
@@ -30,5 +31,25 @@ export class AuthController {
   @Get('me')
   me(@Req() req: AuthenticatedRequest) {
     return req.user ?? null;
+  }
+
+  @Post('2fa/setup')
+  @UseGuards(JwtAuthGuard)
+  setup2fa(@CurrentUser('sub') userId: string) {
+    return this.auth.generateTwoFactorSetup(userId);
+  }
+
+  @Post('2fa/enable')
+  @UseGuards(JwtAuthGuard)
+  enable2fa(
+    @CurrentUser('sub') userId: string,
+    @Body() body: { secret: string; code: string },
+  ) {
+    return this.auth.enableTwoFactor(userId, body.secret, body.code);
+  }
+
+  @Post('2fa/verify-login')
+  verifyLogin(@Body() body: { userId: string; code: string }) {
+    return this.auth.verifyTwoFactorLogin(body.userId, body.code);
   }
 }

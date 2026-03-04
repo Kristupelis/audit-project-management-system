@@ -10,6 +10,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as argon2 from 'argon2';
 import { ConfigService } from '@nestjs/config';
 import type { SignOptions } from 'jsonwebtoken';
+import * as speakeasyRaw from "speakeasy";
+import * as QRCode from "qrcode";
+
+const speakeasy = speakeasyRaw as unknown as {
+  generateSecret: (opts: { length: number; name: string }) => {
+    base32: string;
+    otpauth_url?: string;
+  };
+  totp: (opts: { secret: string; encoding: "base32"; token: string }) => boolean;
+};
 
 
 @Injectable()
@@ -44,6 +54,13 @@ export class AuthService {
     if (!ok) throw new UnauthorizedException('Invalid credentials');
 
     // 2FA will be checked here later
+    if (user.isTwoFactorEnabled) {
+      return {
+        requiresTwoFactor: true,
+        userId: user.id,
+      };
+    }
+
 
     const token = await this.issueAccessToken(user.id, user.email);
 
@@ -51,6 +68,74 @@ export class AuthService {
     return { user: safeUser, ...token };
   }
 
+  async generateTwoFactorSetup(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) throw new UnauthorizedException("User not found");
+
+    const secret = speakeasy.generateSecret({
+      length: 20,
+      name: `APMS (${user.email})`,
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const qrCode = await QRCode.toDataURL(secret.otpauth_url ?? "");
+
+    return {
+      base32: secret.base32,
+      qrCode,
+    };
+  }
+
+  async enableTwoFactor(userId: string, secret: string, code: string) {
+    const verified = speakeasy.totp({
+      secret,
+      encoding: "base32",
+      token: code,
+    });
+
+    if (!verified) {
+      throw new UnauthorizedException("Invalid 2FA code");
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorSecret: secret,
+        isTwoFactorEnabled: true,
+      },
+    });
+
+    return { success: true };
+  }
+
+  async verifyTwoFactorLogin(userId: string, code: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.twoFactorSecret)
+      throw new UnauthorizedException("Invalid user");
+
+    const verified = speakeasy.totp({
+      secret: user.twoFactorSecret,
+      encoding: "base32",
+      token: code,
+    });
+
+    if (!verified) {
+      throw new UnauthorizedException("Invalid 2FA code");
+    }
+
+    const token = await this.issueAccessToken(user.id, user.email);
+
+    return {
+      user: { id: user.id, email: user.email, name: user.name },
+      ...token,
+    };
+  }
 
   private async issueAccessToken(userId: string, email: string) {
     const accessSecret = this.config.get<string>("JWT_ACCESS_SECRET");

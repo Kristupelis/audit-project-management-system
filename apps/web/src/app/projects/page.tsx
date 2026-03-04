@@ -2,7 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import Link from "next/link";
 import CreateProjectForm from "./create-project-form";
-
+import ProjectsHeader from "./projects-header";
+import SessionExpiryGuard from "./session-expiry-prompt";
 
 type Project = {
   id: string;
@@ -36,7 +37,12 @@ export default async function ProjectsPage() {
 
   return (
     <main className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold">Projects</h1>
+      <SessionExpiryGuard accessExpiresAt={session.apiAccessExpiresAt ?? null} />
+      <ProjectsHeader name={session.user?.name} />
+
+
+      {/* <pre>{JSON.stringify(session, null, 2)}</pre> */}
+
 
       <section className="border rounded-xl p-4">
         <h2 className="font-medium mb-3">Create project</h2>

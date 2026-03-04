@@ -24,12 +24,23 @@ export default function LoginPage() {
 
     setLoading(false);
 
-    if (!res || res.error) {
+    if (!res) {
+      setError("Login failed");
+      return;
+    }
+
+    if (res.error?.startsWith("2FA_REQUIRED")) {
+      const userId = res.error.split(":")[1];
+      router.push(`/login/2fa?userId=${userId}`);
+      return;
+    }
+
+    if (res.error) {
       setError("Invalid email or password");
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/projects");
   }
 
   return (

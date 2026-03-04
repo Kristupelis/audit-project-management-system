@@ -23,8 +23,22 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
+        accessToken: { label: "AccessToken", type: "text" },
+        userId: { label: "UserId", type: "text" },
       },
       async authorize(credentials) {
+        // 🔹 2FA login flow (session creation using existing token)
+        if (credentials?.accessToken && credentials?.email && credentials?.userId) {
+          return {
+            id: credentials.userId,
+            email: credentials.email,
+            name: "",
+            apiAccessToken: credentials.accessToken,
+            apiAccessExpiresAt: null,
+          } as CustomUser;
+        }
+
+        // 🔹 normal login flow
         const email = credentials?.email;
         const password = credentials?.password;
         if (!email || !password) return null;
@@ -38,6 +52,12 @@ export const authOptions: NextAuthOptions = {
         if (!res.ok) return null;
 
         const data = await res.json();
+
+        // 2FA required
+        if (data.requiresTwoFactor) {
+          throw new Error(`2FA_REQUIRED:${data.userId}`);
+        }
+
         if (!data?.user?.id || !data?.accessToken) return null;
 
         return {

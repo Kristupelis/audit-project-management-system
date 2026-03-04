@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import type { RequestUser } from '../auth/current-user.decorator'; // <-- updated line
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -21,40 +20,40 @@ export class ProjectsController {
   constructor(private readonly projects: ProjectsService) {}
 
   @Post()
-  create(@CurrentUser() user: RequestUser, @Body() dto: CreateProjectDto) {
-    return this.projects.createProject(user.userId, dto.name, dto.description);
+  create(@CurrentUser('sub') userId: string, @Body() dto: CreateProjectDto) {
+    return this.projects.createProject(userId, dto.name, dto.description);
   }
 
   @Get()
-  listMine(@CurrentUser() user: { userId: string }) {
-    return this.projects.listMyProjects(user.userId);
+  listMine(@CurrentUser('sub') userId: string) {
+    return this.projects.listMyProjects(userId);
   }
 
   @Get(':id')
-  get(@Param('id') id: string, @CurrentUser() user: { userId: string }) {
-    return this.projects.getProjectIfMember(id, user.userId);
+  get(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.projects.getProjectIfMember(id, userId);
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser('sub') userId: string,
     @Body() dto: UpdateProjectDto,
   ) {
-    return this.projects.updateProject(id, user.userId, dto);
+    return this.projects.updateProject(id, userId, dto);
   }
 
   @Post(':id/members')
   addMember(
     @Param('id') id: string,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser('sub') userId: string,
     @Body() dto: AddMemberDto,
   ) {
-    return this.projects.addMember(id, user.userId, dto.email, dto.role);
+    return this.projects.addMember(id, userId, dto.email, dto.role);
   }
 
   @Get(':id/audit')
-  audit(@Param('id') id: string, @CurrentUser() user: { userId: string }) {
-    return this.projects.listAudit(id, user.userId);
+  audit(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.projects.listAudit(id, userId);
   }
 }

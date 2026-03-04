@@ -5,9 +5,9 @@ import { authOptions } from "@/auth";
 export default async function RootPage() {
   const session = await getServerSession(authOptions);
 
-  if (session?.apiAccessToken) {
-    redirect("/dashboard");
+  if (!session || !session.apiAccessToken) {
+    redirect("/login");
   }
 
-  redirect("/login");
+  redirect("/projects");
 }
