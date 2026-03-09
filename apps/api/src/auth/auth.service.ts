@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable prettier/prettier */
 import {
   BadRequestException,
   Injectable,
@@ -10,17 +9,20 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as argon2 from 'argon2';
 import { ConfigService } from '@nestjs/config';
 import type { SignOptions } from 'jsonwebtoken';
-import * as speakeasyRaw from "speakeasy";
-import * as QRCode from "qrcode";
+import * as speakeasyRaw from 'speakeasy';
+import * as QRCode from 'qrcode';
 
 const speakeasy = speakeasyRaw as unknown as {
   generateSecret: (opts: { length: number; name: string }) => {
     base32: string;
     otpauth_url?: string;
   };
-  totp: (opts: { secret: string; encoding: "base32"; token: string }) => boolean;
+  totp: (opts: {
+    secret: string;
+    encoding: 'base32';
+    token: string;
+  }) => boolean;
 };
-
 
 @Injectable()
 export class AuthService {
@@ -41,31 +43,37 @@ export class AuthService {
       select: { id: true, email: true, name: true, createdAt: true },
     });
 
-    const token = await this.issueAccessToken(user.id, user.email);
-    return { user, ...token };
+    return {
+      requiresTwoFactorSetup: true,
+      userId: user.id,
+      email: user.email,
+    };
   }
 
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || !user.passwordHash)
+    if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
+    }
 
     const ok = await argon2.verify(user.passwordHash, password);
-    if (!ok) throw new UnauthorizedException('Invalid credentials');
+    if (!ok) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
-    // 2FA will be checked here later
     if (user.isTwoFactorEnabled) {
       return {
         requiresTwoFactor: true,
         userId: user.id,
+        email: user.email,
       };
     }
 
-
-    const token = await this.issueAccessToken(user.id, user.email);
-
-    const safeUser = { id: user.id, email: user.email, name: user.name };
-    return { user: safeUser, ...token };
+    return {
+      requiresTwoFactorSetup: true,
+      userId: user.id,
+      email: user.email,
+    };
   }
 
   async generateTwoFactorSetup(userId: string) {
@@ -73,7 +81,7 @@ export class AuthService {
       where: { id: userId },
     });
 
-    if (!user) throw new UnauthorizedException("User not found");
+    if (!user) throw new UnauthorizedException('User not found');
 
     const secret = speakeasy.generateSecret({
       length: 20,
@@ -81,7 +89,7 @@ export class AuthService {
     });
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const qrCode = await QRCode.toDataURL(secret.otpauth_url ?? "");
+    const qrCode = await QRCode.toDataURL(secret.otpauth_url ?? '');
 
     return {
       base32: secret.base32,
@@ -90,14 +98,22 @@ export class AuthService {
   }
 
   async enableTwoFactor(userId: string, secret: string, code: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
     const verified = speakeasy.totp({
       secret,
-      encoding: "base32",
+      encoding: 'base32',
       token: code,
     });
 
     if (!verified) {
-      throw new UnauthorizedException("Invalid 2FA code");
+      throw new UnauthorizedException('Invalid 2FA code');
     }
 
     await this.prisma.user.update({
@@ -108,7 +124,13 @@ export class AuthService {
       },
     });
 
-    return { success: true };
+    const token = await this.issueAccessToken(user.id, user.email);
+
+    return {
+      success: true,
+      user: { id: user.id, email: user.email, name: user.name },
+      ...token,
+    };
   }
 
   async verifyTwoFactorLogin(userId: string, code: string) {
@@ -116,17 +138,18 @@ export class AuthService {
       where: { id: userId },
     });
 
-    if (!user || !user.twoFactorSecret)
-      throw new UnauthorizedException("Invalid user");
+    if (!user || !user.twoFactorSecret) {
+      throw new UnauthorizedException('Invalid user');
+    }
 
     const verified = speakeasy.totp({
       secret: user.twoFactorSecret,
-      encoding: "base32",
+      encoding: 'base32',
       token: code,
     });
 
     if (!verified) {
-      throw new UnauthorizedException("Invalid 2FA code");
+      throw new UnauthorizedException('Invalid 2FA code');
     }
 
     const token = await this.issueAccessToken(user.id, user.email);
@@ -138,10 +161,11 @@ export class AuthService {
   }
 
   private async issueAccessToken(userId: string, email: string) {
-    const accessSecret = this.config.get<string>("JWT_ACCESS_SECRET");
-    if (!accessSecret) throw new Error("JWT_ACCESS_SECRET missing");
+    const accessSecret = this.config.get<string>('JWT_ACCESS_SECRET');
+    if (!accessSecret) throw new Error('JWT_ACCESS_SECRET missing');
 
-    const accessExpRaw = this.config.get<string>("JWT_ACCESS_EXPIRES_IN") ?? "1h";
+    const accessExpRaw =
+      this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '1h';
     const accessExp = this.asExpiresIn(accessExpRaw);
 
     const payload = { sub: userId, email };
@@ -152,28 +176,35 @@ export class AuthService {
     });
 
     const accessExpiresAt = this.computeExpiryDate(accessExpRaw).getTime();
+
     return { accessToken, accessExpiresAt };
   }
 
-    private asExpiresIn(value: string): SignOptions["expiresIn"] {
+  private asExpiresIn(value: string): SignOptions['expiresIn'] {
     const trimmed = value.trim();
     const n = Number(trimmed);
-    if (!Number.isNaN(n) && trimmed !== "") return n; // seconds
-    return trimmed; // e.g. "15m", "30d"
-    }
+
+    if (!Number.isNaN(n) && trimmed !== '') return n;
+    return trimmed;
+  }
 
   private computeExpiryDate(exp: string) {
-    // supports "15m", "30d", "1h" style (simple parser)
     const m = /^(\d+)([smhd])$/.exec(exp.trim());
-    if (!m) return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    if (!m) {
+      return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    }
 
     const value = Number(m[1]);
     const unit = m[2];
+
     const ms =
-      unit === "s" ? value * 1000 :
-      unit === "m" ? value * 60 * 1000 :
-      unit === "h" ? value * 60 * 60 * 1000 :
-      value * 24 * 60 * 60 * 1000;
+      unit === 's'
+        ? value * 1000
+        : unit === 'm'
+          ? value * 60 * 1000
+          : unit === 'h'
+            ? value * 60 * 60 * 1000
+            : value * 24 * 60 * 60 * 1000;
 
     return new Date(Date.now() + ms);
   }
