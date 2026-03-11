@@ -1,51 +1,55 @@
-import type { NextAuthOptions, Session } from "next-auth";
-import Credentials from "next-auth/providers/credentials";
+import type { NextAuthOptions, Session } from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
 
 interface CustomUser {
   id: string;
   email: string;
   name: string;
   apiAccessToken: string;
-  apiRefreshToken: string;
   apiAccessExpiresAt: number | null;
 }
 
 interface CustomSession extends Session {
   apiAccessToken?: string;
+  apiAccessExpiresAt?: number | null;
 }
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt" },
+  session: { strategy: 'jwt' },
 
   providers: [
     Credentials({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" },
-        accessToken: { label: "AccessToken", type: "text" },
-        userId: { label: "UserId", type: "text" },
+        email: { label: 'Email', type: 'text' },
+        password: { label: 'Password', type: 'password' },
+        accessToken: { label: 'AccessToken', type: 'text' },
+        userId: { label: 'UserId', type: 'text' },
       },
       async authorize(credentials) {
-        // 🔹 2FA login flow (session creation using existing token)
-        if (credentials?.accessToken && credentials?.email && credentials?.userId) {
+        // Session creation after successful 2FA/setup
+        if (
+          credentials?.accessToken &&
+          credentials?.email &&
+          credentials?.userId
+        ) {
           return {
             id: credentials.userId,
             email: credentials.email,
-            name: "",
+            name: '',
             apiAccessToken: credentials.accessToken,
             apiAccessExpiresAt: null,
           } as CustomUser;
         }
 
-        // 🔹 normal login flow
         const email = credentials?.email;
         const password = credentials?.password;
+
         if (!email || !password) return null;
 
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
         });
 
@@ -53,9 +57,12 @@ export const authOptions: NextAuthOptions = {
 
         const data = await res.json();
 
-        // 2FA required
+        if (data.requiresTwoFactorSetup) {
+          throw new Error(`2FA_SETUP_REQUIRED:${data.userId}:${data.email}`);
+        }
+
         if (data.requiresTwoFactor) {
-          throw new Error(`2FA_REQUIRED:${data.userId}`);
+          throw new Error(`2FA_REQUIRED:${data.userId}:${data.email}`);
         }
 
         if (!data?.user?.id || !data?.accessToken) return null;
@@ -63,7 +70,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: data.user.id,
           email: data.user.email,
-          name: data.user.name,
+          name: data.user.name ?? '',
           apiAccessToken: data.accessToken,
           apiAccessExpiresAt: data.accessExpiresAt ?? null,
         } as CustomUser;
@@ -72,19 +79,26 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-  async jwt({ token, user }) {
-    if (user) {
-      token.apiAccessToken = (user as CustomUser).apiAccessToken;
-      token.apiAccessExpiresAt = (user as CustomUser).apiAccessExpiresAt;
-    }
-    return token;
+    async jwt({ token, user }) {
+      if (user) {
+        token.apiAccessToken = (user as CustomUser).apiAccessToken;
+        token.apiAccessExpiresAt = (user as CustomUser).apiAccessExpiresAt;
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      (session as CustomSession).apiAccessToken = token.apiAccessToken as
+        | string
+        | undefined;
+      (session as CustomSession).apiAccessExpiresAt =
+        (token.apiAccessExpiresAt as number | null | undefined) ?? null;
+
+      return session;
+    },
   },
 
-  async session({ session, token }) {
-    session.apiAccessToken = token.apiAccessToken as string | undefined;
-    session.apiAccessExpiresAt =
-      (token.apiAccessExpiresAt as number | null | undefined) ?? null;
-    return session;
+  pages: {
+    signIn: '/login',
   },
-},
 };

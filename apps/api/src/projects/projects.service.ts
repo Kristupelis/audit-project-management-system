@@ -4,11 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ProjectRole, AuditAction } from '@prisma/client';
+import { AuditAction, PermissionAction, ResourceType } from '@prisma/client';
+import { ProjectPermissionsService } from './permissions.service';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissions: ProjectPermissionsService,
+  ) {}
 
   async createProject(actorId: string, name: string, description?: string) {
     return this.prisma.$transaction(async (tx) => {
@@ -19,7 +23,7 @@ export class ProjectsService {
           members: {
             create: {
               userId: actorId,
-              role: ProjectRole.ADMIN,
+              isOwner: true,
             },
           },
           auditLogs: {
@@ -48,6 +52,16 @@ export class ProjectsService {
     const memberships = await this.prisma.projectMember.findMany({
       where: { userId },
       include: {
+        roles: {
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         project: {
           select: {
             id: true,
@@ -61,8 +75,12 @@ export class ProjectsService {
       orderBy: { createdAt: 'desc' },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return memberships.map((m) => ({
-      role: m.role,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      isOwner: m.isOwner,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      roles: m.roles.map((r) => r.role.name),
       ...m.project,
     }));
   }
@@ -71,6 +89,16 @@ export class ProjectsService {
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
       include: {
+        roles: {
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         project: {
           select: {
             id: true,
@@ -84,7 +112,15 @@ export class ProjectsService {
     });
 
     if (!member) throw new ForbiddenException('Not a project member');
-    return { role: member.role, ...member.project };
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      isOwner: member.isOwner,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      roles: member.roles.map((r) => r.role.name),
+      ...member.project,
+    };
   }
 
   async updateProject(
@@ -92,10 +128,14 @@ export class ProjectsService {
     userId: string,
     data: { name?: string; description?: string },
   ) {
-    const role = await this.getRole(projectId, userId);
-    if (role !== ProjectRole.ADMIN && role !== ProjectRole.EDITOR) {
-      throw new ForbiddenException('Insufficient permissions');
-    }
+    await this.permissions.requirePermission(
+      projectId,
+      userId,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      ResourceType.PROJECT,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      PermissionAction.UPDATE,
+    );
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.project.update({
@@ -128,15 +168,8 @@ export class ProjectsService {
     });
   }
 
-  async addMember(
-    projectId: string,
-    actorId: string,
-    email: string,
-    role: ProjectRole,
-  ) {
-    const actorRole = await this.getRole(projectId, actorId);
-    if (actorRole !== ProjectRole.ADMIN)
-      throw new ForbiddenException('Admin required');
+  async addMember(projectId: string, actorId: string, email: string) {
+    await this.permissions.requireOwner(projectId, actorId);
 
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) throw new NotFoundException('User not found');
@@ -144,8 +177,21 @@ export class ProjectsService {
     return this.prisma.$transaction(async (tx) => {
       const member = await tx.projectMember.upsert({
         where: { projectId_userId: { projectId, userId: user.id } },
-        update: { role },
-        create: { projectId, userId: user.id, role },
+        update: {},
+        create: {
+          projectId,
+          userId: user.id,
+          isOwner: false,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+        },
       });
 
       await tx.auditLog.create({
@@ -155,7 +201,7 @@ export class ProjectsService {
           action: AuditAction.MEMBER_ADDED,
           entity: 'ProjectMember',
           entityId: member.id,
-          details: { addedUserId: user.id, email, role },
+          details: { addedUserId: user.id, email },
         },
       });
 

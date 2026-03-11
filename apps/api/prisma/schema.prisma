@@ -6,6 +6,36 @@ datasource db {
   provider = "postgresql"
 }
 
+enum SystemRole {
+  USER
+  SUPER_ADMIN
+}
+
+enum ResourceType {
+  PROJECT
+  PHASE
+  NODE
+  TASK
+  NOTE
+  FILE
+  FINDING
+  RISK
+  CONTROL
+  EVIDENCE
+  REPORT
+  MEMBER
+  ROLE
+}
+
+enum PermissionAction {
+  READ
+  CREATE
+  UPDATE
+  DELETE
+  MANAGE
+  ASSIGN
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -13,6 +43,7 @@ model User {
   passwordHash String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  systemRole      SystemRole @default(USER)
 
   refreshTokens RefreshToken[] // ✅ opposite relation field
 
@@ -36,21 +67,6 @@ model RefreshToken {
   @@index([userId])
 }
 
-enum ProjectRole {
-  READER
-  EDITOR
-  ADMIN
-}
-
-enum AuditAction {
-  PROJECT_CREATED
-  PROJECT_UPDATED
-  PROJECT_DELETED
-  MEMBER_ADDED
-  MEMBER_ROLE_UPDATED
-  MEMBER_REMOVED
-}
-
 model Project {
   id          String   @id @default(cuid())
   name        String
@@ -60,21 +76,81 @@ model Project {
 
   members   ProjectMember[]
   auditLogs AuditLog[]
+
+  projectRoles ProjectRole[]
 }
 
 model ProjectMember {
-  id        String      @id @default(cuid())
+  id        String   @id @default(cuid())
   projectId String
   userId    String
-  role      ProjectRole @default(READER)
-  createdAt DateTime    @default(now())
+  isOwner   Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  roles       ProjectMemberRole[]
+  permissions ProjectMemberPermission[]
+
   @@unique([projectId, userId])
   @@index([userId])
   @@index([projectId])
+}
+
+model ProjectRole {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  isSystem    Boolean  @default(false) // optional if you want default built-in project roles
+  createdAt   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  permissions ProjectRolePermission[]
+  members     ProjectMemberRole[]
+
+  @@unique([projectId, name])
+}
+
+model ProjectRolePermission {
+  id         String           @id @default(cuid())
+  roleId     String
+  resource   ResourceType
+  action     PermissionAction
+  scopeId    String? // optional, later for specific component/node/etc.
+
+  role ProjectRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, resource, action, scopeId])
+  @@index([roleId, resource, action])
+  @@index([roleId, scopeId])
+}
+
+model ProjectMemberRole {
+  id              String   @id @default(cuid())
+  projectMemberId String
+  roleId          String
+
+  projectMember ProjectMember @relation(fields: [projectMemberId], references: [id], onDelete: Cascade)
+  role          ProjectRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([projectMemberId, roleId])
+}
+
+model ProjectMemberPermission {
+  id              String           @id @default(cuid())
+  projectMemberId String
+  resource        ResourceType
+  action          PermissionAction
+  scopeId         String?
+
+  projectMember ProjectMember @relation(fields: [projectMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([projectMemberId, resource, action, scopeId])
+  @@index([projectMemberId, resource, action])
+  @@index([projectMemberId, scopeId])
 }
 
 model AuditLog {
@@ -93,4 +169,19 @@ model AuditLog {
   @@index([projectId])
   @@index([actorId])
   @@index([createdAt])
+}
+
+enum AuditAction {
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_DELETED
+  MEMBER_ADDED
+  MEMBER_ROLE_UPDATED
+  MEMBER_REMOVED
+  OWNER_TRANSFERRED
+  ROLE_CREATED
+  ROLE_UPDATED
+  ROLE_DELETED
+  DIRECT_PERMISSION_GRANTED
+  DIRECT_PERMISSION_REVOKED
 }

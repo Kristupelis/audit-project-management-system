@@ -27,7 +27,7 @@ export default function ProjectsHeader({
       <div className="flex gap-2">
         <Link
           href="/account"
-          className="border rounded-md px-3 py-2 hover:bg-gray-100"
+          className="border rounded-md px-3 py-2 hover:bg-gray-800"
         >
           Account
         </Link>
@@ -35,7 +35,7 @@ export default function ProjectsHeader({
 
         <button
             onClick={handleSignOut}
-            className="border rounded-md px-3 py-2 hover:bg-gray"
+            className="border rounded-md px-3 py-2 hover:bg-gray-800"
         >
             Sign out
         </button>

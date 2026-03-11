@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +16,7 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const res = await signIn("credentials", {
+    const res = await signIn('credentials', {
       email,
       password,
       redirect: false,
@@ -25,27 +25,40 @@ export default function LoginPage() {
     setLoading(false);
 
     if (!res) {
-      setError("Login failed");
+      setError('Login failed');
       return;
     }
 
-    if (res.error?.startsWith("2FA_REQUIRED")) {
-      const userId = res.error.split(":")[1];
-      router.push(`/login/2fa?userId=${userId}`);
+    if (res.error?.startsWith('2FA_SETUP_REQUIRED:')) {
+      const [, userId, returnedEmail] = res.error.split(':');
+      router.push(
+        `/login/2fa?mode=setup&userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(returnedEmail ?? email)}`,
+      );
+      return;
+    }
+
+    if (res.error?.startsWith('2FA_REQUIRED:')) {
+      const [, userId, returnedEmail] = res.error.split(':');
+      router.push(
+        `/login/2fa?mode=verify&userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(returnedEmail ?? email)}`,
+      );
       return;
     }
 
     if (res.error) {
-      setError("Invalid email or password");
+      setError('Invalid email or password');
       return;
     }
 
-    router.push("/projects");
+    router.push('/projects');
   }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4 border rounded-xl p-6">
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-sm space-y-4 border rounded-xl p-6"
+      >
         <h1 className="text-xl font-semibold">Login</h1>
 
         <div className="space-y-2">
@@ -72,19 +85,21 @@ export default function LoginPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button className="w-full border rounded-md p-2 disabled:opacity-50" disabled={loading}>
-          {loading ? "Signing in..." : "Sign in"}
+        <button
+          className="w-full border rounded-md p-2 disabled:opacity-50"
+          disabled={loading}
+        >
+          {loading ? 'Signing in...' : 'Sign in'}
         </button>
+
         <button
           type="button"
           className="w-full border rounded-md p-2 disabled:opacity-50"
-          onClick={() => router.push("/register")}
+          onClick={() => router.push('/register')}
         >
           Register
         </button>
-
       </form>
-        
     </main>
   );
 }
