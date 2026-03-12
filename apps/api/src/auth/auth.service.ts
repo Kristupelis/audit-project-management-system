@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import type { SignOptions } from 'jsonwebtoken';
 import * as speakeasyRaw from 'speakeasy';
 import * as QRCode from 'qrcode';
+import { userId } from '../common/id';
 
 const speakeasy = speakeasyRaw as unknown as {
   generateSecret: (opts: { length: number; name: string }) => {
@@ -39,7 +40,7 @@ export class AuthService {
     const passwordHash = await argon2.hash(password);
 
     const user = await this.prisma.user.create({
-      data: { email, name: name ?? null, passwordHash },
+      data: { id: userId(), email, name: name ?? null, passwordHash },
       select: { id: true, email: true, name: true, createdAt: true },
     });
 

@@ -37,7 +37,7 @@ enum PermissionAction {
 }
 
 model User {
-  id           String   @id @default(cuid())
+  id           String   @id //@default(cuid())
   email        String   @unique
   name         String?
   passwordHash String?
@@ -68,7 +68,7 @@ model RefreshToken {
 }
 
 model Project {
-  id          String   @id @default(cuid())
+  id          String   @id //@default(cuid())
   name        String
   description String?
   createdAt   DateTime @default(now())
@@ -81,7 +81,7 @@ model Project {
 }
 
 model ProjectMember {
-  id        String   @id @default(cuid())
+  id        String   @id //@default(cuid())
   projectId String
   userId    String
   isOwner   Boolean  @default(false)
@@ -99,7 +99,7 @@ model ProjectMember {
 }
 
 model ProjectRole {
-  id          String   @id @default(cuid())
+  id          String   @id //@default(cuid())
   projectId   String
   name        String
   description String?
@@ -115,7 +115,7 @@ model ProjectRole {
 }
 
 model ProjectRolePermission {
-  id         String           @id @default(cuid())
+  id         String           @id //@default(cuid())
   roleId     String
   resource   ResourceType
   action     PermissionAction
@@ -129,7 +129,7 @@ model ProjectRolePermission {
 }
 
 model ProjectMemberRole {
-  id              String   @id @default(cuid())
+  id              String   @id //@default(cuid())
   projectMemberId String
   roleId          String
 
@@ -140,7 +140,7 @@ model ProjectMemberRole {
 }
 
 model ProjectMemberPermission {
-  id              String           @id @default(cuid())
+  id              String           @id //@default(cuid())
   projectMemberId String
   resource        ResourceType
   action          PermissionAction
@@ -154,7 +154,7 @@ model ProjectMemberPermission {
 }
 
 model AuditLog {
-  id        String      @id @default(cuid())
+  id        String      @id //@default(cuid())
   projectId String
   actorId   String? // null for system actions later
   action    AuditAction

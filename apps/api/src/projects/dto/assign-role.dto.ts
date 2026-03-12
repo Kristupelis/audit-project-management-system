@@ -1,9 +1,6 @@
 import { IsString } from 'class-validator';
 
-export class AssignProjectRoleDto {
-  @IsString()
-  memberId: string;
-
+export class AssignRoleDto {
   @IsString()
   roleId: string;
 }

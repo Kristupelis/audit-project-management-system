@@ -2,9 +2,6 @@ import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { PermissionAction, ResourceType } from '@prisma/client';
 
 export class GrantDirectPermissionDto {
-  @IsString()
-  memberId: string;
-
   @IsEnum(ResourceType)
   resource: ResourceType;
 

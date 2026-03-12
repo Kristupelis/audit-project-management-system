@@ -25,6 +25,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
         accessToken: { label: 'AccessToken', type: 'text' },
         userId: { label: 'UserId', type: 'text' },
+        name: { label: 'Name', type: 'text' },
       },
       async authorize(credentials) {
         // Session creation after successful 2FA/setup
@@ -36,7 +37,7 @@ export const authOptions: NextAuthOptions = {
           return {
             id: credentials.userId,
             email: credentials.email,
-            name: '',
+            name: credentials.name ?? '',
             apiAccessToken: credentials.accessToken,
             apiAccessExpiresAt: null,
           } as CustomUser;
@@ -81,6 +82,9 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.email = user.email;
+        token.name = user.name;
+      
         token.apiAccessToken = (user as CustomUser).apiAccessToken;
         token.apiAccessExpiresAt = (user as CustomUser).apiAccessExpiresAt;
       }
@@ -88,9 +92,15 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
+      session.user = {
+        email: token.email as string,
+        name: token.name as string,
+      };
+
       (session as CustomSession).apiAccessToken = token.apiAccessToken as
         | string
         | undefined;
+
       (session as CustomSession).apiAccessExpiresAt =
         (token.apiAccessExpiresAt as number | null | undefined) ?? null;
 

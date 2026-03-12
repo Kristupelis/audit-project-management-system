@@ -29,10 +29,17 @@ type ProjectMemberWithPermissions = Prisma.ProjectMemberGetPayload<{
 export class ProjectPermissionsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private membershipCache = new Map<string, ProjectMemberWithPermissions>();
+
   async getMembership(
     projectId: string,
     userId: string,
   ): Promise<ProjectMemberWithPermissions> {
+    const cacheKey = `${projectId}:${userId}`;
+
+    const cached = this.membershipCache.get(cacheKey);
+    if (cached) return cached;
+
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
       include: {
@@ -60,6 +67,7 @@ export class ProjectPermissionsService {
       throw new ForbiddenException('Not a project member');
     }
 
+    this.membershipCache.set(cacheKey, member);
     return member;
   }
 
@@ -89,35 +97,40 @@ export class ProjectPermissionsService {
       return true;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const directAllowed = member.permissions.some(
-      (p) =>
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        p.resource === resource &&
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        p.action === action &&
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        (p.scopeId === null || p.scopeId === scopeId),
-    );
+    const scopes: (string | null | undefined)[] = [
+      scopeId, // exact scope
+      projectId, // project-level scope
+      null, // global
+    ];
 
-    if (directAllowed) return true;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const roleAllowed = member.roles.some((mr) =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      mr.role.permissions.some(
+    const hasPermission = (
+      perms: {
+        resource: ResourceType;
+        action: PermissionAction;
+        scopeId: string | null;
+      }[],
+    ): boolean => {
+      return perms.some(
         (p) =>
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           p.resource === resource &&
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           p.action === action &&
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          (p.scopeId === null || p.scopeId === scopeId),
-      ),
-    );
+          scopes.includes(p.scopeId),
+      );
+    };
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return roleAllowed;
+    // Direct permissions
+    if (hasPermission(member.permissions)) {
+      return true;
+    }
+
+    // Role permissions
+    for (const mr of member.roles) {
+      if (hasPermission(mr.role.permissions)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   async requirePermission(

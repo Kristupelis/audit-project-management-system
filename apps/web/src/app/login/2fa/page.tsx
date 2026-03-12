@@ -76,6 +76,7 @@ export default function TwoFactorPage() {
       redirect: false,
       userId: data.user.id,
       email: data.user.email,
+      name: data.user.name,
       accessToken: data.accessToken,
     });
 
