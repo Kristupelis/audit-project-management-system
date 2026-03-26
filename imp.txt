@@ -32,12 +32,5 @@ Galimai nereikalingi:
 src/app/api/auth/refresh/route.ts
 
 
-NestJS AuthModule (register/login)
-
-Password hashing + JWT access/refresh
-
-NextAuth Credentials provider calling /auth/login
-
-Add Google OAuth bridge (NextAuth Google → backend token exchange)
-
-Then: projects / nodes / tasks / audit logs / file upload scan
+Dar papildyti: generuoti logsus su kiekvienu komponentu, patvartykit komponentuose order atributa. Sudet service metodus i core folderi, kaip ss.
+Istestuot test step, evidence, finding ir patobulint ju dto bei atributus

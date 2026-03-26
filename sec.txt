@@ -5,3 +5,7 @@
  Slaptazodziu taisykles
 3. Refresh token expiration time
 apps/web/src/providers/api-token-provider.tsx - cia keisti kada issoka popupas
+4. 2FA
+
+
+Idejos: 2FA atsatymo kodai.

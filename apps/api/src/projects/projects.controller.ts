@@ -10,21 +10,32 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { ProjectsService } from './projects.service';
 
-import { CreateProjectDto } from './dto/create-project.dto';
-import { UpdateProjectDto } from './dto/update-project.dto';
+import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 
-import { CreateProjectRoleDto } from './dto/create-role.dto';
-import { AssignRoleDto } from './dto/assign-role.dto';
-import { GrantDirectPermissionDto } from './dto/grant-direct-permission.dto';
+import {
+  AssignRoleDto,
+  CreateProjectRoleDto,
+  GrantDirectPermissionDto,
+} from './dto/role.dto';
 import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
+
+import { CreateAuditAreaDto } from './dto/audit-area.dto';
+import { AuditAreaService } from './structure/audit-area.service';
+import { MembersService } from './core/members.service';
+import { RolesService } from './core/roles.service';
+import { ProjectsService } from './core/projects.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projects: ProjectsService) {}
+  constructor(
+    private readonly projects: ProjectsService,
+    private readonly members: MembersService,
+    private readonly roles: RolesService,
+    private readonly auditAreas: AuditAreaService,
+  ) {}
 
   // =========================
   // PROJECTS
@@ -58,13 +69,21 @@ export class ProjectsController {
   // MEMBERS
   // =========================
 
+  @Get(':id/members')
+  listMembers(
+    @Param('id') projectId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.members.listMembers(projectId, userId);
+  }
+
   @Post(':id/members')
   addMember(
     @Param('id') id: string,
     @CurrentUser('sub') userId: string,
     @Body() dto: AddMemberDto,
   ) {
-    return this.projects.addMember(id, userId, dto.email);
+    return this.members.addMember(id, userId, dto.email);
   }
 
   @Delete(':id/members/:memberId')
@@ -73,7 +92,7 @@ export class ProjectsController {
     @Param('memberId') memberId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.projects.removeMember(projectId, userId, memberId);
+    return this.members.removeMember(projectId, userId, memberId);
   }
 
   // =========================
@@ -86,7 +105,7 @@ export class ProjectsController {
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateProjectRoleDto,
   ) {
-    return this.projects.createRole(projectId, userId, dto);
+    return this.roles.createRole(projectId, userId, dto);
   }
 
   @Get(':id/roles')
@@ -94,7 +113,7 @@ export class ProjectsController {
     @Param('id') projectId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.projects.listRoles(projectId, userId);
+    return this.roles.listRoles(projectId, userId);
   }
 
   @Delete(':id/roles/:roleId')
@@ -103,7 +122,26 @@ export class ProjectsController {
     @Param('roleId') roleId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.projects.deleteRole(projectId, userId, roleId);
+    return this.roles.deleteRole(projectId, userId, roleId);
+  }
+
+  @Get(':id/roles/:roleId')
+  getRole(
+    @Param('id') projectId: string,
+    @Param('roleId') roleId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.roles.getRole(projectId, userId, roleId);
+  }
+
+  @Patch(':id/roles/:roleId')
+  updateRole(
+    @Param('id') projectId: string,
+    @Param('roleId') roleId: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: CreateProjectRoleDto,
+  ) {
+    return this.roles.updateRole(projectId, userId, roleId, dto);
   }
 
   // =========================
@@ -117,7 +155,7 @@ export class ProjectsController {
     @CurrentUser('sub') userId: string,
     @Body() dto: AssignRoleDto,
   ) {
-    return this.projects.assignRole(projectId, userId, memberId, dto.roleId);
+    return this.roles.assignRole(projectId, userId, memberId, dto.roleId);
   }
 
   @Delete(':id/members/:memberId/roles/:roleId')
@@ -127,7 +165,7 @@ export class ProjectsController {
     @Param('roleId') roleId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.projects.removeRole(projectId, userId, memberId, roleId);
+    return this.roles.removeRole(projectId, userId, memberId, roleId);
   }
 
   // =========================
@@ -141,7 +179,7 @@ export class ProjectsController {
     @CurrentUser('sub') userId: string,
     @Body() dto: GrantDirectPermissionDto,
   ) {
-    return this.projects.grantPermission(projectId, userId, memberId, dto);
+    return this.roles.grantPermission(projectId, userId, memberId, dto);
   }
 
   @Delete(':id/members/:memberId/permissions/:permissionId')
@@ -151,7 +189,7 @@ export class ProjectsController {
     @Param('permissionId') permissionId: string,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.projects.revokePermission(
+    return this.roles.revokePermission(
       projectId,
       userId,
       memberId,
@@ -169,7 +207,7 @@ export class ProjectsController {
     @CurrentUser('sub') userId: string,
     @Body() dto: TransferOwnershipDto,
   ) {
-    return this.projects.transferOwnership(projectId, userId, dto.memberId);
+    return this.roles.transferOwnership(projectId, userId, dto.memberId);
   }
 
   // =========================
@@ -179,5 +217,29 @@ export class ProjectsController {
   @Get(':id/audit')
   audit(@Param('id') id: string, @CurrentUser('sub') userId: string) {
     return this.projects.listAudit(id, userId);
+  }
+
+  // =========================
+  // PROJECT COMPONENTS
+  // =========================
+
+  // =========================
+  //    AUDIT AREA
+  // =========================
+  @Post(':id/audit-areas')
+  createAuditArea(
+    @Param('id') projectId: string,
+    @Body() dto: CreateAuditAreaDto,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.auditAreas.create(projectId, userId, dto.name);
+  }
+
+  @Get(':id/audit-areas')
+  getAuditAreas(
+    @Param('id') projectId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.auditAreas.list(projectId, userId);
   }
 }

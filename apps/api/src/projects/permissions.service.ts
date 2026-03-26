@@ -78,7 +78,6 @@ export class ProjectPermissionsService {
         select: { systemRole: true },
       });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return user?.systemRole === SystemRole.SUPER_ADMIN;
   }
 

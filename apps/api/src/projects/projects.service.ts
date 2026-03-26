@@ -1,14 +1,18 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuditAction, PermissionAction, ResourceType } from '@prisma/client';
+import {
+  AuditAction,
+  PermissionAction,
+  Prisma,
+  ResourceType,
+} from '@prisma/client';
 import { ProjectPermissionsService } from './permissions.service';
-import { CreateProjectRoleDto } from './dto/create-role.dto';
-import { GrantDirectPermissionDto } from './dto/grant-direct-permission.dto';
+import { CreateProjectRoleDto } from './dto/role.dto';
+import { GrantDirectPermissionDto } from './dto/role.dto';
 import {
   projectId,
   memberId,
@@ -24,6 +28,9 @@ export class ProjectsService {
     private readonly permissions: ProjectPermissionsService,
   ) {}
 
+  // =========================
+  // PROJECTS
+  // =========================
   async createProject(actorId: string, name: string, description?: string) {
     return this.prisma.$transaction(async (tx) => {
       const project = await tx.project.create({
@@ -88,11 +95,8 @@ export class ProjectsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return memberships.map((m) => ({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       isOwner: m.isOwner,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       roles: m.roles.map((r) => r.role.name),
       ...m.project,
     }));
@@ -126,11 +130,8 @@ export class ProjectsService {
 
     if (!member) throw new ForbiddenException('Not a project member');
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       isOwner: member.isOwner,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       roles: member.roles.map((r) => r.role.name),
       ...member.project,
     };
@@ -144,9 +145,7 @@ export class ProjectsService {
     await this.permissions.requirePermission(
       projectId,
       userId,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       ResourceType.PROJECT,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       PermissionAction.UPDATE,
     );
 
@@ -182,6 +181,56 @@ export class ProjectsService {
     });
   }
 
+  // =========================
+  // MEMBERS
+  // =========================
+
+  async listMembers(projectId: string, userId: string) {
+    await this.permissions.requirePermission(
+      projectId,
+      userId,
+      ResourceType.PROJECT,
+      PermissionAction.READ,
+    );
+
+    const members = await this.prisma.projectMember.findMany({
+      where: { projectId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+        roles: {
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const canDeleteMembers = await this.permissions.can(
+      projectId,
+      userId,
+      ResourceType.PROJECT,
+      PermissionAction.DELETE,
+    );
+
+    return {
+      currentUserId: userId,
+      canDeleteMembers,
+      members,
+    };
+  }
+
   async addMember(projectId: string, actorId: string, email: string) {
     await this.permissions.requireOwner(projectId, actorId);
 
@@ -197,6 +246,15 @@ export class ProjectsService {
           projectId,
           userId: user.id,
           isOwner: false,
+
+          permissions: {
+            create: {
+              id: permissionId(),
+              resource: ResourceType.PROJECT,
+              action: PermissionAction.READ,
+              scopeId: null,
+            },
+          },
         },
         include: {
           user: {
@@ -282,14 +340,15 @@ export class ProjectsService {
     });
   }
 
+  // =========================
+  // AUDIT
+  // =========================
   async listAudit(projectId: string, userId: string) {
     // must have permission to read project
     await this.permissions.requirePermission(
       projectId,
       userId,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       ResourceType.PROJECT,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       PermissionAction.READ,
     );
 
@@ -300,6 +359,10 @@ export class ProjectsService {
     });
   }
 
+  // =========================
+  // PROJECT ROLES
+  // =========================
+
   async createRole(
     projectId: string,
     userId: string,
@@ -307,20 +370,16 @@ export class ProjectsService {
   ) {
     await this.permissions.requireOwner(projectId, userId);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     return this.prisma.projectRole.create({
       data: {
         id: roleId(),
         projectId,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         name: dto.name,
         description: dto.description,
         permissions: {
           create: dto.permissions.map((p) => ({
             id: permissionId(),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             resource: p.resource,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             action: p.action,
             scopeId: p.scopeId ?? null,
           })),
@@ -336,13 +395,10 @@ export class ProjectsService {
     await this.permissions.requirePermission(
       projectId,
       userId,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       ResourceType.PROJECT,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       PermissionAction.READ,
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     return this.prisma.projectRole.findMany({
       where: { projectId },
       include: {
@@ -354,12 +410,104 @@ export class ProjectsService {
   async deleteRole(projectId: string, userId: string, roleId: string) {
     await this.permissions.requireOwner(projectId, userId);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     return this.prisma.projectRole.delete({
       where: { id: roleId },
     });
   }
 
+  async getRole(projectId: string, userId: string, roleId: string) {
+    await this.permissions.requirePermission(
+      projectId,
+      userId,
+      ResourceType.PROJECT,
+      PermissionAction.READ,
+    );
+
+    return this.prisma.projectRole.findFirst({
+      where: {
+        id: roleId,
+        projectId,
+      },
+      include: {
+        permissions: true,
+        members: {
+          include: {
+            projectMember: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async updateRole(
+    projectId: string,
+    userId: string,
+    roleIdValue: string,
+    dto: CreateProjectRoleDto,
+  ) {
+    await this.permissions.requireOwner(projectId, userId);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.projectRolePermission.deleteMany({
+        where: { roleId: roleIdValue },
+      });
+
+      const updated = await tx.projectRole.update({
+        where: { id: roleIdValue },
+        data: {
+          name: dto.name,
+          description: dto.description ?? null,
+          permissions: {
+            create: dto.permissions.map((p) => ({
+              id: permissionId(),
+              resource: p.resource,
+              action: p.action,
+              scopeId: p.scopeId ?? null,
+            })),
+          },
+        },
+        include: {
+          permissions: true,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId,
+          actorId: userId,
+          action: AuditAction.ROLE_UPDATED,
+          entity: 'ProjectRole',
+          entityId: roleIdValue,
+          details: {
+            name: dto.name,
+            description: dto.description ?? null,
+            permissions: dto.permissions.map((p) => ({
+              resource: p.resource,
+              action: p.action,
+              scopeId: p.scopeId ?? null,
+            })),
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  // =========================
+  // ROLE ASSIGNMENT
+  // =========================
   async assignRole(
     projectId: string,
     userId: string,
@@ -368,7 +516,6 @@ export class ProjectsService {
   ) {
     await this.permissions.requireOwner(projectId, userId);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     return this.prisma.projectMemberRole.create({
       data: {
         id: permissionId(),
@@ -386,7 +533,6 @@ export class ProjectsService {
   ) {
     await this.permissions.requireOwner(projectId, userId);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     return this.prisma.projectMemberRole.deleteMany({
       where: {
         projectMemberId: memberId,
@@ -394,6 +540,10 @@ export class ProjectsService {
       },
     });
   }
+
+  // =========================
+  // DIRECT PERMISSIONS
+  // =========================
 
   async grantPermission(
     projectId: string,
@@ -403,14 +553,11 @@ export class ProjectsService {
   ) {
     await this.permissions.requireOwner(projectId, userId);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     return this.prisma.projectMemberPermission.create({
       data: {
         id: permissionId(),
         projectMemberId: memberId,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         resource: dto.resource,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         action: dto.action,
         scopeId: dto.scopeId ?? null,
       },
@@ -425,11 +572,14 @@ export class ProjectsService {
   ) {
     await this.permissions.requireOwner(projectId, userId);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     return this.prisma.projectMemberPermission.delete({
       where: { id: permissionId },
     });
   }
+
+  // =========================
+  // OWNERSHIP
+  // =========================
 
   async transferOwnership(projectId: string, userId: string, memberId: string) {
     await this.permissions.requireOwner(projectId, userId);

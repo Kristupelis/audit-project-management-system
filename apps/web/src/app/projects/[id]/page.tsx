@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
+import Members from "./members";
 
 type Project = {
   id: string;
@@ -9,7 +10,8 @@ type Project = {
   description: string | null;
   createdAt: string;
   updatedAt: string;
-  role: "READER" | "EDITOR" | "ADMIN";
+  isOwner: boolean;
+  roles: string[];
 };
 
 type AuditLog = {
@@ -26,8 +28,9 @@ type AuditLog = {
 export default async function ProjectDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   const token = session?.apiAccessToken;
 
@@ -42,8 +45,8 @@ export default async function ProjectDetailPage({
     );
   }
 
-  const project = await apiFetch<Project>(`/projects/${params.id}`, token);
-  const audit = await apiFetch<AuditLog[]>(`/projects/${params.id}/audit`, token);
+  const project = await apiFetch<Project>(`/projects/${id}`, token);
+  const audit = await apiFetch<AuditLog[]>(`/projects/${id}/audit`, token);
 
   return (
     <main className="p-6 space-y-6">
@@ -55,8 +58,15 @@ export default async function ProjectDetailPage({
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold">{project.name}</h1>
+
+            <Members projectId={id} />
+            <div className="space-y-1">
+              <Link href={`/projects/${id}/roles`}>
+                <button className="border px-3 py-1 rounded">Roles</button>
+              </Link>
+            </div>
             {project.description && (
-              <p className="text-sm opacity-80">{project.description}</p>
+              <p className="text-sm opacity-80">Project description: {project.description}</p>
             )}
             <p className="text-xs opacity-60">
               Updated: {new Date(project.updatedAt).toLocaleString()}
@@ -64,7 +74,7 @@ export default async function ProjectDetailPage({
           </div>
 
           <span className="text-xs border rounded-full px-2 py-1">
-            {project.role}
+            {project.isOwner ? "OWNER" : project.roles.join(", ") || "MEMBER"}
           </span>
         </div>
       </header>

@@ -1,3 +1,5 @@
+import { PermissionAction, ResourceType } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
@@ -5,10 +7,13 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { PermissionAction, ResourceType } from '@prisma/client';
 
-class RolePermissionDto {
+export class AssignRoleDto {
+  @IsString()
+  roleId: string;
+}
+
+export class RolePermissionDto {
   @IsEnum(ResourceType)
   resource: ResourceType;
 
@@ -32,4 +37,16 @@ export class CreateProjectRoleDto {
   @ValidateNested({ each: true })
   @Type(() => RolePermissionDto)
   permissions: RolePermissionDto[];
+}
+
+export class GrantDirectPermissionDto {
+  @IsEnum(ResourceType)
+  resource: ResourceType;
+
+  @IsEnum(PermissionAction)
+  action: PermissionAction;
+
+  @IsOptional()
+  @IsString()
+  scopeId?: string;
 }

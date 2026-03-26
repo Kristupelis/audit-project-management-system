@@ -9,16 +9,19 @@ type Project = {
   id: string;
   name: string;
   description?: string;
-  role: string;
-  updatedAt: Date;
+  isOwner: boolean;
+  roles: string[];
+  updatedAt: string;
 };
 
 async function fetchProjects(token: string) {
-  const res = await fetch("http://localhost:4000/projects", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/projects`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
+
   if (!res.ok) return [];
+
   return res.json();
 }
 
@@ -68,7 +71,7 @@ export default async function ProjectsPage() {
                 </div>
 
                 <span className="text-xs border rounded-full px-2 py-1">
-                    {p.role}
+                  {p.isOwner ? "OWNER" : p.roles.join(", ") || "MEMBER"}
                 </span>
                 </div>
             </Link>
