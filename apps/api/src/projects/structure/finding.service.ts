@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectPermissionsService } from '../permissions.service';
-import { PermissionAction, ResourceType } from '@prisma/client';
-import { findingId } from '../../common/id';
+import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
+import { findingId, auditId } from '../../common/id';
 import { CreateFindingDto, UpdateFindingDto } from '../dto/finding.dto';
 
 @Injectable()
@@ -50,12 +50,40 @@ export class FindingService {
       PermissionAction.CREATE,
     );
 
-    return this.prisma.finding.create({
-      data: {
-        id: findingId(),
-        processId: processIdValue,
-        ...dto,
-      },
+    const last = await this.prisma.finding.findFirst({
+      where: { processId: processIdValue },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const nextOrder = (last?.order ?? -1) + 1;
+
+    return this.prisma.$transaction(async (tx) => {
+      const finding = await tx.finding.create({
+        data: {
+          id: findingId(),
+          processId: processIdValue,
+          ...dto,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          order: nextOrder,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: p.auditArea.projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.FINDING_CREATED,
+          entity: 'Finding',
+          entityId: finding.id,
+          details: { ...dto },
+        },
+      });
+
+      return finding;
     });
   }
 
@@ -107,9 +135,26 @@ export class FindingService {
       PermissionAction.UPDATE,
     );
 
-    return this.prisma.finding.update({
-      where: { id: findingIdValue },
-      data: dto,
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.finding.update({
+        where: { id: findingIdValue },
+        data: { ...dto },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.FINDING_UPDATED,
+          entity: 'Finding',
+          entityId: findingIdValue,
+          details: { ...dto },
+        },
+      });
+
+      return updated;
     });
   }
 
@@ -123,8 +168,22 @@ export class FindingService {
       PermissionAction.DELETE,
     );
 
-    return this.prisma.finding.delete({
-      where: { id: findingIdValue },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.finding.delete({ where: { id: findingIdValue } });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.FINDING_DELETED,
+          entity: 'Finding',
+          entityId: findingIdValue,
+        },
+      });
+
+      return { success: true };
     });
   }
 }

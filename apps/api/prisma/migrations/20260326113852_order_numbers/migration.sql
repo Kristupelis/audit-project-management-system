@@ -1,0 +1,11 @@
+-- AlterTable
+ALTER TABLE "Control" ADD COLUMN     "order" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "Evidence" ADD COLUMN     "order" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "Finding" ADD COLUMN     "order" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "TestStep" ADD COLUMN     "order" INTEGER NOT NULL DEFAULT 0;

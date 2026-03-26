@@ -181,15 +181,42 @@ enum AuditAction {
   PROJECT_CREATED
   PROJECT_UPDATED
   PROJECT_DELETED
+
   MEMBER_ADDED
   MEMBER_ROLE_UPDATED
   MEMBER_REMOVED
   OWNER_TRANSFERRED
+
   ROLE_CREATED
   ROLE_UPDATED
   ROLE_DELETED
+
   DIRECT_PERMISSION_GRANTED
   DIRECT_PERMISSION_REVOKED
+
+  AUDIT_AREA_CREATED
+  AUDIT_AREA_UPDATED
+  AUDIT_AREA_DELETED
+
+  PROCESS_CREATED
+  PROCESS_UPDATED
+  PROCESS_DELETED
+
+  CONTROL_CREATED
+  CONTROL_UPDATED
+  CONTROL_DELETED
+
+  TEST_STEP_CREATED
+  TEST_STEP_UPDATED
+  TEST_STEP_DELETED
+
+  EVIDENCE_CREATED
+  EVIDENCE_UPDATED
+  EVIDENCE_DELETED
+
+  FINDING_CREATED
+  FINDING_UPDATED
+  FINDING_DELETED
 }
 
 /*Project componets */
@@ -223,6 +250,7 @@ model Control {
   id        String  @id
   processId String
   name      String
+  order       Int       @default(0)
 
   process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
 
@@ -235,6 +263,7 @@ model TestStep {
   id        String @id
   controlId String
   description String
+  order       Int       @default(0)
 
   control   Control @relation(fields: [controlId], references: [id], onDelete: Cascade)
 
@@ -247,6 +276,7 @@ model Evidence {
   title     String
   type      String
   fileUrl   String?
+  order       Int       @default(0)
 
   process   Process @relation(fields: [processId], references: [id], onDelete: Cascade)
 
@@ -259,6 +289,7 @@ model Finding {
   title       String
   description String
   severity    String
+  order       Int       @default(0)
 
   process     Process @relation(fields: [processId], references: [id], onDelete: Cascade)
 

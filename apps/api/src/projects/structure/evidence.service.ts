@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectPermissionsService } from '../permissions.service';
-import { PermissionAction, ResourceType } from '@prisma/client';
-import { evidenceId } from '../../common/id';
+import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
+import { evidenceId, auditId } from '../../common/id';
 import { CreateEvidenceDto, UpdateEvidenceDto } from '../dto/evidence.dto';
 
 @Injectable()
@@ -50,12 +50,40 @@ export class EvidenceService {
       PermissionAction.CREATE,
     );
 
-    return this.prisma.evidence.create({
-      data: {
-        id: evidenceId(),
-        processId: processIdValue,
-        ...dto,
-      },
+    const last = await this.prisma.evidence.findFirst({
+      where: { processId: processIdValue },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const nextOrder = (last?.order ?? -1) + 1;
+
+    return this.prisma.$transaction(async (tx) => {
+      const evidence = await tx.evidence.create({
+        data: {
+          id: evidenceId(),
+          processId: processIdValue,
+          ...dto,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          order: nextOrder,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: p.auditArea.projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.EVIDENCE_CREATED,
+          entity: 'Evidence',
+          entityId: evidence.id,
+          details: { ...dto },
+        },
+      });
+
+      return evidence;
     });
   }
 
@@ -111,9 +139,26 @@ export class EvidenceService {
       PermissionAction.UPDATE,
     );
 
-    return this.prisma.evidence.update({
-      where: { id: evidenceIdValue },
-      data: dto,
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.evidence.update({
+        where: { id: evidenceIdValue },
+        data: { ...dto },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.EVIDENCE_UPDATED,
+          entity: 'Evidence',
+          entityId: evidenceIdValue,
+          details: { ...dto },
+        },
+      });
+
+      return updated;
     });
   }
 
@@ -127,8 +172,22 @@ export class EvidenceService {
       PermissionAction.DELETE,
     );
 
-    return this.prisma.evidence.delete({
-      where: { id: evidenceIdValue },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.evidence.delete({ where: { id: evidenceIdValue } });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.EVIDENCE_DELETED,
+          entity: 'Evidence',
+          entityId: evidenceIdValue,
+        },
+      });
+
+      return { success: true };
     });
   }
 }

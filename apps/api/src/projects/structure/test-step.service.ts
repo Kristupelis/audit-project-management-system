@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectPermissionsService } from '../permissions.service';
-import { PermissionAction, ResourceType } from '@prisma/client';
-import { testStepId } from '../../common/id';
+import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
+import { testStepId, auditId } from '../../common/id';
 
 @Injectable()
 export class TestStepService {
@@ -57,12 +57,40 @@ export class TestStepService {
       PermissionAction.CREATE,
     );
 
-    return this.prisma.testStep.create({
-      data: {
-        id: testStepId(),
-        controlId,
-        description,
-      },
+    const last = await this.prisma.testStep.findFirst({
+      where: { controlId },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const nextOrder = (last?.order ?? -1) + 1;
+
+    return this.prisma.$transaction(async (tx) => {
+      const testStep = await tx.testStep.create({
+        data: {
+          id: testStepId(),
+          controlId,
+          description,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          order: nextOrder,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: control.process.auditArea.projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.TEST_STEP_CREATED,
+          entity: 'TestStep',
+          entityId: testStep.id,
+          details: { description },
+        },
+      });
+
+      return testStep;
     });
   }
 
@@ -117,9 +145,26 @@ export class TestStepService {
       PermissionAction.UPDATE,
     );
 
-    return this.prisma.testStep.update({
-      where: { id },
-      data: { description },
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.testStep.update({
+        where: { id: id },
+        data: { description },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.TEST_STEP_UPDATED,
+          entity: 'TestStep',
+          entityId: id,
+          details: { description },
+        },
+      });
+
+      return updated;
     });
   }
 
@@ -133,6 +178,22 @@ export class TestStepService {
       PermissionAction.DELETE,
     );
 
-    return this.prisma.testStep.delete({ where: { id } });
+    return this.prisma.$transaction(async (tx) => {
+      await tx.testStep.delete({ where: { id: id } });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.TEST_STEP_DELETED,
+          entity: 'TestStep',
+          entityId: id,
+        },
+      });
+
+      return { success: true };
+    });
   }
 }

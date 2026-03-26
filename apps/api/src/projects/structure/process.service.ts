@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectPermissionsService } from '../permissions.service';
-import { PermissionAction, ResourceType } from '@prisma/client';
-import { processId } from '../../common/id';
+import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
+import { processId, auditId } from '../../common/id';
 
 @Injectable()
 export class ProcessService {
@@ -41,12 +41,38 @@ export class ProcessService {
       PermissionAction.CREATE,
     );
 
-    return this.prisma.process.create({
-      data: {
-        id: processId(),
-        auditAreaId,
-        name,
-      },
+    const last = await this.prisma.process.findFirst({
+      where: { auditAreaId },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+
+    const nextOrder = (last?.order ?? -1) + 1;
+
+    return this.prisma.$transaction(async (tx) => {
+      const process = await tx.process.create({
+        data: {
+          id: processId(),
+          auditAreaId,
+          name,
+          order: nextOrder,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: area.projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.PROCESS_CREATED,
+          entity: 'Process',
+          entityId: process.id,
+          details: { name: name },
+        },
+      });
+
+      return process;
     });
   }
 
@@ -101,9 +127,26 @@ export class ProcessService {
       PermissionAction.UPDATE,
     );
 
-    return this.prisma.process.update({
-      where: { id: processIdValue },
-      data: { name },
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.process.update({
+        where: { id: processIdValue },
+        data: { name },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.PROCESS_UPDATED,
+          entity: 'Process',
+          entityId: processIdValue,
+          details: { name: name },
+        },
+      });
+
+      return updated;
     });
   }
 
@@ -117,8 +160,22 @@ export class ProcessService {
       PermissionAction.DELETE,
     );
 
-    return this.prisma.process.delete({
-      where: { id: processIdValue },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.process.delete({ where: { id: processIdValue } });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.PROCESS_DELETED,
+          entity: 'Process',
+          entityId: processIdValue,
+        },
+      });
+
+      return { success: true };
     });
   }
 }

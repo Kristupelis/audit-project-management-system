@@ -4,9 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PermissionAction, ResourceType } from '@prisma/client';
+import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
 import { ProjectPermissionsService } from '../permissions.service';
-import { auditAreaId /*, auditId*/ } from '../../common/id';
+import { auditAreaId, auditId } from '../../common/id';
 
 @Injectable()
 export class AuditAreaService {
@@ -33,13 +33,38 @@ export class AuditAreaService {
       ResourceType.AUDIT_AREA,
       PermissionAction.CREATE,
     );
+    const last = await this.prisma.auditArea.findFirst({
+      where: { projectId },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
 
-    return this.prisma.auditArea.create({
-      data: {
-        id: auditAreaId(),
-        projectId,
-        name,
-      },
+    const nextOrder = (last?.order ?? -1) + 1;
+
+    return this.prisma.$transaction(async (tx) => {
+      const area = await tx.auditArea.create({
+        data: {
+          id: auditAreaId(),
+          projectId,
+          name,
+          order: nextOrder,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.AUDIT_AREA_CREATED,
+          entity: 'AuditArea',
+          entityId: area.id,
+          details: { name: name },
+        },
+      });
+
+      return area;
     });
   }
 
@@ -85,9 +110,26 @@ export class AuditAreaService {
       PermissionAction.UPDATE,
     );
 
-    return this.prisma.auditArea.update({
-      where: { id: areaId },
-      data: { name },
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.auditArea.update({
+        where: { id: areaId },
+        data: { name },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.AUDIT_AREA_UPDATED,
+          entity: 'AuditArea',
+          entityId: areaId,
+          details: { name: name },
+        },
+      });
+
+      return updated;
     });
   }
 
@@ -101,8 +143,22 @@ export class AuditAreaService {
       PermissionAction.DELETE,
     );
 
-    return this.prisma.auditArea.delete({
-      where: { id: areaId },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.auditArea.delete({ where: { id: areaId } });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.AUDIT_AREA_DELETED,
+          entity: 'AuditArea',
+          entityId: areaId,
+        },
+      });
+
+      return { success: true };
     });
   }
 }

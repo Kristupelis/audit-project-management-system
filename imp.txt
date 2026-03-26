@@ -32,5 +32,8 @@ Galimai nereikalingi:
 src/app/api/auth/refresh/route.ts
 
 
-Dar papildyti: generuoti logsus su kiekvienu komponentu, patvartykit komponentuose order atributa. Sudet service metodus i core folderi, kaip ss.
-Istestuot test step, evidence, finding ir patobulint ju dto bei atributus
+Dar papildyti: generuoti logsus su kiekvienu roles veiksmu, patvartykit komponentuose order atributa.
+Istestuot (istestuota) test step, evidence, finding ir patobulint ju dto bei atributus
+Istrinti automatine projekto READ teises suteikima pridedant nari.
+Admin panelis, ataskaitos generavimas, failo ikelimas
+

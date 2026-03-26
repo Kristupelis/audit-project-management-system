@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import Members from "./members";
+import ProjectStructureSection from "./project-structure-section";
 
 type Project = {
   id: string;
@@ -60,14 +61,19 @@ export default async function ProjectDetailPage({
             <h1 className="text-2xl font-semibold">{project.name}</h1>
 
             <Members projectId={id} />
+
             <div className="space-y-1">
               <Link href={`/projects/${id}/roles`}>
                 <button className="border px-3 py-1 rounded">Roles</button>
               </Link>
             </div>
+
             {project.description && (
-              <p className="text-sm opacity-80">Project description: {project.description}</p>
+              <p className="text-sm opacity-80">
+                Project description: {project.description}
+              </p>
             )}
+
             <p className="text-xs opacity-60">
               Updated: {new Date(project.updatedAt).toLocaleString()}
             </p>
@@ -78,6 +84,8 @@ export default async function ProjectDetailPage({
           </span>
         </div>
       </header>
+
+      <ProjectStructureSection projectId={id} />
 
       <section className="border rounded-xl p-4 space-y-3">
         <h2 className="font-medium">Audit log (latest 100)</h2>

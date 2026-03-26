@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectPermissionsService } from '../permissions.service';
-import { PermissionAction, ResourceType } from '@prisma/client';
-import { controlId } from '../../common/id';
+import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
+import { controlId, auditId } from '../../common/id';
 
 @Injectable()
 export class ControlService {
@@ -49,14 +49,43 @@ export class ControlService {
       PermissionAction.CREATE,
     );
 
-    return this.prisma.control.create({
-      data: {
-        id: controlId(),
-        processId: processIdValue,
-        name,
-      },
+    const last = await this.prisma.control.findFirst({
+      where: { processId: processIdValue },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const nextOrder = (last?.order ?? -1) + 1;
+
+    return this.prisma.$transaction(async (tx) => {
+      const control = await tx.control.create({
+        data: {
+          id: controlId(),
+          processId: processIdValue,
+          name,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          order: nextOrder,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: process.auditArea.projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.CONTROL_CREATED,
+          entity: 'Control',
+          entityId: control.id,
+          details: { name: name },
+        },
+      });
+
+      return control;
     });
   }
+
   async listByProcess(processIdValue: string, userId: string) {
     const process = await this.prisma.process.findUnique({
       where: { id: processIdValue },
@@ -110,9 +139,26 @@ export class ControlService {
       PermissionAction.UPDATE,
     );
 
-    return this.prisma.control.update({
-      where: { id: controlIdValue },
-      data: { name },
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.control.update({
+        where: { id: controlIdValue },
+        data: { name },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.CONTROL_UPDATED,
+          entity: 'Control',
+          entityId: controlIdValue,
+          details: { name: name },
+        },
+      });
+
+      return updated;
     });
   }
 
@@ -126,8 +172,22 @@ export class ControlService {
       PermissionAction.DELETE,
     );
 
-    return this.prisma.control.delete({
-      where: { id: controlIdValue },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.control.delete({ where: { id: controlIdValue } });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.CONTROL_DELETED,
+          entity: 'Control',
+          entityId: controlIdValue,
+        },
+      });
+
+      return { success: true };
     });
   }
 }
