@@ -1,48 +1,79 @@
-import type { NextAuthOptions, Session } from "next-auth";
-import Credentials from "next-auth/providers/credentials";
+import type { NextAuthOptions, Session } from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
 
 interface CustomUser {
   id: string;
   email: string;
   name: string;
   apiAccessToken: string;
+  apiAccessExpiresAt: number | null;
 }
 
 interface CustomSession extends Session {
   apiAccessToken?: string;
+  apiAccessExpiresAt?: number | null;
 }
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt" },
+  session: { strategy: 'jwt' },
 
   providers: [
     Credentials({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" },
+        email: { label: 'Email', type: 'text' },
+        password: { label: 'Password', type: 'password' },
+        accessToken: { label: 'AccessToken', type: 'text' },
+        userId: { label: 'UserId', type: 'text' },
+        name: { label: 'Name', type: 'text' },
       },
       async authorize(credentials) {
+        // Session creation after successful 2FA/setup
+        if (
+          credentials?.accessToken &&
+          credentials?.email &&
+          credentials?.userId
+        ) {
+          return {
+            id: credentials.userId,
+            email: credentials.email,
+            name: credentials.name ?? '',
+            apiAccessToken: credentials.accessToken,
+            apiAccessExpiresAt: null,
+          } as CustomUser;
+        }
+
         const email = credentials?.email;
         const password = credentials?.password;
+
         if (!email || !password) return null;
 
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
         });
 
         if (!res.ok) return null;
 
         const data = await res.json();
+
+        if (data.requiresTwoFactorSetup) {
+          throw new Error(`2FA_SETUP_REQUIRED:${data.userId}:${data.email}`);
+        }
+
+        if (data.requiresTwoFactor) {
+          throw new Error(`2FA_REQUIRED:${data.userId}:${data.email}`);
+        }
+
         if (!data?.user?.id || !data?.accessToken) return null;
 
         return {
           id: data.user.id,
           email: data.user.email,
-          name: data.user.name,
+          name: data.user.name ?? '',
           apiAccessToken: data.accessToken,
+          apiAccessExpiresAt: data.accessExpiresAt ?? null,
         } as CustomUser;
       },
     }),
@@ -50,13 +81,34 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.apiAccessToken = (user as CustomUser).apiAccessToken;
+      if (user) {
+        token.email = user.email;
+        token.name = user.name;
+      
+        token.apiAccessToken = (user as CustomUser).apiAccessToken;
+        token.apiAccessExpiresAt = (user as CustomUser).apiAccessExpiresAt;
+      }
       return token;
     },
+
     async session({ session, token }) {
-      const customSession = session as CustomSession;
-      customSession.apiAccessToken = token.apiAccessToken as string | undefined;
-      return customSession;
+      session.user = {
+        email: token.email as string,
+        name: token.name as string,
+      };
+
+      (session as CustomSession).apiAccessToken = token.apiAccessToken as
+        | string
+        | undefined;
+
+      (session as CustomSession).apiAccessExpiresAt =
+        (token.apiAccessExpiresAt as number | null | undefined) ?? null;
+
+      return session;
     },
+  },
+
+  pages: {
+    signIn: '/login',
   },
 };

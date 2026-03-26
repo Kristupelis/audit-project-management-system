@@ -3,6 +3,11 @@ Prisijungimai:
 test@example.com
 Password123!
 
+KristupasTest
+ckristupas@gmail.com
+26KarvesPienas!
+
+
 Run backend:
 cd apps/api
 pnpm start:dev
@@ -19,16 +24,16 @@ Edit DB:
 
 pnpm prisma studio
 
+Print tree:
+
+git ls-files
+
 Galimai nereikalingi:
-next-auth.d.ts in /types
+src/app/api/auth/refresh/route.ts
 
 
-NestJS AuthModule (register/login)
+Dar papildyti: generuoti logsus su kiekvienu roles veiksmu, patvartykit komponentuose order atributa.
+Istestuot (istestuota) test step, evidence, finding ir patobulint ju dto bei atributus
+Istrinti automatine projekto READ teises suteikima pridedant nari.
+Admin panelis, ataskaitos generavimas, failo ikelimas
 
-Password hashing + JWT access/refresh
-
-NextAuth Credentials provider calling /auth/login
-
-Add Google OAuth bridge (NextAuth Google → backend token exchange)
-
-Then: projects / nodes / tasks / audit logs / file upload scan

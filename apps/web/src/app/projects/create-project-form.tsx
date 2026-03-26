@@ -62,7 +62,7 @@ export default function CreateProjectForm() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <button className="border rounded-md px-3 py-2 disabled:opacity-50" disabled={loading}>
+      <button className="border rounded-md px-3 py-2 disabled:opacity-50 hover:bg-gray-800" disabled={loading}>
         {loading ? "Creating..." : "Create project"}
       </button>
     </form>

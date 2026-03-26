@@ -1,0 +1,11 @@
+1. Throttle - api - app.module.ts
+ Limitas - per 60 sek leidziami 5 login'ai
+  (REIKIA ISTESTUOT)
+2. Register dto - api - register.dto.ts
+ Slaptazodziu taisykles
+3. Refresh token expiration time
+apps/web/src/providers/api-token-provider.tsx - cia keisti kada issoka popupas
+4. 2FA
+
+
+Idejos: 2FA atsatymo kodai.

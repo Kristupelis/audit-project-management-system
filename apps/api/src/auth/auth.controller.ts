@@ -6,7 +6,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 
 interface AuthenticatedRequest extends Request {
   user?: {
-    id: number;
+    id: string;
     email: string;
     name?: string;
   } | null;
@@ -30,5 +30,20 @@ export class AuthController {
   @Get('me')
   me(@Req() req: AuthenticatedRequest) {
     return req.user ?? null;
+  }
+
+  @Post('2fa/setup')
+  setup2fa(@Body() body: { userId: string }) {
+    return this.auth.generateTwoFactorSetup(body.userId);
+  }
+
+  @Post('2fa/enable')
+  enable2fa(@Body() body: { userId: string; secret: string; code: string }) {
+    return this.auth.enableTwoFactor(body.userId, body.secret, body.code);
+  }
+
+  @Post('2fa/verify-login')
+  verifyLogin(@Body() body: { userId: string; code: string }) {
+    return this.auth.verifyTwoFactorLogin(body.userId, body.code);
   }
 }

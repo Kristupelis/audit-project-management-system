@@ -1,12 +1,13 @@
 import { IsOptional, IsString, MinLength } from 'class-validator';
 
-export class UpdateProjectDto {
-  @IsOptional()
+export class CreateAuditAreaDto {
   @IsString()
   @MinLength(2)
-  name?: string;
+  name: string;
+}
 
+export class UpdateAuditAreaDto {
   @IsOptional()
   @IsString()
-  description?: string;
+  name: string;
 }

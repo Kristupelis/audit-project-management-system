@@ -2,22 +2,26 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import Link from "next/link";
 import CreateProjectForm from "./create-project-form";
-
+import ProjectsHeader from "./projects-header";
+import SessionExpiryGuard from "./session-expiry-prompt";
 
 type Project = {
   id: string;
   name: string;
   description?: string;
-  role: string;
-  updatedAt: Date;
+  isOwner: boolean;
+  roles: string[];
+  updatedAt: string;
 };
 
 async function fetchProjects(token: string) {
-  const res = await fetch("http://localhost:4000/projects", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/projects`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
+
   if (!res.ok) return [];
+
   return res.json();
 }
 
@@ -36,7 +40,12 @@ export default async function ProjectsPage() {
 
   return (
     <main className="p-6 space-y-4">
-      <h1 className="text-xl font-semibold">Projects</h1>
+      <SessionExpiryGuard accessExpiresAt={session.apiAccessExpiresAt ?? null} />
+      <ProjectsHeader name={session.user?.name} />
+
+
+      {/* <pre>{JSON.stringify(session, null, 2)}</pre> */}
+
 
       <section className="border rounded-xl p-4">
         <h2 className="font-medium mb-3">Create project</h2>
@@ -62,7 +71,7 @@ export default async function ProjectsPage() {
                 </div>
 
                 <span className="text-xs border rounded-full px-2 py-1">
-                    {p.role}
+                  {p.isOwner ? "OWNER" : p.roles.join(", ") || "MEMBER"}
                 </span>
                 </div>
             </Link>
