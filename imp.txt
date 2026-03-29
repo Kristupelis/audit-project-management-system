@@ -30,10 +30,16 @@ git ls-files
 
 Galimai nereikalingi:
 src/app/api/auth/refresh/route.ts
+session-expiry-prompt.tsx - nereikalingas 100 proc
 
 
 Dar papildyti: generuoti logsus su kiekvienu roles veiksmu, patvartykit komponentuose order atributa.
 Istestuot (istestuota) test step, evidence, finding ir patobulint ju dto bei atributus
 Istrinti automatine projekto READ teises suteikima pridedant nari.
 Admin panelis, ataskaitos generavimas, failo ikelimas
-
+Projekto lange rodyti paskutinius 20 irasu, bet padaryti galimybe atskirame puslapyje perziureti visus logsus.
+Papildyti projekto komponentu atributus daugiau.
+Negaliu but prisijunges su dviem naudotojais vienu metu.
+Roles mygtukas turi buti matomas ir SYSADMIN - done
+Istestuoti session expiration popup window.
+Neissitrina irasai is DB, kai pvz pasalinamas memberis.
