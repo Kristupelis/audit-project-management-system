@@ -270,6 +270,146 @@ export class ProjectPermissionsService {
     }
   }
 
+  private async getCreateHierarchyCandidates(
+    resource: ResourceType,
+    scopeId?: string,
+  ): Promise<PermissionCandidate[]> {
+    if (!scopeId) {
+      return [{ resource }];
+    }
+
+    switch (resource) {
+      case ResourceType.PROCESS: {
+        const area = await this.prisma.auditArea.findUnique({
+          where: { id: scopeId },
+          select: { id: true, projectId: true },
+        });
+
+        if (!area) {
+          return [
+            { resource: ResourceType.PROCESS, scopeId },
+            { resource: ResourceType.AUDIT_AREA, scopeId },
+            { resource: ResourceType.PROJECT },
+            { resource: ResourceType.PROCESS },
+            { resource: ResourceType.AUDIT_AREA },
+          ];
+        }
+
+        return [
+          { resource: ResourceType.PROCESS, scopeId: area.id },
+          { resource: ResourceType.AUDIT_AREA, scopeId: area.id },
+          { resource: ResourceType.PROJECT, scopeId: area.projectId },
+          { resource: ResourceType.PROCESS },
+          { resource: ResourceType.AUDIT_AREA },
+          { resource: ResourceType.PROJECT },
+        ];
+      }
+
+      case ResourceType.CONTROL:
+      case ResourceType.FINDING:
+      case ResourceType.EVIDENCE: {
+        const process = await this.prisma.process.findUnique({
+          where: { id: scopeId },
+          select: {
+            id: true,
+            auditAreaId: true,
+            auditArea: {
+              select: {
+                projectId: true,
+              },
+            },
+          },
+        });
+
+        if (!process) {
+          return [
+            { resource, scopeId },
+            { resource: ResourceType.PROCESS, scopeId },
+            { resource: ResourceType.AUDIT_AREA },
+            { resource: ResourceType.PROJECT },
+            { resource },
+            { resource: ResourceType.PROCESS },
+          ];
+        }
+
+        return [
+          { resource, scopeId: process.id },
+          { resource: ResourceType.PROCESS, scopeId: process.id },
+          { resource: ResourceType.AUDIT_AREA, scopeId: process.auditAreaId },
+          {
+            resource: ResourceType.PROJECT,
+            scopeId: process.auditArea.projectId,
+          },
+          { resource },
+          { resource: ResourceType.PROCESS },
+          { resource: ResourceType.AUDIT_AREA },
+          { resource: ResourceType.PROJECT },
+        ];
+      }
+
+      case ResourceType.TEST_STEP: {
+        const control = await this.prisma.control.findUnique({
+          where: { id: scopeId },
+          select: {
+            id: true,
+            processId: true,
+            process: {
+              select: {
+                auditAreaId: true,
+                auditArea: {
+                  select: {
+                    projectId: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (!control) {
+          return [
+            { resource: ResourceType.TEST_STEP, scopeId },
+            { resource: ResourceType.CONTROL, scopeId },
+            { resource: ResourceType.PROCESS },
+            { resource: ResourceType.AUDIT_AREA },
+            { resource: ResourceType.PROJECT },
+            { resource: ResourceType.TEST_STEP },
+            { resource: ResourceType.CONTROL },
+          ];
+        }
+
+        return [
+          { resource: ResourceType.TEST_STEP, scopeId: control.id },
+          { resource: ResourceType.CONTROL, scopeId: control.id },
+          { resource: ResourceType.PROCESS, scopeId: control.processId },
+          {
+            resource: ResourceType.AUDIT_AREA,
+            scopeId: control.process.auditAreaId,
+          },
+          {
+            resource: ResourceType.PROJECT,
+            scopeId: control.process.auditArea.projectId,
+          },
+          { resource: ResourceType.TEST_STEP },
+          { resource: ResourceType.CONTROL },
+          { resource: ResourceType.PROCESS },
+          { resource: ResourceType.AUDIT_AREA },
+          { resource: ResourceType.PROJECT },
+        ];
+      }
+
+      case ResourceType.AUDIT_AREA:
+        return [
+          { resource: ResourceType.AUDIT_AREA, scopeId },
+          { resource: ResourceType.PROJECT },
+          { resource: ResourceType.AUDIT_AREA },
+        ];
+
+      default:
+        return [{ resource, scopeId }, { resource }];
+    }
+  }
+
   async can(
     projectId: string,
     userId: string,
@@ -285,7 +425,10 @@ export class ProjectPermissionsService {
       return true;
     }
 
-    const candidates = await this.getHierarchyCandidates(resource, scopeId);
+    const candidates =
+      action === PermissionAction.CREATE
+        ? await this.getCreateHierarchyCandidates(resource, scopeId)
+        : await this.getHierarchyCandidates(resource, scopeId);
 
     const hasPermission = (
       perms: {

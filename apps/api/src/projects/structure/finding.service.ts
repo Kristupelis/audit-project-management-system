@@ -48,6 +48,7 @@ export class FindingService {
       userId,
       ResourceType.FINDING,
       PermissionAction.CREATE,
+      processIdValue,
     );
 
     const last = await this.prisma.finding.findFirst({
@@ -102,8 +103,10 @@ export class FindingService {
     await this.permissions.requirePermission(
       p.auditArea.projectId,
       userId,
-      ResourceType.FINDING,
+      ResourceType.PROCESS,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       PermissionAction.SEE,
+      processIdValue,
     );
 
     return this.prisma.finding.findMany({
@@ -120,6 +123,7 @@ export class FindingService {
       userId,
       ResourceType.FINDING,
       PermissionAction.READ,
+      findingIdValue,
     );
 
     return this.prisma.finding.findUnique({ where: { id: findingIdValue } });
@@ -133,6 +137,7 @@ export class FindingService {
       userId,
       ResourceType.FINDING,
       PermissionAction.UPDATE,
+      findingIdValue,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -166,6 +171,7 @@ export class FindingService {
       userId,
       ResourceType.FINDING,
       PermissionAction.DELETE,
+      findingIdValue,
     );
 
     return this.prisma.$transaction(async (tx) => {

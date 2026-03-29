@@ -55,6 +55,7 @@ export class TestStepService {
       userId,
       ResourceType.TEST_STEP,
       PermissionAction.CREATE,
+      controlId,
     );
 
     const last = await this.prisma.testStep.findFirst({
@@ -113,8 +114,9 @@ export class TestStepService {
     await this.permissions.requirePermission(
       control.process.auditArea.projectId,
       userId,
-      ResourceType.TEST_STEP,
+      ResourceType.CONTROL,
       PermissionAction.SEE,
+      controlId,
     );
 
     return this.prisma.testStep.findMany({
@@ -130,6 +132,7 @@ export class TestStepService {
       userId,
       ResourceType.TEST_STEP,
       PermissionAction.READ,
+      id,
     );
 
     return this.prisma.testStep.findUnique({ where: { id } });
@@ -143,6 +146,7 @@ export class TestStepService {
       userId,
       ResourceType.TEST_STEP,
       PermissionAction.UPDATE,
+      id,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -176,6 +180,7 @@ export class TestStepService {
       userId,
       ResourceType.TEST_STEP,
       PermissionAction.DELETE,
+      id,
     );
 
     return this.prisma.$transaction(async (tx) => {

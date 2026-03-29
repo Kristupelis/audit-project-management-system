@@ -40,7 +40,7 @@ export default async function ProjectsPage() {
 
   return (
     <main className="p-6 space-y-4">
-      <SessionExpiryGuard accessExpiresAt={session.apiAccessExpiresAt ?? null} />
+      { /*<SessionExpiryGuard accessExpiresAt={session.apiAccessExpiresAt ?? null} /> */}
       <ProjectsHeader name={session.user?.name} />
 
 

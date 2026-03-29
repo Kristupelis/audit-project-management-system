@@ -270,25 +270,39 @@ function DeleteModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white border rounded-xl p-4 w-full max-w-lg space-y-4">
-        <h3 className="text-lg font-semibold">Confirm deletion</h3>
-        <p className="text-sm">
-          Delete <strong>{node.label}</strong>?
-        </p>
-        <p className="text-sm text-red-600">
-          All related child components of this component will also be deleted.
-        </p>
-        <div className="flex justify-end gap-2">
-          <button className="border rounded px-3 py-1" onClick={onCancel}>
-            Cancel
-          </button>
-          <button
-            className="border rounded px-3 py-1 bg-red-600 text-white"
-            onClick={onConfirm}
-            disabled={loading}
-          >
-            {loading ? "Deleting..." : "Delete"}
-          </button>
+      <div className="w-full max-w-2xl rounded-md border border-red-300 bg-red-50 p-4 shadow-lg">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-red-700">
+              Confirm deletion
+            </h3>
+
+            <p className="text-sm text-red-700 whitespace-pre-wrap">
+              Delete <strong>{node.label}</strong>?
+            </p>
+
+            <p className="text-sm text-red-700 whitespace-pre-wrap">
+              All related child components of this component will also be deleted.
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
+              onClick={onCancel}
+              disabled={loading}
+            >
+              Cancel
+            </button>
+
+            <button
+              className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
+              onClick={onConfirm}
+              disabled={loading}
+            >
+              {loading ? "Deleting..." : "Delete"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -850,8 +864,11 @@ export default function ProjectStructureSection({
       setShowAddChild(false);
       await loadTree();
     } catch (e) {
+      setShowDelete(false);
       setError(
-        e instanceof Error ? toUserFriendlyError(e.message) : "Something went wrong. Please try again."
+        e instanceof Error
+          ? toUserFriendlyError(e.message)
+          : "Something went wrong. Please try again."
       );
     } finally {
       setBusy(false);

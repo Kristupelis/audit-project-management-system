@@ -1,3 +1,13 @@
+function normalizeSentence(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return "Something went wrong.";
+
+  const withCapital =
+    trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+
+  return /[.!?]$/.test(withCapital) ? withCapital : `${withCapital}.`;
+}
+
 export function toUserFriendlyError(raw: string): string {
   const fallback = "Something went wrong. Please try again.";
 
@@ -43,13 +53,38 @@ export function toUserFriendlyError(raw: string): string {
     return "The requested item was not found.";
   }
 
-  if (normalized.includes("validation failed")) {
-    return "Some entered values are invalid.";
+  if (normalized === "name must be longer than or equal to 2 characters") {
+    return "Name must be at least 2 characters long.";
   }
 
-  if (normalized.includes("required")) {
-    return "Please fill in all required fields.";
+  if (normalized === "description must be longer than or equal to 2 characters") {
+    return "Description must be at least 2 characters long.";
   }
 
-  return parsedMessage || fallback;
+  if (normalized.includes("must be longer than or equal to")) {
+    const match = parsedMessage.match(/^(.+?) must be longer than or equal to (\d+) characters?$/i);
+    if (match) {
+      const field = normalizeSentence(match[1]).replace(/\.$/, "");
+      const number = match[2];
+      return `${field} must be at least ${number} characters long.`;
+    }
+  }
+
+  if (normalized.includes("should not be empty")) {
+    const match = parsedMessage.match(/^(.+?) should not be empty$/i);
+    if (match) {
+      const field = normalizeSentence(match[1]).replace(/\.$/, "");
+      return `${field} is required.`;
+    }
+  }
+
+  if (normalized.includes("must be a string")) {
+    const match = parsedMessage.match(/^(.+?) must be a string$/i);
+    if (match) {
+      const field = normalizeSentence(match[1]).replace(/\.$/, "");
+      return `${field} must be text.`;
+    }
+  }
+
+  return normalizeSentence(parsedMessage);
 }

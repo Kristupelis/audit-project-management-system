@@ -47,6 +47,7 @@ export class ControlService {
       userId,
       ResourceType.CONTROL,
       PermissionAction.CREATE,
+      processIdValue,
     );
 
     const last = await this.prisma.control.findFirst({
@@ -101,8 +102,10 @@ export class ControlService {
     await this.permissions.requirePermission(
       process.auditArea.projectId,
       userId,
-      ResourceType.CONTROL,
+      ResourceType.PROCESS,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       PermissionAction.SEE,
+      processIdValue,
     );
 
     return this.prisma.control.findMany({
@@ -119,6 +122,7 @@ export class ControlService {
       userId,
       ResourceType.CONTROL,
       PermissionAction.READ,
+      controlIdValue,
     );
 
     return this.prisma.control.findUnique({
@@ -137,6 +141,7 @@ export class ControlService {
       userId,
       ResourceType.CONTROL,
       PermissionAction.UPDATE,
+      controlIdValue,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -170,6 +175,7 @@ export class ControlService {
       userId,
       ResourceType.CONTROL,
       PermissionAction.DELETE,
+      controlIdValue,
     );
 
     return this.prisma.$transaction(async (tx) => {

@@ -48,6 +48,7 @@ export class EvidenceService {
       userId,
       ResourceType.EVIDENCE,
       PermissionAction.CREATE,
+      processIdValue,
     );
 
     const last = await this.prisma.evidence.findFirst({
@@ -56,7 +57,6 @@ export class EvidenceService {
       select: { order: true },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const nextOrder = (last?.order ?? -1) + 1;
 
     return this.prisma.$transaction(async (tx) => {
@@ -65,7 +65,6 @@ export class EvidenceService {
           id: evidenceId(),
           processId: processIdValue,
           ...dto,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           order: nextOrder,
         },
       });
@@ -75,7 +74,6 @@ export class EvidenceService {
           id: auditId(),
           projectId: p.auditArea.projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.EVIDENCE_CREATED,
           entity: 'Evidence',
           entityId: evidence.id,
@@ -102,8 +100,10 @@ export class EvidenceService {
     await this.permissions.requirePermission(
       p.auditArea.projectId,
       userId,
-      ResourceType.EVIDENCE,
+      ResourceType.PROCESS,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       PermissionAction.SEE,
+      processIdValue,
     );
 
     return this.prisma.evidence.findMany({
@@ -120,6 +120,7 @@ export class EvidenceService {
       userId,
       ResourceType.EVIDENCE,
       PermissionAction.READ,
+      evidenceIdValue,
     );
 
     return this.prisma.evidence.findUnique({ where: { id: evidenceIdValue } });
@@ -137,6 +138,7 @@ export class EvidenceService {
       userId,
       ResourceType.EVIDENCE,
       PermissionAction.UPDATE,
+      evidenceIdValue,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -150,7 +152,6 @@ export class EvidenceService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.EVIDENCE_UPDATED,
           entity: 'Evidence',
           entityId: evidenceIdValue,
@@ -170,6 +171,7 @@ export class EvidenceService {
       userId,
       ResourceType.EVIDENCE,
       PermissionAction.DELETE,
+      evidenceIdValue,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -180,7 +182,6 @@ export class EvidenceService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.EVIDENCE_DELETED,
           entity: 'Evidence',
           entityId: evidenceIdValue,

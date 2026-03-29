@@ -21,26 +21,6 @@ type MembersResponse = {
   }[];
 };
 
-type NodeType =
-  | "AUDIT_AREA"
-  | "PROCESS"
-  | "CONTROL"
-  | "TEST_STEP"
-  | "FINDING"
-  | "EVIDENCE";
-
-type TreeNode = {
-  id: string;
-  nodeType: NodeType;
-  label: string;
-  parentId: string | null;
-  children: TreeNode[];
-};
-
-type StructureResponse = {
-  tree: TreeNode[];
-};
-
 export default async function EditRolePage({
   params,
 }: {
@@ -56,19 +36,9 @@ export default async function EditRolePage({
   const role = await apiFetch(`/projects/${id}/roles/${roleId}`, token);
   const membersData = await apiFetch<MembersResponse>(`/projects/${id}/members`, token);
 
-  if (!project.isOwner) {
-    return <main className="p-6">Only project owners can edit roles.</main>;
+  if (!project.isOwner && session?.user?.systemRole !== "SUPER_ADMIN") {
+    return <main className="p-6">Only project owners or superadmins can edit roles.</main>;
   }
-
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!baseUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL missing");
-  }
-
-  const structureTree = await apiFetch<StructureResponse>(
-    `/projects/${id}/structure`,
-    token
-  ).catch(() => ({ tree: [] }));
 
   return (
     <main className="p-6 space-y-6">
@@ -82,7 +52,6 @@ export default async function EditRolePage({
       <RoleForm
         projectId={id}
         members={membersData.members}
-        structureTree={structureTree.tree}
         initialRole={role as undefined}
       />
     </main>

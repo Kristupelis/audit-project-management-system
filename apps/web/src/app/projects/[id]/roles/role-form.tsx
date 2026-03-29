@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toUserFriendlyError } from "@/lib/error-message";
 
@@ -38,6 +38,8 @@ type TreeNode = {
   label: string;
   parentId: string | null;
   children: TreeNode[];
+  canRead?: boolean;
+  data?: unknown | null;
 };
 
 type PermissionRule = {
@@ -68,6 +70,10 @@ type ExistingRole = {
   }[];
 };
 
+type StructureResponse = {
+  tree: TreeNode[];
+};
+
 function flattenTree(nodes: TreeNode[]): TreeNode[] {
   const out: TreeNode[] = [];
   for (const node of nodes) {
@@ -96,15 +102,52 @@ function resourceLabel(resource: ResourceType) {
   }
 }
 
+function buildInitialRules(
+  permissions: ExistingRole["permissions"] | undefined,
+): PermissionRule[] {
+  if (!permissions || permissions.length === 0) {
+    return [
+      {
+        resource: "PROJECT",
+        scopedMode: "ALL",
+        actions: [],
+      },
+    ];
+  }
+
+  const grouped = new Map<string, PermissionRule>();
+
+  for (const permission of permissions) {
+    const resource = permission.resource as ResourceType;
+    const scopedMode = permission.scopeId ? "SPECIFIC" : "ALL";
+    const key = `${resource}::${scopedMode}::${permission.scopeId ?? "ALL"}`;
+
+    const existing = grouped.get(key);
+    if (existing) {
+      if (!existing.actions.includes(permission.action as PermissionAction)) {
+        existing.actions.push(permission.action as PermissionAction);
+      }
+      continue;
+    }
+
+    grouped.set(key, {
+      resource,
+      scopedMode,
+      scopeId: permission.scopeId ?? undefined,
+      actions: [permission.action as PermissionAction],
+    });
+  }
+
+  return Array.from(grouped.values());
+}
+
 export default function RoleForm({
   projectId,
   members,
-  structureTree,
   initialRole,
 }: {
   projectId: string;
   members: Member[];
-  structureTree: TreeNode[];
   initialRole?: ExistingRole | null;
 }) {
   const router = useRouter();
@@ -112,16 +155,15 @@ export default function RoleForm({
   const [name, setName] = useState(initialRole?.name ?? "");
   const [description, setDescription] = useState(initialRole?.description ?? "");
   const [selectedMembers, setSelectedMembers] = useState<string[]>(
-    initialRole?.members?.map((m) => m.projectMember.id) ?? []
+    initialRole?.members?.map((m) => m.projectMember.id) ?? [],
   );
 
-  const [rules, setRules] = useState<PermissionRule[]>([
-    {
-      resource: "PROJECT",
-      scopedMode: "ALL",
-      actions: [],
-    },
-  ]);
+  const [structureTree, setStructureTree] = useState<TreeNode[]>([]);
+  const [structureError, setStructureError] = useState<string | null>(null);
+
+  const [rules, setRules] = useState<PermissionRule[]>(
+    buildInitialRules(initialRole?.permissions),
+  );
 
   const allNodes = useMemo(() => flattenTree(structureTree), [structureTree]);
 
@@ -134,6 +176,32 @@ export default function RoleForm({
     "FINDING",
     "EVIDENCE",
   ];
+
+  useEffect(() => {
+    async function loadStructure() {
+      try {
+        const res = await fetch(`/api/projects/${projectId}/structure`, {
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(toUserFriendlyError(text));
+        }
+
+        const data = (await res.json()) as StructureResponse;
+        setStructureTree(data.tree);
+      } catch (error) {
+        setStructureError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load project structure.",
+        );
+      }
+    }
+
+    void loadStructure();
+  }, [projectId]);
 
   function addRule() {
     setRules((prev) => [
@@ -152,7 +220,7 @@ export default function RoleForm({
 
   function updateRule(index: number, patch: Partial<PermissionRule>) {
     setRules((prev) =>
-      prev.map((rule, i) => (i === index ? { ...rule, ...patch } : rule))
+      prev.map((rule, i) => (i === index ? { ...rule, ...patch } : rule)),
     );
   }
 
@@ -167,7 +235,7 @@ export default function RoleForm({
             ? rule.actions.filter((a) => a !== action)
             : [...rule.actions, action],
         };
-      })
+      }),
     );
   }
 
@@ -175,7 +243,7 @@ export default function RoleForm({
     setSelectedMembers((prev) =>
       prev.includes(memberId)
         ? prev.filter((id) => id !== memberId)
-        : [...prev, memberId]
+        : [...prev, memberId],
     );
   }
 
@@ -237,7 +305,15 @@ export default function RoleForm({
 
     const role = await res.json();
 
-    for (const memberId of selectedMembers) {
+    const initialMemberIds = new Set(
+      initialRole?.members?.map((m) => m.projectMember.id) ?? [],
+    );
+    const nextMemberIds = new Set(selectedMembers);
+
+    const membersToAdd = [...nextMemberIds].filter((id) => !initialMemberIds.has(id));
+    const membersToRemove = [...initialMemberIds].filter((id) => !nextMemberIds.has(id));
+
+    for (const memberId of membersToAdd) {
       const assignRes = await fetch(`/api/projects/${projectId}/members/${memberId}/roles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -246,6 +322,20 @@ export default function RoleForm({
 
       if (!assignRes.ok) {
         alert(toUserFriendlyError(await assignRes.text()));
+        return;
+      }
+    }
+
+    for (const memberId of membersToRemove) {
+      const removeRes = await fetch(
+        `/api/projects/${projectId}/members/${memberId}/roles/${role.id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!removeRes.ok) {
+        alert(toUserFriendlyError(await removeRes.text()));
         return;
       }
     }
@@ -279,6 +369,12 @@ export default function RoleForm({
           />
         </div>
       </section>
+
+      {structureError && (
+        <div className="border rounded p-3 text-sm bg-red-50 border-red-300 text-red-700">
+          {structureError}
+        </div>
+      )}
 
       <section className="border rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between">
@@ -348,8 +444,12 @@ export default function RoleForm({
                         })
                       }
                     >
-                      <option value="ALL">All {resourceLabel(rule.resource).toLowerCase()}s</option>
-                      <option value="SPECIFIC">Specific {resourceLabel(rule.resource).toLowerCase()}</option>
+                      <option value="ALL">
+                        All {resourceLabel(rule.resource).toLowerCase()}s
+                      </option>
+                      <option value="SPECIFIC">
+                        Specific {resourceLabel(rule.resource).toLowerCase()}
+                      </option>
                     </select>
                   </div>
 
