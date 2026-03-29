@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   BadRequestException,
@@ -9,10 +11,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as argon2 from 'argon2';
 import { ConfigService } from '@nestjs/config';
 import type { SignOptions } from 'jsonwebtoken';
-import * as speakeasyRaw from 'speakeasy';
+//import * as speakeasyRaw from 'speakeasy';
+import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
 import { userId } from '../common/id';
 
+/*
 const speakeasy = speakeasyRaw as unknown as {
   generateSecret: (opts: { length: number; name: string }) => {
     base32: string;
@@ -24,6 +28,7 @@ const speakeasy = speakeasyRaw as unknown as {
     token: string;
   }) => boolean;
 };
+*/
 
 @Injectable()
 export class AuthService {
@@ -89,7 +94,6 @@ export class AuthService {
       name: `APMS (${user.email})`,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const qrCode = await QRCode.toDataURL(secret.otpauth_url ?? '');
 
     return {
@@ -107,10 +111,17 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    const verified = speakeasy.totp({
+    const normalizedCode = code.trim();
+
+    if (!/^\d{6}$/.test(normalizedCode)) {
+      throw new UnauthorizedException('Invalid 2FA code');
+    }
+
+    const verified = speakeasy.totp.verify({
       secret,
       encoding: 'base32',
-      token: code,
+      token: normalizedCode,
+      window: 1,
     });
 
     if (!verified) {
@@ -143,10 +154,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid user');
     }
 
-    const verified = speakeasy.totp({
+    const normalizedCode = code.trim();
+
+    if (!/^\d{6}$/.test(normalizedCode)) {
+      throw new UnauthorizedException('Invalid 2FA code');
+    }
+
+    const verified = speakeasy.totp.verify({
       secret: user.twoFactorSecret,
       encoding: 'base32',
-      token: code,
+      token: normalizedCode,
+      window: 1,
     });
 
     if (!verified) {

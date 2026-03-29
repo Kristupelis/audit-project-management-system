@@ -102,7 +102,7 @@ export class ControlService {
       process.auditArea.projectId,
       userId,
       ResourceType.CONTROL,
-      PermissionAction.READ,
+      PermissionAction.SEE,
     );
 
     return this.prisma.control.findMany({

@@ -114,7 +114,7 @@ export class TestStepService {
       control.process.auditArea.projectId,
       userId,
       ResourceType.TEST_STEP,
-      PermissionAction.READ,
+      PermissionAction.SEE,
     );
 
     return this.prisma.testStep.findMany({

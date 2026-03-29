@@ -88,7 +88,7 @@ export class ProcessService {
       area.projectId,
       userId,
       ResourceType.PROCESS,
-      PermissionAction.READ,
+      PermissionAction.SEE,
     );
 
     return this.prisma.process.findMany({

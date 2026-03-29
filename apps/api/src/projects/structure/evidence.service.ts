@@ -103,7 +103,7 @@ export class EvidenceService {
       p.auditArea.projectId,
       userId,
       ResourceType.EVIDENCE,
-      PermissionAction.READ,
+      PermissionAction.SEE,
     );
 
     return this.prisma.evidence.findMany({

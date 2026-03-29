@@ -31,8 +31,7 @@ enum PermissionAction {
   CREATE
   UPDATE
   DELETE
-  MANAGE
-  ASSIGN
+  SEE
 }
 
 model User {

@@ -103,7 +103,7 @@ export class FindingService {
       p.auditArea.projectId,
       userId,
       ResourceType.FINDING,
-      PermissionAction.READ,
+      PermissionAction.SEE,
     );
 
     return this.prisma.finding.findMany({

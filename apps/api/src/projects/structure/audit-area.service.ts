@@ -73,7 +73,7 @@ export class AuditAreaService {
       projectId,
       userId,
       ResourceType.AUDIT_AREA,
-      PermissionAction.READ,
+      PermissionAction.SEE,
     );
 
     return this.prisma.auditArea.findMany({

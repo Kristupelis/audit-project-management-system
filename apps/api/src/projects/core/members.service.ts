@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   ForbiddenException,
   Injectable,
@@ -82,12 +83,50 @@ export class MembersService {
           isOwner: false,
 
           permissions: {
-            create: {
-              id: permissionId(),
-              resource: ResourceType.PROJECT,
-              action: PermissionAction.READ,
-              scopeId: null,
-            },
+            create: [
+              {
+                id: permissionId(),
+                resource: ResourceType.PROJECT,
+                action: PermissionAction.READ,
+                scopeId: null,
+              },
+              {
+                id: permissionId(),
+                resource: ResourceType.AUDIT_AREA,
+                action: PermissionAction.SEE,
+                scopeId: null,
+              },
+              {
+                id: permissionId(),
+                resource: ResourceType.PROCESS,
+                action: PermissionAction.SEE,
+                scopeId: null,
+              },
+              {
+                id: permissionId(),
+                resource: ResourceType.CONTROL,
+                action: PermissionAction.SEE,
+                scopeId: null,
+              },
+              {
+                id: permissionId(),
+                resource: ResourceType.TEST_STEP,
+                action: PermissionAction.SEE,
+                scopeId: null,
+              },
+              {
+                id: permissionId(),
+                resource: ResourceType.FINDING,
+                action: PermissionAction.SEE,
+                scopeId: null,
+              },
+              {
+                id: permissionId(),
+                resource: ResourceType.EVIDENCE,
+                action: PermissionAction.SEE,
+                scopeId: null,
+              },
+            ],
           },
         },
         include: {

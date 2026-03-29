@@ -10,7 +10,7 @@ import {
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { CurrentUser } from '../../auth/current-user.decorator';
 import { AuditAreaService } from './audit-area.service';
-import { CreateAuditAreaDto } from '../dto/audit-area.dto';
+import { UpdateAuditAreaDto } from '../dto/audit-area.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('audit-areas')
@@ -26,7 +26,7 @@ export class AuditAreasController {
   update(
     @Param('areaId') areaId: string,
     @CurrentUser('sub') userId: string,
-    @Body() dto: CreateAuditAreaDto,
+    @Body() dto: UpdateAuditAreaDto,
   ) {
     return this.auditAreas.update(areaId, userId, dto.name);
   }
