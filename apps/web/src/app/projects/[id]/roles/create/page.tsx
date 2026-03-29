@@ -21,6 +21,26 @@ type MembersResponse = {
   }[];
 };
 
+type NodeType =
+  | "AUDIT_AREA"
+  | "PROCESS"
+  | "CONTROL"
+  | "TEST_STEP"
+  | "FINDING"
+  | "EVIDENCE";
+
+type TreeNode = {
+  id: string;
+  nodeType: NodeType;
+  label: string;
+  parentId: string | null;
+  children: TreeNode[];
+};
+
+type StructureResponse = {
+  tree: TreeNode[];
+};
+
 export default async function CreateRolePage({
   params,
 }: {
@@ -39,7 +59,27 @@ export default async function CreateRolePage({
     return <main className="p-6">Only project owners can create roles.</main>;
   }
 
-  const auditAreas: { id: string; name: string; processes: { id: string; name: string }[] }[] = [];
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!baseUrl) {
+    throw new Error("NEXT_PUBLIC_API_URL missing");
+  }
+
+  const structureRes = await fetch(`${baseUrl}/projects/${id}/audit-areas`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!structureRes.ok) {
+    throw new Error(await structureRes.text());
+  }
+
+
+  const structureTree = await apiFetch<StructureResponse>(
+    `/projects/${id}/structure`,
+    token
+  ).catch(() => ({ tree: [] }));
 
   return (
     <main className="p-6 space-y-6">
@@ -53,7 +93,7 @@ export default async function CreateRolePage({
       <RoleForm
         projectId={id}
         members={membersData.members}
-        auditAreas={auditAreas}
+        structureTree={structureTree.tree}
       />
     </main>
   );

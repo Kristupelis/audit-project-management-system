@@ -61,12 +61,14 @@ export default async function ProjectDetailPage({
             <h1 className="text-2xl font-semibold">{project.name}</h1>
 
             <Members projectId={id} />
-
+            
+            {(project.isOwner || session?.user?.systemRole === "SUPER_ADMIN") && (
             <div className="space-y-1">
               <Link href={`/projects/${id}/roles`}>
                 <button className="border px-3 py-1 rounded">Roles</button>
               </Link>
             </div>
+            )}
 
             {project.description && (
               <p className="text-sm opacity-80">

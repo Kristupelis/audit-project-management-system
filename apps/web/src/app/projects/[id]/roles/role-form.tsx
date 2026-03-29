@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toUserFriendlyError } from "@/lib/error-message";
 
 type Member = {
   id: string;
@@ -12,20 +13,38 @@ type Member = {
   };
 };
 
-type AuditArea = {
+type NodeType =
+  | "AUDIT_AREA"
+  | "PROCESS"
+  | "CONTROL"
+  | "TEST_STEP"
+  | "FINDING"
+  | "EVIDENCE";
+
+type ResourceType =
+  | "PROJECT"
+  | "AUDIT_AREA"
+  | "PROCESS"
+  | "CONTROL"
+  | "TEST_STEP"
+  | "FINDING"
+  | "EVIDENCE";
+
+type PermissionAction = "READ" | "CREATE" | "UPDATE" | "DELETE";
+
+type TreeNode = {
   id: string;
-  name: string;
-  processes: {
-    id: string;
-    name: string;
-  }[];
+  nodeType: NodeType;
+  label: string;
+  parentId: string | null;
+  children: TreeNode[];
 };
 
 type PermissionRule = {
-  resourceType: "PROJECT" | "AUDIT_AREA";
-  auditAreaId?: string;
-  processIds: string[];
-  actions: ("READ" | "CREATE" | "UPDATE" | "DELETE")[];
+  resource: ResourceType;
+  scopedMode: "ALL" | "SPECIFIC";
+  scopeId?: string;
+  actions: PermissionAction[];
 };
 
 type ExistingRole = {
@@ -49,15 +68,43 @@ type ExistingRole = {
   }[];
 };
 
+function flattenTree(nodes: TreeNode[]): TreeNode[] {
+  const out: TreeNode[] = [];
+  for (const node of nodes) {
+    out.push(node);
+    out.push(...flattenTree(node.children));
+  }
+  return out;
+}
+
+function resourceLabel(resource: ResourceType) {
+  switch (resource) {
+    case "PROJECT":
+      return "Project";
+    case "AUDIT_AREA":
+      return "Audit area";
+    case "PROCESS":
+      return "Process";
+    case "CONTROL":
+      return "Control";
+    case "TEST_STEP":
+      return "Test step";
+    case "FINDING":
+      return "Finding";
+    case "EVIDENCE":
+      return "Evidence";
+  }
+}
+
 export default function RoleForm({
   projectId,
   members,
-  auditAreas,
+  structureTree,
   initialRole,
 }: {
   projectId: string;
   members: Member[];
-  auditAreas: AuditArea[];
+  structureTree: TreeNode[];
   initialRole?: ExistingRole | null;
 }) {
   const router = useRouter();
@@ -65,21 +112,37 @@ export default function RoleForm({
   const [name, setName] = useState(initialRole?.name ?? "");
   const [description, setDescription] = useState(initialRole?.description ?? "");
   const [selectedMembers, setSelectedMembers] = useState<string[]>(
-    initialRole?.members?.map((m) => m.projectMember.id) ?? [],
+    initialRole?.members?.map((m) => m.projectMember.id) ?? []
   );
 
   const [rules, setRules] = useState<PermissionRule[]>([
     {
-      resourceType: "PROJECT",
-      processIds: [],
+      resource: "PROJECT",
+      scopedMode: "ALL",
       actions: [],
     },
   ]);
 
+  const allNodes = useMemo(() => flattenTree(structureTree), [structureTree]);
+
+  const resourceOptions: ResourceType[] = [
+    "PROJECT",
+    "AUDIT_AREA",
+    "PROCESS",
+    "CONTROL",
+    "TEST_STEP",
+    "FINDING",
+    "EVIDENCE",
+  ];
+
   function addRule() {
     setRules((prev) => [
       ...prev,
-      { resourceType: "PROJECT", processIds: [], actions: [] },
+      {
+        resource: "PROJECT",
+        scopedMode: "ALL",
+        actions: [],
+      },
     ]);
   }
 
@@ -89,11 +152,11 @@ export default function RoleForm({
 
   function updateRule(index: number, patch: Partial<PermissionRule>) {
     setRules((prev) =>
-      prev.map((rule, i) => (i === index ? { ...rule, ...patch } : rule)),
+      prev.map((rule, i) => (i === index ? { ...rule, ...patch } : rule))
     );
   }
 
-  function toggleAction(index: number, action: PermissionRule["actions"][number]) {
+  function toggleAction(index: number, action: PermissionAction) {
     setRules((prev) =>
       prev.map((rule, i) => {
         if (i !== index) return rule;
@@ -104,7 +167,7 @@ export default function RoleForm({
             ? rule.actions.filter((a) => a !== action)
             : [...rule.actions, action],
         };
-      }),
+      })
     );
   }
 
@@ -112,42 +175,34 @@ export default function RoleForm({
     setSelectedMembers((prev) =>
       prev.includes(memberId)
         ? prev.filter((id) => id !== memberId)
-        : [...prev, memberId],
+        : [...prev, memberId]
     );
   }
 
   const payloadPermissions = useMemo(() => {
-    const result: { resource: string; action: string; scopeId?: string }[] = [];
+    const result: { resource: ResourceType; action: PermissionAction; scopeId?: string }[] = [];
 
     for (const rule of rules) {
-      if (rule.resourceType === "PROJECT") {
-        for (const action of rule.actions) {
+      for (const action of rule.actions) {
+        if (rule.resource === "PROJECT") {
           result.push({
             resource: "PROJECT",
             action,
           });
+          continue;
         }
-      }
 
-      if (rule.resourceType === "AUDIT_AREA" && rule.auditAreaId) {
-        if (rule.processIds.length === 0) {
-          for (const action of rule.actions) {
-            result.push({
-              resource: "PHASE",
-              action,
-              scopeId: rule.auditAreaId,
-            });
-          }
-        } else {
-          for (const processId of rule.processIds) {
-            for (const action of rule.actions) {
-              result.push({
-                resource: "NODE",
-                action,
-                scopeId: processId,
-              });
-            }
-          }
+        if (rule.scopedMode === "ALL") {
+          result.push({
+            resource: rule.resource,
+            action,
+          });
+        } else if (rule.scopeId) {
+          result.push({
+            resource: rule.resource,
+            action,
+            scopeId: rule.scopeId,
+          });
         }
       }
     }
@@ -176,18 +231,23 @@ export default function RoleForm({
     });
 
     if (!res.ok) {
-      alert(await res.text());
+      alert(toUserFriendlyError(await res.text()));
       return;
     }
 
     const role = await res.json();
 
     for (const memberId of selectedMembers) {
-      await fetch(`/api/projects/${projectId}/members/${memberId}/roles`, {
+      const assignRes = await fetch(`/api/projects/${projectId}/members/${memberId}/roles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roleId: role.id }),
       });
+
+      if (!assignRes.ok) {
+        alert(toUserFriendlyError(await assignRes.text()));
+        return;
+      }
     }
 
     router.push(`/projects/${projectId}/roles`);
@@ -233,7 +293,10 @@ export default function RoleForm({
         </div>
 
         {rules.map((rule, index) => {
-          const selectedAuditArea = auditAreas.find((a) => a.id === rule.auditAreaId);
+          const scopeOptions =
+            rule.resource === "PROJECT"
+              ? []
+              : allNodes.filter((node) => node.nodeType === rule.resource);
 
           return (
             <div key={index} className="border rounded-lg p-4 space-y-4">
@@ -254,82 +317,64 @@ export default function RoleForm({
                 <label className="text-sm">Resource type</label>
                 <select
                   className="w-full border rounded-md p-2"
-                  value={rule.resourceType}
+                  value={rule.resource}
                   onChange={(e) =>
                     updateRule(index, {
-                      resourceType: e.target.value as "PROJECT" | "AUDIT_AREA",
-                      auditAreaId: undefined,
-                      processIds: [],
+                      resource: e.target.value as ResourceType,
+                      scopedMode: "ALL",
+                      scopeId: undefined,
                     })
                   }
                 >
-                  <option value="PROJECT">Project</option>
-                  <option value="AUDIT_AREA">Audit Area</option>
+                  {resourceOptions.map((resource) => (
+                    <option key={resource} value={resource}>
+                      {resourceLabel(resource)}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {rule.resourceType === "AUDIT_AREA" && (
+              {rule.resource !== "PROJECT" && (
                 <>
                   <div className="space-y-1">
-                    <label className="text-sm">Audit area</label>
+                    <label className="text-sm">Scope mode</label>
                     <select
                       className="w-full border rounded-md p-2"
-                      value={rule.auditAreaId ?? ""}
+                      value={rule.scopedMode}
                       onChange={(e) =>
                         updateRule(index, {
-                          auditAreaId: e.target.value,
-                          processIds: [],
+                          scopedMode: e.target.value as "ALL" | "SPECIFIC",
+                          scopeId: undefined,
                         })
                       }
                     >
-                      <option value="">Select audit area</option>
-                      {auditAreas.map((area) => (
-                        <option key={area.id} value={area.id}>
-                          {area.name}
-                        </option>
-                      ))}
+                      <option value="ALL">All {resourceLabel(rule.resource).toLowerCase()}s</option>
+                      <option value="SPECIFIC">Specific {resourceLabel(rule.resource).toLowerCase()}</option>
                     </select>
                   </div>
 
-                  {selectedAuditArea && (
-                    <div className="space-y-2">
-                      <label className="text-sm">Processes</label>
-
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={rule.processIds.includes("__ALL__")}
-                            onChange={(e) =>
-                              updateRule(index, {
-                                processIds: e.target.checked ? ["__ALL__"] : [],
-                              })
-                            }
-                          />
-                          All processes in selected audit area
-                        </label>
-
-                        {!rule.processIds.includes("__ALL__") &&
-                          selectedAuditArea.processes.map((process) => (
-                            <label
-                              key={process.id}
-                              className="flex items-center gap-2 text-sm"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={rule.processIds.includes(process.id)}
-                                onChange={(e) => {
-                                  const next = e.target.checked
-                                    ? [...rule.processIds, process.id]
-                                    : rule.processIds.filter((id) => id !== process.id);
-
-                                  updateRule(index, { processIds: next });
-                                }}
-                              />
-                              {process.name}
-                            </label>
-                          ))}
-                      </div>
+                  {rule.scopedMode === "SPECIFIC" && (
+                    <div className="space-y-1">
+                      <label className="text-sm">
+                        Select {resourceLabel(rule.resource).toLowerCase()}
+                      </label>
+                      <select
+                        className="w-full border rounded-md p-2"
+                        value={rule.scopeId ?? ""}
+                        onChange={(e) =>
+                          updateRule(index, {
+                            scopeId: e.target.value || undefined,
+                          })
+                        }
+                        required
+                      >
+                        <option value="">Select item</option>
+                        {scopeOptions.map((node) => (
+                          <option key={node.id} value={node.id}>
+                            {node.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   )}
                 </>

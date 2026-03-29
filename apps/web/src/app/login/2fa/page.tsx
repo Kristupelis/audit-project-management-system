@@ -76,8 +76,9 @@ export default function TwoFactorPage() {
       redirect: false,
       userId: data.user.id,
       email: data.user.email,
-      name: data.user.name,
+      name: data.user.name ?? '',
       accessToken: data.accessToken,
+      accessExpiresAt: String(data.accessExpiresAt ?? ''),
     });
 
     if (loginRes?.error) {
@@ -96,6 +97,11 @@ export default function TwoFactorPage() {
 
     if (isSetupMode && !secret) {
       setError('2FA secret was not loaded');
+      return;
+    }
+
+    if (!/^\d{6}$/.test(code)) {
+      setError('Enter a valid 6-digit authentication code');
       return;
     }
 
@@ -182,7 +188,7 @@ export default function TwoFactorPage() {
           <input
             className="w-full border rounded-md p-2 text-center tracking-widest"
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\s+/g, ''))}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
             placeholder="123456"
             maxLength={6}
             inputMode="numeric"
