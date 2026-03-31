@@ -7,6 +7,7 @@ interface CustomUser {
   name: string;
   apiAccessToken: string;
   apiAccessExpiresAt: number | null;
+  systemRole?: string | null;
 }
 
 interface CustomSession extends Session {
@@ -26,6 +27,7 @@ export const authOptions: NextAuthOptions = {
         accessToken: { label: 'AccessToken', type: 'text' },
         userId: { label: 'UserId', type: 'text' },
         name: { label: 'Name', type: 'text' },
+        accessExpiresAt: { label: 'AccessExpiresAt', type: 'text' },
       },
       async authorize(credentials) {
         // Session creation after successful 2FA/setup
@@ -39,7 +41,7 @@ export const authOptions: NextAuthOptions = {
             email: credentials.email,
             name: credentials.name ?? '',
             apiAccessToken: credentials.accessToken,
-            apiAccessExpiresAt: null,
+            apiAccessExpiresAt: credentials.accessExpiresAt ? Number(credentials.accessExpiresAt) : null,
           } as CustomUser;
         }
 
@@ -84,7 +86,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.email = user.email;
         token.name = user.name;
-      
+        token.systemRole = (user as CustomUser).systemRole ?? null;
         token.apiAccessToken = (user as CustomUser).apiAccessToken;
         token.apiAccessExpiresAt = (user as CustomUser).apiAccessExpiresAt;
       }
@@ -95,7 +97,9 @@ export const authOptions: NextAuthOptions = {
       session.user = {
         email: token.email as string,
         name: token.name as string,
+        systemRole: (token.systemRole as string | null | undefined) ?? null,
       };
+      
 
       (session as CustomSession).apiAccessToken = token.apiAccessToken as
         | string

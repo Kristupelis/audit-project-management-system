@@ -3,7 +3,7 @@ import { authOptions } from "@/auth";
 import Link from "next/link";
 import CreateProjectForm from "./create-project-form";
 import ProjectsHeader from "./projects-header";
-import SessionExpiryGuard from "./session-expiry-prompt";
+//import SessionExpiryGuard from "./session-expiry-prompt";
 
 type Project = {
   id: string;
@@ -40,7 +40,7 @@ export default async function ProjectsPage() {
 
   return (
     <main className="p-6 space-y-4">
-      <SessionExpiryGuard accessExpiresAt={session.apiAccessExpiresAt ?? null} />
+      { /*<SessionExpiryGuard accessExpiresAt={session.apiAccessExpiresAt ?? null} /> */}
       <ProjectsHeader name={session.user?.name} />
 
 

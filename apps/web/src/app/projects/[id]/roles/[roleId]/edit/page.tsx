@@ -36,11 +36,9 @@ export default async function EditRolePage({
   const role = await apiFetch(`/projects/${id}/roles/${roleId}`, token);
   const membersData = await apiFetch<MembersResponse>(`/projects/${id}/members`, token);
 
-  if (!project.isOwner) {
-    return <main className="p-6">Only project owners can edit roles.</main>;
+  if (!project.isOwner && session?.user?.systemRole !== "SUPER_ADMIN") {
+    return <main className="p-6">Only project owners or superadmins can edit roles.</main>;
   }
-
-  const auditAreas: { id: string; name: string; processes: { id: string; name: string }[] }[] = [];
 
   return (
     <main className="p-6 space-y-6">
@@ -54,7 +52,6 @@ export default async function EditRolePage({
       <RoleForm
         projectId={id}
         members={membersData.members}
-        auditAreas={auditAreas}
         initialRole={role as undefined}
       />
     </main>

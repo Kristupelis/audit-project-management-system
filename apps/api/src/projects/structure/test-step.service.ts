@@ -55,6 +55,7 @@ export class TestStepService {
       userId,
       ResourceType.TEST_STEP,
       PermissionAction.CREATE,
+      controlId,
     );
 
     const last = await this.prisma.testStep.findFirst({
@@ -63,7 +64,6 @@ export class TestStepService {
       select: { order: true },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const nextOrder = (last?.order ?? -1) + 1;
 
     return this.prisma.$transaction(async (tx) => {
@@ -72,7 +72,6 @@ export class TestStepService {
           id: testStepId(),
           controlId,
           description,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           order: nextOrder,
         },
       });
@@ -82,7 +81,6 @@ export class TestStepService {
           id: auditId(),
           projectId: control.process.auditArea.projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.TEST_STEP_CREATED,
           entity: 'TestStep',
           entityId: testStep.id,
@@ -113,8 +111,10 @@ export class TestStepService {
     await this.permissions.requirePermission(
       control.process.auditArea.projectId,
       userId,
-      ResourceType.TEST_STEP,
-      PermissionAction.READ,
+      ResourceType.CONTROL,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      PermissionAction.SEE,
+      controlId,
     );
 
     return this.prisma.testStep.findMany({
@@ -130,6 +130,7 @@ export class TestStepService {
       userId,
       ResourceType.TEST_STEP,
       PermissionAction.READ,
+      id,
     );
 
     return this.prisma.testStep.findUnique({ where: { id } });
@@ -143,6 +144,7 @@ export class TestStepService {
       userId,
       ResourceType.TEST_STEP,
       PermissionAction.UPDATE,
+      id,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -156,7 +158,6 @@ export class TestStepService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.TEST_STEP_UPDATED,
           entity: 'TestStep',
           entityId: id,
@@ -176,6 +177,7 @@ export class TestStepService {
       userId,
       ResourceType.TEST_STEP,
       PermissionAction.DELETE,
+      id,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -186,7 +188,6 @@ export class TestStepService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.TEST_STEP_DELETED,
           entity: 'TestStep',
           entityId: id,

@@ -39,6 +39,7 @@ export class ProcessService {
       userId,
       ResourceType.PROCESS,
       PermissionAction.CREATE,
+      auditAreaId,
     );
 
     const last = await this.prisma.process.findFirst({
@@ -64,7 +65,6 @@ export class ProcessService {
           id: auditId(),
           projectId: area.projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.PROCESS_CREATED,
           entity: 'Process',
           entityId: process.id,
@@ -87,8 +87,10 @@ export class ProcessService {
     await this.permissions.requirePermission(
       area.projectId,
       userId,
-      ResourceType.PROCESS,
-      PermissionAction.READ,
+      ResourceType.AUDIT_AREA,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      PermissionAction.SEE,
+      auditAreaId,
     );
 
     return this.prisma.process.findMany({
@@ -105,6 +107,7 @@ export class ProcessService {
       userId,
       ResourceType.PROCESS,
       PermissionAction.READ,
+      processIdValue,
     );
 
     return this.prisma.process.findUnique({
@@ -125,6 +128,7 @@ export class ProcessService {
       userId,
       ResourceType.PROCESS,
       PermissionAction.UPDATE,
+      processIdValue,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -138,7 +142,6 @@ export class ProcessService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.PROCESS_UPDATED,
           entity: 'Process',
           entityId: processIdValue,
@@ -158,6 +161,7 @@ export class ProcessService {
       userId,
       ResourceType.PROCESS,
       PermissionAction.DELETE,
+      processIdValue,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -168,7 +172,6 @@ export class ProcessService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.PROCESS_DELETED,
           entity: 'Process',
           entityId: processIdValue,

@@ -56,7 +56,6 @@ export class AuditAreaService {
           id: auditId(),
           projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.AUDIT_AREA_CREATED,
           entity: 'AuditArea',
           entityId: area.id,
@@ -73,7 +72,8 @@ export class AuditAreaService {
       projectId,
       userId,
       ResourceType.AUDIT_AREA,
-      PermissionAction.READ,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      PermissionAction.SEE,
     );
 
     return this.prisma.auditArea.findMany({
@@ -90,6 +90,7 @@ export class AuditAreaService {
       userId,
       ResourceType.AUDIT_AREA,
       PermissionAction.READ,
+      areaId,
     );
 
     return this.prisma.auditArea.findUnique({
@@ -108,6 +109,7 @@ export class AuditAreaService {
       userId,
       ResourceType.AUDIT_AREA,
       PermissionAction.UPDATE,
+      areaId,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -121,7 +123,6 @@ export class AuditAreaService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.AUDIT_AREA_UPDATED,
           entity: 'AuditArea',
           entityId: areaId,
@@ -141,6 +142,7 @@ export class AuditAreaService {
       userId,
       ResourceType.AUDIT_AREA,
       PermissionAction.DELETE,
+      areaId,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -151,7 +153,6 @@ export class AuditAreaService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.AUDIT_AREA_DELETED,
           entity: 'AuditArea',
           entityId: areaId,

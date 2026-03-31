@@ -47,6 +47,7 @@ export class ControlService {
       userId,
       ResourceType.CONTROL,
       PermissionAction.CREATE,
+      processIdValue,
     );
 
     const last = await this.prisma.control.findFirst({
@@ -55,7 +56,6 @@ export class ControlService {
       select: { order: true },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const nextOrder = (last?.order ?? -1) + 1;
 
     return this.prisma.$transaction(async (tx) => {
@@ -64,7 +64,6 @@ export class ControlService {
           id: controlId(),
           processId: processIdValue,
           name,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           order: nextOrder,
         },
       });
@@ -74,7 +73,6 @@ export class ControlService {
           id: auditId(),
           projectId: process.auditArea.projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.CONTROL_CREATED,
           entity: 'Control',
           entityId: control.id,
@@ -101,8 +99,9 @@ export class ControlService {
     await this.permissions.requirePermission(
       process.auditArea.projectId,
       userId,
-      ResourceType.CONTROL,
-      PermissionAction.READ,
+      ResourceType.PROCESS,
+      PermissionAction.SEE,
+      processIdValue,
     );
 
     return this.prisma.control.findMany({
@@ -119,6 +118,7 @@ export class ControlService {
       userId,
       ResourceType.CONTROL,
       PermissionAction.READ,
+      controlIdValue,
     );
 
     return this.prisma.control.findUnique({
@@ -137,6 +137,7 @@ export class ControlService {
       userId,
       ResourceType.CONTROL,
       PermissionAction.UPDATE,
+      controlIdValue,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -150,7 +151,6 @@ export class ControlService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.CONTROL_UPDATED,
           entity: 'Control',
           entityId: controlIdValue,
@@ -170,6 +170,7 @@ export class ControlService {
       userId,
       ResourceType.CONTROL,
       PermissionAction.DELETE,
+      controlIdValue,
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -180,7 +181,6 @@ export class ControlService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.CONTROL_DELETED,
           entity: 'Control',
           entityId: controlIdValue,

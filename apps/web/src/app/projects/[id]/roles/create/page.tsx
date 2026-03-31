@@ -35,11 +35,9 @@ export default async function CreateRolePage({
   const project = await apiFetch<Project>(`/projects/${id}`, token);
   const membersData = await apiFetch<MembersResponse>(`/projects/${id}/members`, token);
 
-  if (!project.isOwner) {
-    return <main className="p-6">Only project owners can create roles.</main>;
+  if (!project.isOwner && session?.user?.systemRole !== "SUPER_ADMIN") {
+    return <main className="p-6">Only project owners or superadmins can create roles.</main>;
   }
-
-  const auditAreas: { id: string; name: string; processes: { id: string; name: string }[] }[] = [];
 
   return (
     <main className="p-6 space-y-6">
@@ -53,7 +51,6 @@ export default async function CreateRolePage({
       <RoleForm
         projectId={id}
         members={membersData.members}
-        auditAreas={auditAreas}
       />
     </main>
   );
