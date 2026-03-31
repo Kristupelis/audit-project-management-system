@@ -57,7 +57,6 @@ export class FindingService {
       select: { order: true },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const nextOrder = (last?.order ?? -1) + 1;
 
     return this.prisma.$transaction(async (tx) => {
@@ -66,7 +65,6 @@ export class FindingService {
           id: findingId(),
           processId: processIdValue,
           ...dto,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           order: nextOrder,
         },
       });
@@ -76,7 +74,6 @@ export class FindingService {
           id: auditId(),
           projectId: p.auditArea.projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.FINDING_CREATED,
           entity: 'Finding',
           entityId: finding.id,
@@ -151,7 +148,6 @@ export class FindingService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.FINDING_UPDATED,
           entity: 'Finding',
           entityId: findingIdValue,
@@ -182,7 +178,6 @@ export class FindingService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.FINDING_DELETED,
           entity: 'Finding',
           entityId: findingIdValue,

@@ -3,7 +3,7 @@ import { authOptions } from "@/auth";
 import Link from "next/link";
 import CreateProjectForm from "./create-project-form";
 import ProjectsHeader from "./projects-header";
-import SessionExpiryGuard from "./session-expiry-prompt";
+//import SessionExpiryGuard from "./session-expiry-prompt";
 
 type Project = {
   id: string;

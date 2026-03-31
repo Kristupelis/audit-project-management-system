@@ -65,7 +65,6 @@ export class ProcessService {
           id: auditId(),
           projectId: area.projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.PROCESS_CREATED,
           entity: 'Process',
           entityId: process.id,
@@ -143,7 +142,6 @@ export class ProcessService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.PROCESS_UPDATED,
           entity: 'Process',
           entityId: processIdValue,
@@ -174,7 +172,6 @@ export class ProcessService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.PROCESS_DELETED,
           entity: 'Process',
           entityId: processIdValue,

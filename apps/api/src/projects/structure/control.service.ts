@@ -56,7 +56,6 @@ export class ControlService {
       select: { order: true },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const nextOrder = (last?.order ?? -1) + 1;
 
     return this.prisma.$transaction(async (tx) => {
@@ -65,7 +64,6 @@ export class ControlService {
           id: controlId(),
           processId: processIdValue,
           name,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           order: nextOrder,
         },
       });
@@ -75,7 +73,6 @@ export class ControlService {
           id: auditId(),
           projectId: process.auditArea.projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.CONTROL_CREATED,
           entity: 'Control',
           entityId: control.id,
@@ -103,7 +100,6 @@ export class ControlService {
       process.auditArea.projectId,
       userId,
       ResourceType.PROCESS,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       PermissionAction.SEE,
       processIdValue,
     );
@@ -155,7 +151,6 @@ export class ControlService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.CONTROL_UPDATED,
           entity: 'Control',
           entityId: controlIdValue,
@@ -186,7 +181,6 @@ export class ControlService {
           id: auditId(),
           projectId: projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.CONTROL_DELETED,
           entity: 'Control',
           entityId: controlIdValue,
