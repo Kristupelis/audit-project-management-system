@@ -74,6 +74,13 @@ type StructureResponse = {
   tree: TreeNode[];
 };
 
+const actionLabels: Record<PermissionAction, string> = {
+  READ: "View",
+  CREATE: "Create",
+  UPDATE: "Edit",
+  DELETE: "Delete",
+};
+
 function flattenTree(nodes: TreeNode[]): TreeNode[] {
   const out: TreeNode[] = [];
   for (const node of nodes) {
@@ -225,19 +232,58 @@ export default function RoleForm({
   }
 
   function toggleAction(index: number, action: PermissionAction) {
-    setRules((prev) =>
-      prev.map((rule, i) => {
-        if (i !== index) return rule;
-        const exists = rule.actions.includes(action);
+  setRules((prev) =>
+    prev.map((rule, i) => {
+      if (i !== index) return rule;
+
+      const actions = new Set(rule.actions);
+      const hasAction = actions.has(action);
+
+      if (hasAction) {
+        actions.delete(action);
+
+        // If READ is removed, remove all dependent actions too
+        if (action === "READ") {
+          actions.delete("CREATE");
+          actions.delete("UPDATE");
+          actions.delete("DELETE");
+        }
+
+        // If UPDATE is removed, DELETE must also be removed
+        if (action === "UPDATE") {
+          actions.delete("DELETE");
+        }
+
         return {
           ...rule,
-          actions: exists
-            ? rule.actions.filter((a) => a !== action)
-            : [...rule.actions, action],
+          actions: Array.from(actions),
         };
-      }),
-    );
-  }
+      }
+
+      actions.add(action);
+
+      // Dependency rules
+      if (action === "UPDATE") {
+        actions.add("READ");
+      }
+
+      if (action === "DELETE") {
+        actions.add("READ");
+        actions.add("UPDATE");
+      }
+
+      if (action === "CREATE") {
+        actions.add("READ");
+        actions.add("UPDATE");
+      }
+
+      return {
+        ...rule,
+        actions: Array.from(actions),
+      };
+    }),
+  );
+}
 
   function toggleMember(memberId: string) {
     setSelectedMembers((prev) =>
@@ -491,7 +537,7 @@ export default function RoleForm({
                         checked={rule.actions.includes(action)}
                         onChange={() => toggleAction(index, action)}
                       />
-                      {action}
+                      {actionLabels[action]}
                     </label>
                   ))}
                 </div>
