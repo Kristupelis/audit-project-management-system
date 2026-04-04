@@ -24,7 +24,7 @@ export class ControlController {
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateControlDto,
   ) {
-    return this.controls.create(processId, userId, dto.name);
+    return this.controls.create(processId, userId, dto);
   }
 
   @Get('processes/:processId/controls')
@@ -49,7 +49,7 @@ export class ControlController {
     @CurrentUser('sub') userId: string,
     @Body() dto: UpdateControlDto,
   ) {
-    return this.controls.update(controlId, userId, dto.name);
+    return this.controls.update(controlId, userId, dto);
   }
 
   @Delete('controls/:controlId')

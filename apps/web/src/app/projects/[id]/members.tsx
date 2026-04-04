@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toUserFriendlyError } from "@/lib/error-message";
 
 type Member = {
   id: string;
@@ -30,6 +31,7 @@ export default function Members({ projectId }: { projectId: string }) {
   const [canDeleteMembers, setCanDeleteMembers] = useState(false);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function loadMembers() {
     if (loading) return;
@@ -72,7 +74,7 @@ export default function Members({ projectId }: { projectId: string }) {
 
     if (!res.ok) {
       const text = await res.text();
-      alert(text);
+      setError(toUserFriendlyError(text));
       return;
     }
 
@@ -89,7 +91,7 @@ export default function Members({ projectId }: { projectId: string }) {
 
     if (!res.ok) {
       const text = await res.text();
-      alert(text);
+      setError(toUserFriendlyError(text));
       return;
     }
 
@@ -109,7 +111,7 @@ export default function Members({ projectId }: { projectId: string }) {
 
     if (!res.ok) {
       const text = await res.text();
-      alert(text);
+      setError(toUserFriendlyError(text));
       return;
     }
 
@@ -173,6 +175,25 @@ export default function Members({ projectId }: { projectId: string }) {
           </li>
         ))}
       </ul>
+      {error && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-2xl rounded-md border border-red-300 bg-red-50 p-4 shadow-lg">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-red-700">Error</h3>
+                <p className="text-sm text-red-700 whitespace-pre-wrap">{error}</p>
+              </div>
+
+              <button
+                className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
+                onClick={() => setError(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

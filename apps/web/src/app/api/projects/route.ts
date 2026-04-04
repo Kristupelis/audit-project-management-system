@@ -10,13 +10,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => null);
-  const name = body?.name;
-  const description = body?.description;
-
-  if (typeof name !== "string" || name.trim().length < 2) {
-    return NextResponse.json({ error: "Name must be at least 2 characters" }, { status: 400 });
-  }
+  const body = await req.text();
 
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/projects`, {
     method: "POST",
@@ -24,13 +18,11 @@ export async function POST(req: Request) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      name: name.trim(),
-      description: typeof description === "string" && description.trim() ? description.trim() : null,
-    }),
+    body,
   });
 
   const text = await res.text();
+
   return new NextResponse(text, {
     status: res.status,
     headers: {

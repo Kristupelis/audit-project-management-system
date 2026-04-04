@@ -44,7 +44,7 @@ export class ProjectsController {
 
   @Post()
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateProjectDto) {
-    return this.projects.createProject(userId, dto.name, dto.description);
+    return this.projects.createProject(userId, dto);
   }
 
   @Get()
@@ -64,6 +64,11 @@ export class ProjectsController {
     @Body() dto: UpdateProjectDto,
   ) {
     return this.projects.updateProject(id, userId, dto);
+  }
+
+  @Delete(':id')
+  delete(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.projects.deleteProject(id, userId);
   }
 
   // =========================
@@ -247,7 +252,7 @@ export class ProjectsController {
     @Body() dto: CreateAuditAreaDto,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.auditAreas.create(projectId, userId, dto.name);
+    return this.auditAreas.create(projectId, userId, dto);
   }
 
   @Get(':id/audit-areas')

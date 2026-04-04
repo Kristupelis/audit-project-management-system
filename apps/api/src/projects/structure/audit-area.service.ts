@@ -1,12 +1,15 @@
-import {
-  /*ForbiddenException,*/
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
+import {
+  AuditAction,
+  PermissionAction,
+  Prisma,
+  ResourceType,
+} from '@prisma/client';
 import { ProjectPermissionsService } from '../permissions.service';
 import { auditAreaId, auditId } from '../../common/id';
+import { CreateAuditAreaDto, UpdateAuditAreaDto } from '../dto/audit-area.dto';
 
 @Injectable()
 export class AuditAreaService {
@@ -26,13 +29,14 @@ export class AuditAreaService {
     return area.projectId;
   }
 
-  async create(projectId: string, userId: string, name: string) {
+  async create(projectId: string, userId: string, dto: CreateAuditAreaDto) {
     await this.permissions.requirePermission(
       projectId,
       userId,
       ResourceType.AUDIT_AREA,
       PermissionAction.CREATE,
     );
+
     const last = await this.prisma.auditArea.findFirst({
       where: { projectId },
       orderBy: { order: 'desc' },
@@ -46,8 +50,17 @@ export class AuditAreaService {
         data: {
           id: auditAreaId(),
           projectId,
-          name,
           order: nextOrder,
+          name: dto.name,
+          code: dto.code ?? null,
+          description: dto.description ?? null,
+          objective: dto.objective ?? null,
+          scope: dto.scope ?? null,
+          riskLevel: dto.riskLevel,
+          residualRisk: dto.residualRisk,
+          status: dto.status,
+          areaOwner: dto.areaOwner ?? null,
+          notes: dto.notes ?? null,
         },
       });
 
@@ -59,7 +72,7 @@ export class AuditAreaService {
           action: AuditAction.AUDIT_AREA_CREATED,
           entity: 'AuditArea',
           entityId: area.id,
-          details: { name: name },
+          details: dto as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -72,7 +85,6 @@ export class AuditAreaService {
       projectId,
       userId,
       ResourceType.AUDIT_AREA,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       PermissionAction.SEE,
     );
 
@@ -101,7 +113,7 @@ export class AuditAreaService {
     });
   }
 
-  async update(areaId: string, userId: string, name: string) {
+  async update(areaId: string, userId: string, dto: UpdateAuditAreaDto) {
     const projectId = await this.resolveProject(areaId);
 
     await this.permissions.requirePermission(
@@ -115,18 +127,29 @@ export class AuditAreaService {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.auditArea.update({
         where: { id: areaId },
-        data: { name },
+        data: {
+          name: dto.name,
+          code: dto.code,
+          description: dto.description,
+          objective: dto.objective,
+          scope: dto.scope,
+          riskLevel: dto.riskLevel,
+          residualRisk: dto.residualRisk,
+          status: dto.status,
+          areaOwner: dto.areaOwner,
+          notes: dto.notes,
+        },
       });
 
       await tx.auditLog.create({
         data: {
           id: auditId(),
-          projectId: projectId,
+          projectId,
           actorId: userId,
           action: AuditAction.AUDIT_AREA_UPDATED,
           entity: 'AuditArea',
           entityId: areaId,
-          details: { name: name },
+          details: dto as Prisma.InputJsonValue,
         },
       });
 
@@ -151,7 +174,7 @@ export class AuditAreaService {
       await tx.auditLog.create({
         data: {
           id: auditId(),
-          projectId: projectId,
+          projectId,
           actorId: userId,
           action: AuditAction.AUDIT_AREA_DELETED,
           entity: 'AuditArea',

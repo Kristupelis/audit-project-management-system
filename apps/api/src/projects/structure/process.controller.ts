@@ -24,7 +24,7 @@ export class ProcessController {
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateProcessDto,
   ) {
-    return this.processes.create(areaId, userId, dto.name);
+    return this.processes.create(areaId, userId, dto);
   }
 
   @Get('audit-areas/:areaId/processes')
@@ -49,7 +49,7 @@ export class ProcessController {
     @CurrentUser('sub') userId: string,
     @Body() dto: UpdateProcessDto,
   ) {
-    return this.processes.update(processId, userId, dto.name);
+    return this.processes.update(processId, userId, dto);
   }
 
   @Delete('processes/:processId')

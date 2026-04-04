@@ -16,52 +16,127 @@ type AuditAreaData = {
   id: string;
   projectId: string;
   name: string;
+  code?: string | null;
+  description?: string | null;
+  objective?: string | null;
+  scope?: string | null;
+  riskLevel?: string | null;
+  residualRisk?: string | null;
+  status: string;
+  areaOwner?: string | null;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type ProcessData = {
   id: string;
   auditAreaId: string;
   name: string;
+  code?: string | null;
+  description?: string | null;
+  objective?: string | null;
+  processOwner?: string | null;
+  frequency?: string | null;
+  riskLevel?: string | null;
+  status: string;
+  systemsInvolved?: string | null;
+  keyInputs?: string | null;
+  keyOutputs?: string | null;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type ControlData = {
   id: string;
   processId: string;
   name: string;
+  code?: string | null;
+  description?: string | null;
+  controlObjective?: string | null;
+  controlType?: string | null;
+  controlNature?: string | null;
+  controlOwner?: string | null;
+  frequency?: string | null;
+  keyControl: boolean;
+  relatedRisk?: string | null;
+  expectedEvidence?: string | null;
+  testingStrategy?: string | null;
+  status: string;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type TestStepData = {
   id: string;
   controlId: string;
+  stepNo?: number | null;
   description: string;
+  expectedResult?: string | null;
+  actualResult?: string | null;
+  testMethod?: string | null;
+  status: string;
+  sampleReference?: string | null;
+  performedBy?: string | null;
+  performedAt?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type FindingData = {
   id: string;
   processId: string;
   title: string;
+  code?: string | null;
   description: string;
+  criteria?: string | null;
+  condition?: string | null;
+  cause?: string | null;
+  effect?: string | null;
+  recommendation?: string | null;
+  managementResponse?: string | null;
+  actionOwner?: string | null;
+  dueDate?: string | null;
   severity: string;
+  status: string;
+  identifiedAt?: string | null;
+  closedAt?: string | null;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type EvidenceData = {
   id: string;
   processId: string;
   title: string;
+  description?: string | null;
   type: string;
-  fileUrl?: string | null;
+  source?: string | null;
+  referenceNo?: string | null;
+  externalUrl?: string | null;
+  collectedBy?: string | null;
+  collectedAt?: string | null;
+  validFrom?: string | null;
+  validTo?: string | null;
+  reliabilityLevel?: string | null;
+  confidentiality?: string | null;
+  status: string;
+  version?: string | null;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type TreeNode =
@@ -157,22 +232,106 @@ function allowedChildTypes(type: NodeType): NodeType[] {
 function getNodeEditPayload(node: TreeNode, form: Record<string, string>) {
   switch (node.nodeType) {
     case "AUDIT_AREA":
+      return {
+        name: form.name ?? "",
+        code: form.code?.trim() || undefined,
+        description: form.description?.trim() || undefined,
+        objective: form.objective?.trim() || undefined,
+        scope: form.scope?.trim() || undefined,
+        riskLevel: form.riskLevel || undefined,
+        residualRisk: form.residualRisk || undefined,
+        status: form.status || undefined,
+        areaOwner: form.areaOwner?.trim() || undefined,
+        notes: form.notes?.trim() || undefined,
+      };
+
     case "PROCESS":
+      return {
+        name: form.name ?? "",
+        code: form.code?.trim() || undefined,
+        description: form.description?.trim() || undefined,
+        objective: form.objective?.trim() || undefined,
+        processOwner: form.processOwner?.trim() || undefined,
+        frequency: form.frequency || undefined,
+        riskLevel: form.riskLevel || undefined,
+        status: form.status || undefined,
+        systemsInvolved: form.systemsInvolved?.trim() || undefined,
+        keyInputs: form.keyInputs?.trim() || undefined,
+        keyOutputs: form.keyOutputs?.trim() || undefined,
+        notes: form.notes?.trim() || undefined,
+      };
+
     case "CONTROL":
-      return { name: form.name ?? "" };
+      return {
+        name: form.name ?? "",
+        code: form.code?.trim() || undefined,
+        description: form.description?.trim() || undefined,
+        controlObjective: form.controlObjective?.trim() || undefined,
+        controlType: form.controlType || undefined,
+        controlNature: form.controlNature || undefined,
+        controlOwner: form.controlOwner?.trim() || undefined,
+        frequency: form.frequency || undefined,
+        keyControl: form.keyControl === "true",
+        relatedRisk: form.relatedRisk?.trim() || undefined,
+        expectedEvidence: form.expectedEvidence?.trim() || undefined,
+        testingStrategy: form.testingStrategy || undefined,
+        status: form.status || undefined,
+        notes: form.notes?.trim() || undefined,
+      };
+
     case "TEST_STEP":
-      return { description: form.description ?? "" };
+      return {
+        description: form.description ?? "",
+        stepNo: form.stepNo?.trim() ? Number(form.stepNo) : undefined,
+        expectedResult: form.expectedResult?.trim() || undefined,
+        actualResult: form.actualResult?.trim() || undefined,
+        testMethod: form.testMethod || undefined,
+        status: form.status || undefined,
+        sampleReference: form.sampleReference?.trim() || undefined,
+        performedBy: form.performedBy?.trim() || undefined,
+        performedAt: form.performedAt || undefined,
+        reviewedBy: form.reviewedBy?.trim() || undefined,
+        reviewedAt: form.reviewedAt || undefined,
+        notes: form.notes?.trim() || undefined,
+      };
+
     case "FINDING":
       return {
         title: form.title ?? "",
+        code: form.code?.trim() || undefined,
         description: form.description ?? "",
+        criteria: form.criteria?.trim() || undefined,
+        condition: form.condition?.trim() || undefined,
+        cause: form.cause?.trim() || undefined,
+        effect: form.effect?.trim() || undefined,
+        recommendation: form.recommendation?.trim() || undefined,
+        managementResponse: form.managementResponse?.trim() || undefined,
+        actionOwner: form.actionOwner?.trim() || undefined,
+        dueDate: form.dueDate || undefined,
         severity: form.severity ?? "",
+        status: form.status || undefined,
+        identifiedAt: form.identifiedAt || undefined,
+        closedAt: form.closedAt || undefined,
+        notes: form.notes?.trim() || undefined,
       };
+
     case "EVIDENCE":
       return {
         title: form.title ?? "",
+        description: form.description?.trim() || undefined,
         type: form.type ?? "",
-        fileUrl: form.fileUrl?.trim() ? form.fileUrl.trim() : undefined,
+        source: form.source?.trim() || undefined,
+        referenceNo: form.referenceNo?.trim() || undefined,
+        externalUrl: form.externalUrl?.trim() || undefined,
+        collectedBy: form.collectedBy?.trim() || undefined,
+        collectedAt: form.collectedAt || undefined,
+        validFrom: form.validFrom || undefined,
+        validTo: form.validTo || undefined,
+        reliabilityLevel: form.reliabilityLevel || undefined,
+        confidentiality: form.confidentiality || undefined,
+        status: form.status || undefined,
+        version: form.version?.trim() || undefined,
+        notes: form.notes?.trim() || undefined,
       };
   }
 }
@@ -182,22 +341,106 @@ function buildInitialForm(node: TreeNode): Record<string, string> {
 
   switch (node.nodeType) {
     case "AUDIT_AREA":
+      return {
+        name: node.data.name ?? "",
+        code: node.data.code ?? "",
+        description: node.data.description ?? "",
+        objective: node.data.objective ?? "",
+        scope: node.data.scope ?? "",
+        riskLevel: node.data.riskLevel ?? "",
+        residualRisk: node.data.residualRisk ?? "",
+        status: node.data.status ?? "",
+        areaOwner: node.data.areaOwner ?? "",
+        notes: node.data.notes ?? "",
+      };
+
     case "PROCESS":
+      return {
+        name: node.data.name ?? "",
+        code: node.data.code ?? "",
+        description: node.data.description ?? "",
+        objective: node.data.objective ?? "",
+        processOwner: node.data.processOwner ?? "",
+        frequency: node.data.frequency ?? "",
+        riskLevel: node.data.riskLevel ?? "",
+        status: node.data.status ?? "",
+        systemsInvolved: node.data.systemsInvolved ?? "",
+        keyInputs: node.data.keyInputs ?? "",
+        keyOutputs: node.data.keyOutputs ?? "",
+        notes: node.data.notes ?? "",
+      };
+
     case "CONTROL":
-      return { name: node.data.name };
+      return {
+        name: node.data.name ?? "",
+        code: node.data.code ?? "",
+        description: node.data.description ?? "",
+        controlObjective: node.data.controlObjective ?? "",
+        controlType: node.data.controlType ?? "",
+        controlNature: node.data.controlNature ?? "",
+        controlOwner: node.data.controlOwner ?? "",
+        frequency: node.data.frequency ?? "",
+        keyControl: String(node.data.keyControl ?? false),
+        relatedRisk: node.data.relatedRisk ?? "",
+        expectedEvidence: node.data.expectedEvidence ?? "",
+        testingStrategy: node.data.testingStrategy ?? "",
+        status: node.data.status ?? "",
+        notes: node.data.notes ?? "",
+      };
+
     case "TEST_STEP":
-      return { description: node.data.description };
+      return {
+        description: node.data.description ?? "",
+        stepNo: node.data.stepNo?.toString() ?? "",
+        expectedResult: node.data.expectedResult ?? "",
+        actualResult: node.data.actualResult ?? "",
+        testMethod: node.data.testMethod ?? "",
+        status: node.data.status ?? "",
+        sampleReference: node.data.sampleReference ?? "",
+        performedBy: node.data.performedBy ?? "",
+        performedAt: node.data.performedAt?.slice(0, 10) ?? "",
+        reviewedBy: node.data.reviewedBy ?? "",
+        reviewedAt: node.data.reviewedAt?.slice(0, 10) ?? "",
+        notes: node.data.notes ?? "",
+      };
+
     case "FINDING":
       return {
-        title: node.data.title,
-        description: node.data.description,
-        severity: node.data.severity,
+        title: node.data.title ?? "",
+        code: node.data.code ?? "",
+        description: node.data.description ?? "",
+        criteria: node.data.criteria ?? "",
+        condition: node.data.condition ?? "",
+        cause: node.data.cause ?? "",
+        effect: node.data.effect ?? "",
+        recommendation: node.data.recommendation ?? "",
+        managementResponse: node.data.managementResponse ?? "",
+        actionOwner: node.data.actionOwner ?? "",
+        dueDate: node.data.dueDate?.slice(0, 10) ?? "",
+        severity: node.data.severity ?? "",
+        status: node.data.status ?? "",
+        identifiedAt: node.data.identifiedAt?.slice(0, 10) ?? "",
+        closedAt: node.data.closedAt?.slice(0, 10) ?? "",
+        notes: node.data.notes ?? "",
       };
+
     case "EVIDENCE":
       return {
-        title: node.data.title,
-        type: node.data.type,
-        fileUrl: node.data.fileUrl ?? "",
+        title: node.data.title ?? "",
+        description: node.data.description ?? "",
+        type: node.data.type ?? "",
+        source: node.data.source ?? "",
+        referenceNo: node.data.referenceNo ?? "",
+        externalUrl: node.data.externalUrl ?? "",
+        collectedBy: node.data.collectedBy ?? "",
+        collectedAt: node.data.collectedAt?.slice(0, 10) ?? "",
+        validFrom: node.data.validFrom?.slice(0, 10) ?? "",
+        validTo: node.data.validTo?.slice(0, 10) ?? "",
+        reliabilityLevel: node.data.reliabilityLevel ?? "",
+        confidentiality: node.data.confidentiality ?? "",
+        status: node.data.status ?? "",
+        version: node.data.version ?? "",
+        notes: node.data.notes ?? "",
       };
   }
 }
@@ -371,6 +614,619 @@ function TreeItem({
   );
 }
 
+function Field({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | number | boolean | null;
+}) {
+  if (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === "false"
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="text-sm font-medium">{label}</div>
+      <div className="text-sm opacity-80 whitespace-pre-wrap break-words">
+        {typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)}
+      </div>
+    </div>
+  );
+}
+
+function DetailFields({
+  node,
+  editing,
+  form,
+  setForm,
+}: {
+  node: TreeNode;
+  editing: boolean;
+  form: Record<string, string>;
+  setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+}) {
+  if (!node.data) return null;
+
+  if (editing) {
+    switch (node.nodeType) {
+      case "AUDIT_AREA":
+        return (
+          <div className="space-y-3">
+            {[
+              ["Name", "name"],
+              ["Code", "code"],
+              ["Description", "description"],
+              ["Objective", "objective"],
+              ["Scope", "scope"],
+              ["Area owner", "areaOwner"],
+              ["Notes", "notes"],
+            ].map(([label, key]) => (
+              <div key={key} className="space-y-1">
+                <label className="block text-sm font-medium">{label}</label>
+                {["description", "objective", "scope", "notes"].includes(key) ? (
+                  <textarea
+                    className="w-full border rounded px-3 py-2 min-h-24"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                ) : (
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                )}
+              </div>
+            ))}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Risk level</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={form.riskLevel ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, riskLevel: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Residual risk</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={form.residualRisk ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, residualRisk: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Status</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={form.status ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, status: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case "PROCESS":
+        return (
+          <div className="space-y-3">
+            {[
+              ["Name", "name"],
+              ["Code", "code"],
+              ["Description", "description"],
+              ["Objective", "objective"],
+              ["Process owner", "processOwner"],
+              ["Systems involved", "systemsInvolved"],
+              ["Key inputs", "keyInputs"],
+              ["Key outputs", "keyOutputs"],
+              ["Notes", "notes"],
+            ].map(([label, key]) => (
+              <div key={key} className="space-y-1">
+                <label className="block text-sm font-medium">{label}</label>
+                {["description", "objective", "systemsInvolved", "keyInputs", "keyOutputs", "notes"].includes(key) ? (
+                  <textarea
+                    className="w-full border rounded px-3 py-2 min-h-24"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                ) : (
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                )}
+              </div>
+            ))}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Frequency</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={form.frequency ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, frequency: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Risk level</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={form.riskLevel ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, riskLevel: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Status</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={form.status ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, status: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case "CONTROL":
+        return (
+          <div className="space-y-3">
+            {[
+              ["Name", "name"],
+              ["Code", "code"],
+              ["Description", "description"],
+              ["Control objective", "controlObjective"],
+              ["Control owner", "controlOwner"],
+              ["Related risk", "relatedRisk"],
+              ["Expected evidence", "expectedEvidence"],
+              ["Notes", "notes"],
+            ].map(([label, key]) => (
+              <div key={key} className="space-y-1">
+                <label className="block text-sm font-medium">{label}</label>
+                {["description", "controlObjective", "relatedRisk", "expectedEvidence", "notes"].includes(key) ? (
+                  <textarea
+                    className="w-full border rounded px-3 py-2 min-h-24"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                ) : (
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                )}
+              </div>
+            ))}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {["controlType", "controlNature", "frequency", "testingStrategy", "status"].map((key) => (
+                <div key={key} className="space-y-1">
+                  <label className="block text-sm font-medium">{key}</label>
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Key control</label>
+                <select
+                  className="w-full border rounded px-3 py-2"
+                  value={form.keyControl ?? "false"}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, keyControl: e.target.value }))
+                  }
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "TEST_STEP":
+        return (
+          <div className="space-y-3">
+            {[
+              ["Description", "description"],
+              ["Expected result", "expectedResult"],
+              ["Actual result", "actualResult"],
+              ["Sample reference", "sampleReference"],
+              ["Performed by", "performedBy"],
+              ["Reviewed by", "reviewedBy"],
+              ["Notes", "notes"],
+            ].map(([label, key]) => (
+              <div key={key} className="space-y-1">
+                <label className="block text-sm font-medium">{label}</label>
+                {["description", "expectedResult", "actualResult", "notes"].includes(key) ? (
+                  <textarea
+                    className="w-full border rounded px-3 py-2 min-h-24"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                ) : (
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                )}
+              </div>
+            ))}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {["stepNo", "testMethod", "status"].map((key) => (
+                <div key={key} className="space-y-1">
+                  <label className="block text-sm font-medium">{key}</label>
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Performed at</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.performedAt ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, performedAt: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Reviewed at</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.reviewedAt ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, reviewedAt: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case "FINDING":
+        return (
+          <div className="space-y-3">
+            {[
+              ["Title", "title"],
+              ["Code", "code"],
+              ["Description", "description"],
+              ["Criteria", "criteria"],
+              ["Condition", "condition"],
+              ["Cause", "cause"],
+              ["Effect", "effect"],
+              ["Recommendation", "recommendation"],
+              ["Management response", "managementResponse"],
+              ["Action owner", "actionOwner"],
+              ["Severity", "severity"],
+              ["Notes", "notes"],
+            ].map(([label, key]) => (
+              <div key={key} className="space-y-1">
+                <label className="block text-sm font-medium">{label}</label>
+                {["description", "criteria", "condition", "cause", "effect", "recommendation", "managementResponse", "notes"].includes(key) ? (
+                  <textarea
+                    className="w-full border rounded px-3 py-2 min-h-24"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                ) : (
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                )}
+              </div>
+            ))}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Status</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={form.status ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, status: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Due date</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.dueDate ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, dueDate: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Identified at</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.identifiedAt ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, identifiedAt: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Closed at</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.closedAt ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, closedAt: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case "EVIDENCE":
+        return (
+          <div className="space-y-3">
+            {[
+              ["Title", "title"],
+              ["Description", "description"],
+              ["Type", "type"],
+              ["Source", "source"],
+              ["Reference number", "referenceNo"],
+              ["External URL", "externalUrl"],
+              ["Collected by", "collectedBy"],
+              ["Version", "version"],
+              ["Notes", "notes"],
+            ].map(([label, key]) => (
+              <div key={key} className="space-y-1">
+                <label className="block text-sm font-medium">{label}</label>
+                {["description", "notes"].includes(key) ? (
+                  <textarea
+                    className="w-full border rounded px-3 py-2 min-h-24"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                ) : (
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                )}
+              </div>
+            ))}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {["reliabilityLevel", "confidentiality", "status"].map((key) => (
+                <div key={key} className="space-y-1">
+                  <label className="block text-sm font-medium">{key}</label>
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    value={form[key] ?? ""}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Collected at</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.collectedAt ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, collectedAt: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Valid from</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.validFrom ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, validFrom: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Valid to</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.validTo ?? ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, validTo: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        );
+    }
+  }
+
+  switch (node.nodeType) {
+    case "AUDIT_AREA":
+      return (
+        <div className="space-y-2">
+          <Field label="Name" value={node.data.name} />
+          <Field label="Code" value={node.data.code} />
+          <Field label="Description" value={node.data.description} />
+          <Field label="Objective" value={node.data.objective} />
+          <Field label="Scope" value={node.data.scope} />
+          <Field label="Risk level" value={node.data.riskLevel} />
+          <Field label="Residual risk" value={node.data.residualRisk} />
+          <Field label="Status" value={node.data.status} />
+          <Field label="Area owner" value={node.data.areaOwner} />
+          <Field label="Notes" value={node.data.notes} />
+        </div>
+      );
+
+    case "PROCESS":
+      return (
+        <div className="space-y-2">
+          <Field label="Name" value={node.data.name} />
+          <Field label="Code" value={node.data.code} />
+          <Field label="Description" value={node.data.description} />
+          <Field label="Objective" value={node.data.objective} />
+          <Field label="Process owner" value={node.data.processOwner} />
+          <Field label="Frequency" value={node.data.frequency} />
+          <Field label="Risk level" value={node.data.riskLevel} />
+          <Field label="Status" value={node.data.status} />
+          <Field label="Systems involved" value={node.data.systemsInvolved} />
+          <Field label="Key inputs" value={node.data.keyInputs} />
+          <Field label="Key outputs" value={node.data.keyOutputs} />
+          <Field label="Notes" value={node.data.notes} />
+        </div>
+      );
+
+    case "CONTROL":
+      return (
+        <div className="space-y-2">
+          <Field label="Name" value={node.data.name} />
+          <Field label="Code" value={node.data.code} />
+          <Field label="Description" value={node.data.description} />
+          <Field label="Control objective" value={node.data.controlObjective} />
+          <Field label="Control type" value={node.data.controlType} />
+          <Field label="Control nature" value={node.data.controlNature} />
+          <Field label="Control owner" value={node.data.controlOwner} />
+          <Field label="Frequency" value={node.data.frequency} />
+          <Field label="Key control" value={node.data.keyControl} />
+          <Field label="Related risk" value={node.data.relatedRisk} />
+          <Field label="Expected evidence" value={node.data.expectedEvidence} />
+          <Field label="Testing strategy" value={node.data.testingStrategy} />
+          <Field label="Status" value={node.data.status} />
+          <Field label="Notes" value={node.data.notes} />
+        </div>
+      );
+
+    case "TEST_STEP":
+      return (
+        <div className="space-y-2">
+          <Field label="Step no" value={node.data.stepNo} />
+          <Field label="Description" value={node.data.description} />
+          <Field label="Expected result" value={node.data.expectedResult} />
+          <Field label="Actual result" value={node.data.actualResult} />
+          <Field label="Test method" value={node.data.testMethod} />
+          <Field label="Status" value={node.data.status} />
+          <Field label="Sample reference" value={node.data.sampleReference} />
+          <Field label="Performed by" value={node.data.performedBy} />
+          <Field label="Performed at" value={node.data.performedAt?.slice(0, 10)} />
+          <Field label="Reviewed by" value={node.data.reviewedBy} />
+          <Field label="Reviewed at" value={node.data.reviewedAt?.slice(0, 10)} />
+          <Field label="Notes" value={node.data.notes} />
+        </div>
+      );
+
+    case "FINDING":
+      return (
+        <div className="space-y-2">
+          <Field label="Title" value={node.data.title} />
+          <Field label="Code" value={node.data.code} />
+          <Field label="Description" value={node.data.description} />
+          <Field label="Criteria" value={node.data.criteria} />
+          <Field label="Condition" value={node.data.condition} />
+          <Field label="Cause" value={node.data.cause} />
+          <Field label="Effect" value={node.data.effect} />
+          <Field label="Recommendation" value={node.data.recommendation} />
+          <Field label="Management response" value={node.data.managementResponse} />
+          <Field label="Action owner" value={node.data.actionOwner} />
+          <Field label="Due date" value={node.data.dueDate?.slice(0, 10)} />
+          <Field label="Severity" value={node.data.severity} />
+          <Field label="Status" value={node.data.status} />
+          <Field label="Identified at" value={node.data.identifiedAt?.slice(0, 10)} />
+          <Field label="Closed at" value={node.data.closedAt?.slice(0, 10)} />
+          <Field label="Notes" value={node.data.notes} />
+        </div>
+      );
+
+    case "EVIDENCE":
+      return (
+        <div className="space-y-2">
+          <Field label="Title" value={node.data.title} />
+          <Field label="Description" value={node.data.description} />
+          <Field label="Type" value={node.data.type} />
+          <Field label="Source" value={node.data.source} />
+          <Field label="Reference number" value={node.data.referenceNo} />
+          <Field label="External URL" value={node.data.externalUrl} />
+          <Field label="Collected by" value={node.data.collectedBy} />
+          <Field label="Collected at" value={node.data.collectedAt?.slice(0, 10)} />
+          <Field label="Valid from" value={node.data.validFrom?.slice(0, 10)} />
+          <Field label="Valid to" value={node.data.validTo?.slice(0, 10)} />
+          <Field label="Reliability level" value={node.data.reliabilityLevel} />
+          <Field label="Confidentiality" value={node.data.confidentiality} />
+          <Field label="Status" value={node.data.status} />
+          <Field label="Version" value={node.data.version} />
+          <Field label="Notes" value={node.data.notes} />
+        </div>
+      );
+  }
+}
+
 function CreateChildForm({
   projectId,
   parent,
@@ -386,69 +1242,15 @@ function CreateChildForm({
 }) {
   const childTypes = allowedChildTypes(parent.nodeType);
   const [nodeType, setNodeType] = useState<NodeType>(childTypes[0]);
-  const [form, setForm] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    switch (nodeType) {
-      case "PROCESS":
-      case "CONTROL":
-      case "AUDIT_AREA":
-        setForm({ name: "" });
-        break;
-      case "TEST_STEP":
-        setForm({ description: "" });
-        break;
-      case "FINDING":
-        setForm({ title: "", description: "", severity: "" });
-        break;
-      case "EVIDENCE":
-        setForm({ title: "", type: "", fileUrl: "" });
-        break;
-    }
-  }, [nodeType]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitting(true);
-
-    try {
-      const res = await fetch(`/api/projects/${projectId}/structure/item`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nodeType,
-          parentId: parent.id,
-          payload:
-            nodeType === "PROCESS" || nodeType === "CONTROL" || nodeType === "AUDIT_AREA"
-              ? { name: form.name ?? "" }
-              : nodeType === "TEST_STEP"
-              ? { description: form.description ?? "" }
-              : nodeType === "FINDING"
-              ? {
-                  title: form.title ?? "",
-                  description: form.description ?? "",
-                  severity: form.severity ?? "",
-                }
-              : {
-                  title: form.title ?? "",
-                  type: form.type ?? "",
-                  fileUrl: form.fileUrl?.trim() ? form.fileUrl.trim() : undefined,
-                },
-        }),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(toUserFriendlyError(text || "Failed to create component."));
-      }
-
-      onSuccess();
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "Unknown error.");
-    } finally {
-      setSubmitting(false);
-    }
+    onError(
+      "For now, use the full 'Create component' page to create new child components, because it has the richer audit-specific form fields."
+    );
+    setSubmitting(false);
   }
 
   return (
@@ -470,270 +1272,26 @@ function CreateChildForm({
         </select>
       </div>
 
-      {(nodeType === "PROCESS" || nodeType === "CONTROL" || nodeType === "AUDIT_AREA") && (
-        <div className="space-y-1">
-          <label className="block text-sm">Name</label>
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.name ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            required
-          />
-        </div>
-      )}
-
-      {nodeType === "TEST_STEP" && (
-        <div className="space-y-1">
-          <label className="block text-sm">Description</label>
-          <textarea
-            className="w-full border rounded px-3 py-2 min-h-24"
-            value={form.description ?? ""}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, description: e.target.value }))
-            }
-            required
-          />
-        </div>
-      )}
-
-      {nodeType === "FINDING" && (
-        <>
-          <div className="space-y-1">
-            <label className="block text-sm">Title</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.title ?? ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm">Description</label>
-            <textarea
-              className="w-full border rounded px-3 py-2 min-h-24"
-              value={form.description ?? ""}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, description: e.target.value }))
-              }
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm">Severity</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.severity ?? ""}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, severity: e.target.value }))
-              }
-              required
-            />
-          </div>
-        </>
-      )}
-
-      {nodeType === "EVIDENCE" && (
-        <>
-          <div className="space-y-1">
-            <label className="block text-sm">Title</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.title ?? ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm">Type</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.type ?? ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm">File URL</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.fileUrl ?? ""}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, fileUrl: e.target.value }))
-              }
-            />
-          </div>
-        </>
-      )}
+      <p className="text-sm opacity-70">
+        Rich create forms are now handled in the dedicated create page.
+      </p>
 
       <div className="flex gap-2">
-        <button className="border rounded px-3 py-2" disabled={submitting}>
-          {submitting ? "Creating..." : "Create"}
-        </button>
+        <Link href={`/projects/${projectId}/create-component`}>
+          <button type="button" className="border rounded px-3 py-2">
+            Open create page
+          </button>
+        </Link>
         <button
           type="button"
           className="border rounded px-3 py-2"
           onClick={onCancel}
+          disabled={submitting}
         >
           Cancel
         </button>
       </div>
     </form>
-  );
-}
-
-function DetailFields({
-  node,
-  editing,
-  form,
-  setForm,
-}: {
-  node: TreeNode;
-  editing: boolean;
-  form: Record<string, string>;
-  setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-}) {
-  if (!node.data) {
-    return null;
-  }
-
-  if (node.nodeType === "AUDIT_AREA" || node.nodeType === "PROCESS" || node.nodeType === "CONTROL") {
-    return (
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Name</label>
-        {editing ? (
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.name ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-          />
-        ) : (
-          <p className="text-sm opacity-80">{node.data.name}</p>
-        )}
-      </div>
-    );
-  }
-
-  if (node.nodeType === "TEST_STEP") {
-    return (
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Description</label>
-        {editing ? (
-          <textarea
-            className="w-full border rounded px-3 py-2 min-h-28"
-            value={form.description ?? ""}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, description: e.target.value }))
-            }
-          />
-        ) : (
-          <p className="text-sm opacity-80 whitespace-pre-wrap">
-            {node.data.description}
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  if (node.nodeType === "FINDING") {
-    return (
-      <div className="space-y-3">
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Title</label>
-          {editing ? (
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.title ?? ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            />
-          ) : (
-            <p className="text-sm opacity-80">{node.data.title}</p>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Description</label>
-          {editing ? (
-            <textarea
-              className="w-full border rounded px-3 py-2 min-h-28"
-              value={form.description ?? ""}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, description: e.target.value }))
-              }
-            />
-          ) : (
-            <p className="text-sm opacity-80 whitespace-pre-wrap">
-              {node.data.description}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Severity</label>
-          {editing ? (
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.severity ?? ""}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, severity: e.target.value }))
-              }
-            />
-          ) : (
-            <p className="text-sm opacity-80">{node.data.severity}</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Title</label>
-        {editing ? (
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.title ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-          />
-        ) : (
-          <p className="text-sm opacity-80">{node.data.title}</p>
-        )}
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Type</label>
-        {editing ? (
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.type ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}
-          />
-        ) : (
-          <p className="text-sm opacity-80">{node.data.type}</p>
-        )}
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">File URL</label>
-        {editing ? (
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.fileUrl ?? ""}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, fileUrl: e.target.value }))
-            }
-          />
-        ) : (
-          <p className="text-sm opacity-80 break-all">
-            {node.data.fileUrl || "No file URL"}
-          </p>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -767,7 +1325,7 @@ export default function ProjectStructureSection({
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(toUserFriendlyError(text || "Failed to create component."));
+        throw new Error(toUserFriendlyError(text || "Failed to load structure."));
       }
 
       const data = (await res.json()) as StructureResponse;
@@ -1049,16 +1607,32 @@ export default function ProjectStructureSection({
                 </div>
 
                 {showAddChild && (
-                  <CreateChildForm
-                    projectId={projectId}
-                    parent={selectedNode}
-                    onCancel={() => setShowAddChild(false)}
-                    onSuccess={async () => {
-                      setShowAddChild(false);
-                      await loadTree();
-                    }}
-                    onError={(message) => setError(message)}
-                  />
+                  <div className="border rounded-xl p-4 space-y-3">
+                    <h4 className="font-medium">Add child component</h4>
+                    <p className="text-sm opacity-70">
+                      Continue in the dedicated create page with the child type and parent preselected.
+                    </p>
+
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/projects/${projectId}/create-component?nodeType=${
+                          allowedChildTypes(selectedNode.nodeType)[0]
+                        }&parentId=${selectedNode.id}`}
+                      >
+                        <button type="button" className="border rounded px-3 py-2">
+                          Open create page
+                        </button>
+                      </Link>
+
+                      <button
+                        type="button"
+                        className="border rounded px-3 py-2"
+                        onClick={() => setShowAddChild(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
