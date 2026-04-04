@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   AuditAction,
@@ -29,24 +29,48 @@ export class RolesService {
   ) {
     await this.permissions.requireOwner(projectId, userId);
 
-    return this.prisma.projectRole.create({
-      data: {
-        id: roleId(),
-        projectId,
-        name: dto.name,
-        description: dto.description,
-        permissions: {
-          create: dto.permissions.map((p) => ({
-            id: permissionId(),
-            resource: p.resource,
-            action: p.action,
-            scopeId: p.scopeId ?? null,
-          })),
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.projectRole.create({
+        data: {
+          id: roleId(),
+          projectId,
+          name: dto.name,
+          description: dto.description,
+          permissions: {
+            create: dto.permissions.map((p) => ({
+              id: permissionId(),
+              resource: p.resource,
+              action: p.action,
+              scopeId: p.scopeId ?? null,
+            })),
+          },
         },
-      },
-      include: {
-        permissions: true,
-      },
+        include: {
+          permissions: true,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId,
+          actorId: userId,
+          action: AuditAction.ROLE_CREATED,
+          entity: 'ProjectRole',
+          entityId: created.id,
+          details: {
+            name: created.name,
+            description: created.description,
+            permissions: created.permissions.map((p) => ({
+              resource: p.resource,
+              action: p.action,
+              scopeId: p.scopeId,
+            })),
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return created;
     });
   }
 
@@ -66,11 +90,56 @@ export class RolesService {
     });
   }
 
-  async deleteRole(projectId: string, userId: string, roleId: string) {
+  async deleteRole(projectId: string, userId: string, roleIdValue: string) {
     await this.permissions.requireOwner(projectId, userId);
 
-    return this.prisma.projectRole.delete({
-      where: { id: roleId },
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.projectRole.findFirst({
+        where: {
+          id: roleIdValue,
+          projectId,
+        },
+        include: {
+          permissions: true,
+          members: {
+            select: {
+              id: true,
+              projectMemberId: true,
+            },
+          },
+        },
+      });
+
+      if (!existing) {
+        throw new NotFoundException('Role not found in this project');
+      }
+
+      await tx.projectRole.delete({
+        where: { id: roleIdValue },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId,
+          actorId: userId,
+          action: AuditAction.ROLE_DELETED,
+          entity: 'ProjectRole',
+          entityId: roleIdValue,
+          details: {
+            name: existing.name,
+            description: existing.description,
+            memberCount: existing.members.length,
+            permissions: existing.permissions.map((p) => ({
+              resource: p.resource,
+              action: p.action,
+              scopeId: p.scopeId,
+            })),
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return { success: true };
     });
   }
 
@@ -170,33 +239,160 @@ export class RolesService {
   async assignRole(
     projectId: string,
     userId: string,
-    memberId: string,
-    roleId: string,
+    memberIdValue: string,
+    roleIdValue: string,
   ) {
     await this.permissions.requireOwner(projectId, userId);
 
-    return this.prisma.projectMemberRole.create({
-      data: {
-        id: permissionId(),
-        projectMemberId: memberId,
-        roleId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const member = await tx.projectMember.findFirst({
+        where: {
+          id: memberIdValue,
+          projectId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!member) {
+        throw new NotFoundException('Member not found in this project');
+      }
+
+      const role = await tx.projectRole.findFirst({
+        where: {
+          id: roleIdValue,
+          projectId,
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+
+      if (!role) {
+        throw new NotFoundException('Role not found in this project');
+      }
+
+      const assignment = await tx.projectMemberRole.create({
+        data: {
+          id: permissionId(),
+          projectMemberId: memberIdValue,
+          roleId: roleIdValue,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.ROLE_ASSIGNED_TO_MEMBER,
+          entity: 'ProjectMemberRole',
+          entityId: assignment.id,
+          details: {
+            memberId: member.id,
+            memberUserId: member.user.id,
+            memberEmail: member.user.email,
+            roleId: role.id,
+            roleName: role.name,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return assignment;
     });
   }
 
   async removeRole(
     projectId: string,
     userId: string,
-    memberId: string,
-    roleId: string,
+    memberIdValue: string,
+    roleIdValue: string,
   ) {
     await this.permissions.requireOwner(projectId, userId);
 
-    return this.prisma.projectMemberRole.deleteMany({
-      where: {
-        projectMemberId: memberId,
-        roleId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const member = await tx.projectMember.findFirst({
+        where: {
+          id: memberIdValue,
+          projectId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!member) {
+        throw new NotFoundException('Member not found in this project');
+      }
+
+      const role = await tx.projectRole.findFirst({
+        where: {
+          id: roleIdValue,
+          projectId,
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+
+      if (!role) {
+        throw new NotFoundException('Role not found in this project');
+      }
+
+      const existing = await tx.projectMemberRole.findFirst({
+        where: {
+          projectMemberId: memberIdValue,
+          roleId: roleIdValue,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!existing) {
+        throw new NotFoundException('Role assignment not found');
+      }
+
+      await tx.projectMemberRole.delete({
+        where: { id: existing.id },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId,
+          actorId: userId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          action: AuditAction.ROLE_REMOVED_FROM_MEMBER,
+          entity: 'ProjectMemberRole',
+          entityId: existing.id,
+          details: {
+            memberId: member.id,
+            memberUserId: member.user.id,
+            memberEmail: member.user.email,
+            roleId: role.id,
+            roleName: role.name,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return { success: true };
     });
   }
 

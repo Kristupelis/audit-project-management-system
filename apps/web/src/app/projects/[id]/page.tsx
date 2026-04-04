@@ -4,6 +4,7 @@ import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import Members from "./members";
 import ProjectStructureSection from "./project-structure-section";
+import AuditPreview from "./audit-preview";
 
 type Project = {
   id: string;
@@ -13,17 +14,6 @@ type Project = {
   updatedAt: string;
   isOwner: boolean;
   roles: string[];
-};
-
-type AuditLog = {
-  id: string;
-  projectId: string;
-  actorId: string | null;
-  action: string;
-  entity: string | null;
-  entityId: string | null;
-  details: unknown;
-  createdAt: string;
 };
 
 export default async function ProjectDetailPage({
@@ -50,10 +40,6 @@ export default async function ProjectDetailPage({
 
   const canSeeAudit =
     project.isOwner || session?.user?.systemRole === "SUPER_ADMIN";
-
-  const audit = canSeeAudit
-    ? await apiFetch<AuditLog[]>(`/projects/${id}/audit`, token)
-    : [];
 
   return (
     <main className="p-6 space-y-6">
@@ -94,40 +80,7 @@ export default async function ProjectDetailPage({
       </header>
 
       <ProjectStructureSection projectId={id} />
-      {canSeeAudit && (
-        <section className="border rounded-xl p-4 space-y-3">
-          <h2 className="font-medium">Audit log (latest 100)</h2>
-
-          {audit.length === 0 ? (
-            <p className="text-sm opacity-70">No audit entries yet.</p>
-          ) : (
-            <ul className="space-y-2">
-              {audit.map((a) => (
-                <li key={a.id} className="border rounded-lg p-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="text-sm font-medium">{a.action}</div>
-                      <div className="text-xs opacity-70">
-                        {a.entity ? `${a.entity}${a.entityId ? ` (${a.entityId})` : ""}` : "—"}
-                      </div>
-                      <div className="text-xs opacity-60">
-                        {new Date(a.createdAt).toLocaleString()} • actor: {a.actorId ?? "system"}
-                      </div>
-                    </div>
-
-                    <details className="text-xs">
-                      <summary className="cursor-pointer underline">details</summary>
-                      <pre className="mt-2 border rounded-md p-2 overflow-auto">
-                        {JSON.stringify(a.details, null, 2)}
-                      </pre>
-                    </details>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+      {canSeeAudit && <AuditPreview projectId={id} />}
     </main>
   );
 }

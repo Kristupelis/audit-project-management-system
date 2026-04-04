@@ -167,8 +167,17 @@ export class ProjectsService {
   // =========================
   // AUDIT
   // =========================
-  async listAudit(projectId: string, userId: string) {
-    // must have permission to read project
+  async listAudit(
+    projectId: string,
+    userId: string,
+    query?: {
+      page?: string;
+      pageSize?: string;
+      action?: string;
+      entity?: string;
+      take?: string;
+    },
+  ) {
     await this.permissions.requirePermission(
       projectId,
       userId,
@@ -176,10 +185,71 @@ export class ProjectsService {
       PermissionAction.READ,
     );
 
-    return this.prisma.auditLog.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
+    const takeOnly = query?.take ? Number(query.take) : undefined;
+
+    if (takeOnly) {
+      const items = await this.prisma.auditLog.findMany({
+        where: {
+          projectId,
+          ...(query?.action ? { action: query.action as AuditAction } : {}),
+          ...(query?.entity ? { entity: query.entity } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: takeOnly,
+        include: {
+          actor: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      return {
+        items,
+        total: items.length,
+        page: 1,
+        pageSize: takeOnly,
+        totalPages: 1,
+      };
+    }
+
+    const page = Math.max(Number(query?.page ?? 1), 1);
+    const pageSize = Math.max(Number(query?.pageSize ?? 30), 1);
+
+    const where = {
+      projectId,
+      ...(query?.action ? { action: query.action as AuditAction } : {}),
+      ...(query?.entity ? { entity: query.entity } : {}),
+    };
+
+    const [total, items] = await this.prisma.$transaction([
+      this.prisma.auditLog.count({ where }),
+      this.prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          actor: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.max(Math.ceil(total / pageSize), 1),
+    };
   }
 }

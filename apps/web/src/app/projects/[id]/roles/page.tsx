@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
+import DeleteRoleButton from "./delete-role-button";
 
 type RolePermission = {
   id: string;
@@ -87,6 +88,11 @@ export default async function RolesPage({
                     >
                       Edit
                     </Link>
+
+                    <DeleteRoleButton
+                        projectId={id}
+                        roleId={role.id}
+                      />
                   </div>
                 )}
               </div>

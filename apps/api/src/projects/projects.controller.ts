@@ -7,6 +7,7 @@ import {
   Post,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -215,8 +216,22 @@ export class ProjectsController {
   // =========================
 
   @Get(':id/audit')
-  audit(@Param('id') id: string, @CurrentUser('sub') userId: string) {
-    return this.projects.listAudit(id, userId);
+  audit(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('action') action?: string,
+    @Query('entity') entity?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.projects.listAudit(id, userId, {
+      page,
+      pageSize,
+      action,
+      entity,
+      take,
+    });
   }
 
   // =========================
