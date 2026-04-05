@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import RoleForm from "../role-form";
+import { getDictionary, type Locale } from "@/i18n/get-dictionary";
 
 type Project = {
   id: string;
@@ -27,31 +29,36 @@ export default async function CreateRolePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get("locale")?.value;
+  const locale: Locale = localeCookie === "lt" ? "lt" : "en";
+  const t = getDictionary(locale);
+
   const session = await getServerSession(authOptions);
   const token = session?.apiAccessToken;
 
-  if (!token) return <main className="p-6">Not logged in.</main>;
+  if (!token) return <main className="p-6">{t.rolesManagement.notLoggedIn}</main>;
 
   const project = await apiFetch<Project>(`/projects/${id}`, token);
   const membersData = await apiFetch<MembersResponse>(`/projects/${id}/members`, token);
 
   if (!project.isOwner && session?.user?.systemRole !== "SUPER_ADMIN") {
-    return <main className="p-6">Only project owners or superadmins can create roles.</main>;
+    return <main className="p-6">{t.rolesManagement.onlyOwnersCanCreate}</main>;
   }
 
   return (
     <main className="p-6 space-y-6">
       <div>
         <Link href={`/projects/${id}/roles`} className="underline text-sm">
-          ← Back to roles
+          ← {t.rolesManagement.backToRoles}
         </Link>
-        <h1 className="text-2xl font-semibold mt-2">Create role</h1>
+        <h1 className="text-2xl font-semibold mt-2">
+          {t.rolesManagement.createRole}
+        </h1>
       </div>
 
-      <RoleForm
-        projectId={id}
-        members={membersData.members}
-      />
+      <RoleForm projectId={id} members={membersData.members} />
     </main>
   );
 }

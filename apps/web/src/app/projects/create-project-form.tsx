@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toUserFriendlyError } from "@/lib/error-message";
+import { useLanguage } from "@/providers/language-provider";
+import { useT } from "@/i18n/use-t";
 
 type ProjectStatus =
   | "PLANNING"
@@ -54,6 +56,8 @@ export default function CreateProjectForm({
   projectId?: string;
 }) {
   const router = useRouter();
+  const t = useT();
+  const { locale } = useLanguage();
 
   const [form, setForm] = useState<ProjectFormData>({
     name: initialValues?.name ?? "",
@@ -125,7 +129,9 @@ export default function CreateProjectForm({
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(toUserFriendlyError(text || `Failed (${res.status})`));
+        throw new Error(
+          toUserFriendlyError(text || `Failed (${res.status})`, locale),
+        );
       }
 
       if (mode === "edit" && projectId) {
@@ -136,7 +142,13 @@ export default function CreateProjectForm({
 
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(
+        err instanceof Error
+          ? err.message
+          : locale === "lt"
+            ? "Nežinoma klaida."
+            : "Unknown error.",
+      );
     } finally {
       setLoading(false);
     }
@@ -145,10 +157,10 @@ export default function CreateProjectForm({
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <section className="border rounded-xl p-4 space-y-4">
-        <h2 className="font-medium">Basic information</h2>
+        <h2 className="font-medium">{t.projects.basicInformation}</h2>
 
         <div className="space-y-1">
-          <label className="text-sm">Project name</label>
+          <label className="text-sm">{t.projects.projectName}</label>
           <input
             className="w-full border rounded-md p-2"
             value={form.name}
@@ -159,7 +171,7 @@ export default function CreateProjectForm({
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm">Project code</label>
+          <label className="text-sm">{t.projects.projectCode}</label>
           <input
             className="w-full border rounded-md p-2"
             value={form.code}
@@ -170,55 +182,55 @@ export default function CreateProjectForm({
 
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-1">
-            <label className="text-sm">Status</label>
+            <label className="text-sm">{t.projects.status}</label>
             <select
               className="w-full border rounded-md p-2"
               value={form.status}
               onChange={(e) => updateField("status", e.target.value as ProjectStatus)}
             >
-              <option value="PLANNING">Planning</option>
-              <option value="ACTIVE">Active</option>
-              <option value="FIELDWORK">Fieldwork</option>
-              <option value="REVIEW">Review</option>
-              <option value="CLOSED">Closed</option>
-              <option value="ARCHIVED">Archived</option>
+              <option value="PLANNING">{t.enums.projectStatus.PLANNING}</option>
+              <option value="ACTIVE">{t.enums.projectStatus.ACTIVE}</option>
+              <option value="FIELDWORK">{t.enums.projectStatus.FIELDWORK}</option>
+              <option value="REVIEW">{t.enums.projectStatus.REVIEW}</option>
+              <option value="CLOSED">{t.enums.projectStatus.CLOSED}</option>
+              <option value="ARCHIVED">{t.enums.projectStatus.ARCHIVED}</option>
             </select>
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm">Audit type</label>
+            <label className="text-sm">{t.projects.type}</label>
             <select
               className="w-full border rounded-md p-2"
               value={form.auditType}
               onChange={(e) => updateField("auditType", e.target.value as AuditType)}
             >
-              <option value="INTERNAL">Internal</option>
-              <option value="EXTERNAL">External</option>
-              <option value="IT">IT</option>
-              <option value="FINANCIAL">Financial</option>
-              <option value="COMPLIANCE">Compliance</option>
-              <option value="OPERATIONAL">Operational</option>
-              <option value="OTHER">Other</option>
+              <option value="INTERNAL">{t.enums.auditType.INTERNAL}</option>
+              <option value="EXTERNAL">{t.enums.auditType.EXTERNAL}</option>
+              <option value="IT">{t.enums.auditType.IT}</option>
+              <option value="FINANCIAL">{t.enums.auditType.FINANCIAL}</option>
+              <option value="COMPLIANCE">{t.enums.auditType.COMPLIANCE}</option>
+              <option value="OPERATIONAL">{t.enums.auditType.OPERATIONAL}</option>
+              <option value="OTHER">{t.enums.auditType.OTHER}</option>
             </select>
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm">Priority</label>
+            <label className="text-sm">{t.projects.priority}</label>
             <select
               className="w-full border rounded-md p-2"
               value={form.priority}
               onChange={(e) => updateField("priority", e.target.value as PriorityLevel)}
             >
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-              <option value="CRITICAL">Critical</option>
+              <option value="LOW">{t.enums.priority.LOW}</option>
+              <option value="MEDIUM">{t.enums.priority.MEDIUM}</option>
+              <option value="HIGH">{t.enums.priority.HIGH}</option>
+              <option value="CRITICAL">{t.enums.priority.CRITICAL}</option>
             </select>
           </div>
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm">Description</label>
+          <label className="text-sm">{t.projects.description}</label>
           <textarea
             className="w-full border rounded-md p-2"
             rows={3}
@@ -229,10 +241,10 @@ export default function CreateProjectForm({
       </section>
 
       <section className="border rounded-xl p-4 space-y-4">
-        <h2 className="font-medium">Audit details</h2>
+        <h2 className="font-medium">{t.projects.auditDetails}</h2>
 
         <div className="space-y-1">
-          <label className="text-sm">Scope</label>
+          <label className="text-sm">{t.projects.scope}</label>
           <textarea
             className="w-full border rounded-md p-2"
             rows={3}
@@ -242,7 +254,7 @@ export default function CreateProjectForm({
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm">Objective</label>
+          <label className="text-sm">{t.projects.objective}</label>
           <textarea
             className="w-full border rounded-md p-2"
             rows={3}
@@ -252,7 +264,7 @@ export default function CreateProjectForm({
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm">Methodology / standard</label>
+          <label className="text-sm">{t.projects.methodologyStandard}</label>
           <input
             className="w-full border rounded-md p-2"
             value={form.methodology}
@@ -262,11 +274,11 @@ export default function CreateProjectForm({
       </section>
 
       <section className="border rounded-xl p-4 space-y-4">
-        <h2 className="font-medium">Context</h2>
+        <h2 className="font-medium">{t.projects.context}</h2>
 
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-1">
-            <label className="text-sm">Audited entity</label>
+            <label className="text-sm">{t.projects.auditedEntity}</label>
             <input
               className="w-full border rounded-md p-2"
               value={form.auditedEntityName}
@@ -275,7 +287,7 @@ export default function CreateProjectForm({
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm">Location</label>
+            <label className="text-sm">{t.projects.location}</label>
             <input
               className="w-full border rounded-md p-2"
               value={form.location}
@@ -284,7 +296,7 @@ export default function CreateProjectForm({
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm">Lead auditor</label>
+            <label className="text-sm">{t.projects.leadAuditor}</label>
             <input
               className="w-full border rounded-md p-2"
               value={form.engagementLead}
@@ -295,16 +307,16 @@ export default function CreateProjectForm({
       </section>
 
       <section className="border rounded-xl p-4 space-y-4">
-        <h2 className="font-medium">Dates</h2>
+        <h2 className="font-medium">{t.projects.dates}</h2>
 
         <div className="grid gap-4 md:grid-cols-2">
           {[
-            ["Audited period start", "periodStart"],
-            ["Audited period end", "periodEnd"],
-            ["Planned start date", "plannedStartDate"],
-            ["Planned end date", "plannedEndDate"],
-            ["Actual start date", "actualStartDate"],
-            ["Actual end date", "actualEndDate"],
+            [t.projects.auditedPeriodStart, "periodStart"],
+            [t.projects.auditedPeriodEnd, "periodEnd"],
+            [t.projects.plannedStartDate, "plannedStartDate"],
+            [t.projects.plannedEndDate, "plannedEndDate"],
+            [t.projects.actualStartDate, "actualStartDate"],
+            [t.projects.actualEndDate, "actualEndDate"],
           ].map(([label, key]) => (
             <div key={key} className="space-y-1">
               <label className="text-sm">{label}</label>
@@ -324,14 +336,17 @@ export default function CreateProjectForm({
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="flex gap-2">
-        <button className="border rounded-md px-3 py-2 disabled:opacity-50" disabled={loading}>
+        <button
+          className="border rounded-md px-3 py-2 disabled:opacity-50"
+          disabled={loading}
+        >
           {loading
             ? mode === "edit"
-              ? "Saving..."
-              : "Creating..."
+              ? t.projects.saving
+              : t.projects.creating
             : mode === "edit"
-              ? "Save changes"
-              : "Create project"}
+              ? t.projects.saveChanges
+              : t.projects.createProject}
         </button>
       </div>
     </form>

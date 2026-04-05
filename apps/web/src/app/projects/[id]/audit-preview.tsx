@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useT } from "@/i18n/use-t";
+import { useLanguage } from "@/providers/language-provider";
+import { toUserFriendlyError } from "@/lib/error-message";
 
 type AuditLog = {
   id: string;
@@ -26,8 +29,21 @@ type AuditResponse = {
 };
 
 export default function AuditPreview({ projectId }: { projectId: string }) {
+  const t = useT();
+  const { locale } = useLanguage();
+
   const [data, setData] = useState<AuditResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  function formatAction(action: string) {
+    return t.audit.actions[action as keyof typeof t.audit.actions] ?? action;
+  }
+
+  function formatEntity(entity: string | null) {
+    if (!entity) return "—";
+    return t.audit.entities[entity as keyof typeof t.audit.entities] ?? entity;
+  }
 
   async function loadAudit() {
     try {
@@ -36,11 +52,21 @@ export default function AuditPreview({ projectId }: { projectId: string }) {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to load audit");
+        const text = await res.text().catch(() => "");
+        throw new Error(toUserFriendlyError(text || "Failed to load audit.", locale));
       }
 
       const json = (await res.json()) as AuditResponse;
       setData(json);
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : locale === "lt"
+            ? "Nepavyko įkelti audito žurnalo."
+            : "Failed to load audit log.",
+      );
     } finally {
       setLoading(false);
     }
@@ -54,42 +80,49 @@ export default function AuditPreview({ projectId }: { projectId: string }) {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [projectId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, locale]);
 
   return (
     <section className="border rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="font-medium">Audit log (recent 20)</h2>
+        <h2 className="font-medium">{t.audit.previewTitle}</h2>
         <Link
           href={`/projects/${projectId}/audit`}
           className="border rounded-md px-3 py-1 text-sm"
         >
-          Open all logs
+          {t.audit.openAllLogs}
         </Link>
       </div>
 
       {loading ? (
-        <p className="text-sm opacity-70">Loading audit log...</p>
+        <p className="text-sm opacity-70">{t.audit.loading}</p>
+      ) : error ? (
+        <p className="text-sm text-red-600">{error}</p>
       ) : !data || data.items.length === 0 ? (
-        <p className="text-sm opacity-70">No audit entries yet.</p>
+        <p className="text-sm opacity-70">{t.audit.noEntries}</p>
       ) : (
         <ul className="space-y-2">
           {data.items.map((a) => (
             <li key={a.id} className="border rounded-lg p-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <div className="text-sm font-medium">{a.action}</div>
+                  <div className="text-sm font-medium">{formatAction(a.action)}</div>
                   <div className="text-xs opacity-70">
-                    {a.entity ? `${a.entity}${a.entityId ? ` (${a.entityId})` : ""}` : "—"}
+                    {a.entity
+                      ? `${formatEntity(a.entity)}${a.entityId ? ` (${a.entityId})` : ""}`
+                      : "—"}
                   </div>
                   <div className="text-xs opacity-60">
-                    {new Date(a.createdAt).toLocaleString()} • actor:{" "}
-                    {a.actor?.name || a.actor?.email || "system"}
+                    {new Date(a.createdAt).toLocaleString()} • {t.audit.actorLabel}{" "}
+                    {a.actor?.name || a.actor?.email || t.audit.systemActor}
                   </div>
                 </div>
 
                 <details className="text-xs">
-                  <summary className="cursor-pointer underline">details</summary>
+                  <summary className="cursor-pointer underline">
+                    {t.audit.details}
+                  </summary>
                   <pre className="mt-2 border rounded-md p-2 overflow-auto">
                     {JSON.stringify(a.details, null, 2)}
                   </pre>

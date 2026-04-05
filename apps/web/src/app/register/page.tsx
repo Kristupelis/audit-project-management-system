@@ -3,9 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { useT } from "@/i18n/use-t";
+import { useLanguage } from "@/providers/language-provider";
+import { toUserFriendlyError } from "@/lib/error-message";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useT();
+  const { locale } = useLanguage();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,20 +32,28 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        throw new Error(text || `Registration failed (${res.status})`);
+        throw new Error(
+          toUserFriendlyError(text || `Registration failed (${res.status})`, locale),
+        );
       }
 
-      // Auto sign-in after successful registration
-      const login = await signIn("credentials", { email, password, redirect: false });
+      const login = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
       if (login?.error) {
         router.push("/login");
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/projects");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(
+        err instanceof Error ? err.message : toUserFriendlyError("", locale),
+      );
     } finally {
       setLoading(false);
     }
@@ -47,21 +61,24 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4 border rounded-xl p-6">
-        <h1 className="text-xl font-semibold">Create account</h1>
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-sm space-y-4 border rounded-xl p-6"
+      >
+        <h1 className="text-xl font-semibold">{t.authPages.createAccountTitle}</h1>
 
         <div className="space-y-1">
-          <label className="text-sm">Name</label>
+          <label className="text-sm">{t.authPages.name}</label>
           <input
             className="w-full border rounded-md p-2"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
+            placeholder={t.authPages.yourName}
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm">Email</label>
+          <label className="text-sm">{t.authPages.email}</label>
           <input
             className="w-full border rounded-md p-2"
             value={email}
@@ -73,9 +90,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm">
-            Password
-          </label>
+          <label className="text-sm">{t.authPages.password}</label>
           <input
             className="w-full border rounded-md p-2"
             value={password}
@@ -90,8 +105,11 @@ export default function RegisterPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button className="w-full border rounded-md p-2 disabled:opacity-50" disabled={loading}>
-          {loading ? "Creating..." : "Create account"}
+        <button
+          className="w-full border rounded-md p-2 disabled:opacity-50"
+          disabled={loading}
+        >
+          {loading ? t.authPages.creatingAccount : t.authPages.createAccount}
         </button>
 
         <button
@@ -99,7 +117,7 @@ export default function RegisterPage() {
           className="w-full border rounded-md p-2"
           onClick={() => router.push("/login")}
         >
-          Back to login
+          {t.authPages.backToLogin}
         </button>
       </form>
     </main>

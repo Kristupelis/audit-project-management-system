@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toUserFriendlyError } from "@/lib/error-message";
+import { useT } from "@/i18n/use-t";
 
 export default function DeleteProjectButton({
   projectId,
@@ -12,6 +13,8 @@ export default function DeleteProjectButton({
   variant?: "detail" | "list";
 }) {
   const router = useRouter();
+  const t = useT();
+
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +44,7 @@ export default function DeleteProjectButton({
     } catch (error) {
       setShowConfirm(false);
       setError(
-        error instanceof Error ? error.message : "Failed to delete project.",
+        error instanceof Error ? error.message : t.projects.deleteFailed,
       );
     } finally {
       setLoading(false);
@@ -60,7 +63,11 @@ export default function DeleteProjectButton({
         disabled={loading}
         type="button"
       >
-        {loading ? "Deleting..." : variant === "detail" ? "Delete project" : "Delete"}
+        {loading
+          ? t.projects.deleting
+          : variant === "detail"
+            ? t.projects.deleteProject
+            : t.common.delete}
       </button>
 
       {showConfirm && (
@@ -69,15 +76,15 @@ export default function DeleteProjectButton({
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <h3 className="text-base font-semibold text-red-700">
-                  Confirm deletion
+                  {t.projects.confirmDeleteTitle}
                 </h3>
 
                 <p className="text-sm text-red-700 whitespace-pre-wrap">
-                  Are you sure you want to delete this project?
+                  {t.projects.confirmDeleteMessage}
                 </p>
 
                 <p className="text-sm text-red-700 whitespace-pre-wrap">
-                  This action cannot be undone.
+                  {t.projects.confirmDeleteWarning}
                 </p>
               </div>
 
@@ -88,7 +95,7 @@ export default function DeleteProjectButton({
                   disabled={loading}
                   type="button"
                 >
-                  Cancel
+                  {t.common.cancel}
                 </button>
 
                 <button
@@ -97,7 +104,7 @@ export default function DeleteProjectButton({
                   disabled={loading}
                   type="button"
                 >
-                  {loading ? "Deleting..." : "Delete"}
+                  {loading ? t.projects.deleting : t.common.delete}
                 </button>
               </div>
             </div>
@@ -110,7 +117,9 @@ export default function DeleteProjectButton({
           <div className="w-full max-w-2xl rounded-md border border-red-300 bg-red-50 p-4 shadow-lg">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <h3 className="text-base font-semibold text-red-700">Error</h3>
+                <h3 className="text-base font-semibold text-red-700">
+                  {t.common.error}
+                </h3>
                 <p className="text-sm text-red-700 whitespace-pre-wrap">{error}</p>
               </div>
 
@@ -119,7 +128,7 @@ export default function DeleteProjectButton({
                 onClick={() => setError(null)}
                 type="button"
               >
-                Close
+                {t.common.close}
               </button>
             </div>
           </div>

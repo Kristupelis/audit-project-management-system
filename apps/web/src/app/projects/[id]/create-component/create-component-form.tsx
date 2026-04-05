@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { toUserFriendlyError } from "@/lib/error-message";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLanguage } from "@/providers/language-provider";
+import { useT } from "@/i18n/use-t";
 
 type NodeType =
   | "AUDIT_AREA"
@@ -46,23 +48,6 @@ function parentTypeFor(nodeType: NodeType): NodeType | null {
     case "FINDING":
     case "EVIDENCE":
       return "PROCESS";
-  }
-}
-
-function typeLabel(type: NodeType) {
-  switch (type) {
-    case "AUDIT_AREA":
-      return "Audit area";
-    case "PROCESS":
-      return "Process";
-    case "CONTROL":
-      return "Control";
-    case "TEST_STEP":
-      return "Test step";
-    case "FINDING":
-      return "Finding";
-    case "EVIDENCE":
-      return "Evidence";
   }
 }
 
@@ -128,6 +113,7 @@ function selectInput(
   onChange: (value: string) => void,
   options: { value: string; label: string }[],
   required = false,
+  placeholder = "Select",
 ) {
   return (
     <div className="space-y-1">
@@ -138,7 +124,7 @@ function selectInput(
         onChange={(e) => onChange(e.target.value)}
         required={required}
       >
-        {!required && <option value="">Select</option>}
+        {!required && <option value="">{placeholder}</option>}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -149,105 +135,21 @@ function selectInput(
   );
 }
 
-const nodeStatusOptions = [
-  { value: "NOT_STARTED", label: "Not started" },
-  { value: "IN_PROGRESS", label: "In progress" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "CLOSED", label: "Closed" },
-  { value: "NOT_APPLICABLE", label: "Not applicable" },
-];
-
-const riskLevelOptions = [
-  { value: "LOW", label: "Low" },
-  { value: "MEDIUM", label: "Medium" },
-  { value: "HIGH", label: "High" },
-  { value: "CRITICAL", label: "Critical" },
-];
-
-const frequencyOptions = [
-  { value: "AD_HOC", label: "Ad hoc" },
-  { value: "DAILY", label: "Daily" },
-  { value: "WEEKLY", label: "Weekly" },
-  { value: "MONTHLY", label: "Monthly" },
-  { value: "QUARTERLY", label: "Quarterly" },
-  { value: "YEARLY", label: "Yearly" },
-];
-
-const controlTypeOptions = [
-  { value: "PREVENTIVE", label: "Preventive" },
-  { value: "DETECTIVE", label: "Detective" },
-  { value: "CORRECTIVE", label: "Corrective" },
-];
-
-const controlNatureOptions = [
-  { value: "MANUAL", label: "Manual" },
-  { value: "AUTOMATED", label: "Automated" },
-  { value: "IT_DEPENDENT_MANUAL", label: "IT-dependent manual" },
-];
-
-const testMethodOptions = [
-  { value: "INQUIRY", label: "Inquiry" },
-  { value: "INSPECTION", label: "Inspection" },
-  { value: "OBSERVATION", label: "Observation" },
-  { value: "REPERFORMANCE", label: "Reperformance" },
-  { value: "WALKTHROUGH", label: "Walkthrough" },
-  { value: "ANALYTICAL_PROCEDURE", label: "Analytical procedure" },
-  { value: "MIXED", label: "Mixed" },
-];
-
-const testStepStatusOptions = [
-  { value: "NOT_STARTED", label: "Not started" },
-  { value: "IN_PROGRESS", label: "In progress" },
-  { value: "PASSED", label: "Passed" },
-  { value: "FAILED", label: "Failed" },
-  { value: "BLOCKED", label: "Blocked" },
-  { value: "NOT_APPLICABLE", label: "Not applicable" },
-];
-
-const findingStatusOptions = [
-  { value: "DRAFT", label: "Draft" },
-  { value: "OPEN", label: "Open" },
-  { value: "ACCEPTED", label: "Accepted" },
-  { value: "IN_PROGRESS", label: "In progress" },
-  { value: "RESOLVED", label: "Resolved" },
-  { value: "CLOSED", label: "Closed" },
-  { value: "REJECTED", label: "Rejected" },
-];
-
-const evidenceStatusOptions = [
-  { value: "REQUESTED", label: "Requested" },
-  { value: "RECEIVED", label: "Received" },
-  { value: "REVIEWED", label: "Reviewed" },
-  { value: "ACCEPTED", label: "Accepted" },
-  { value: "REJECTED", label: "Rejected" },
-];
-
-const reliabilityOptions = [
-  { value: "LOW", label: "Low" },
-  { value: "MEDIUM", label: "Medium" },
-  { value: "HIGH", label: "High" },
-];
-
-const confidentialityOptions = [
-  { value: "PUBLIC", label: "Public" },
-  { value: "INTERNAL", label: "Internal" },
-  { value: "CONFIDENTIAL", label: "Confidential" },
-  { value: "RESTRICTED", label: "Restricted" },
-];
-
 export default function CreateComponentForm({
   projectId,
 }: {
   projectId: string;
 }) {
   const router = useRouter();
-  const [tree, setTree] = useState<TreeNode[]>([]);
   const searchParams = useSearchParams();
+  const { locale } = useLanguage();
+  const t = useT();
 
   const initialNodeType =
-  (searchParams.get("nodeType") as NodeType | null) ?? "AUDIT_AREA";
+    (searchParams.get("nodeType") as NodeType | null) ?? "AUDIT_AREA";
   const initialParentId = searchParams.get("parentId") ?? "";
 
+  const [tree, setTree] = useState<TreeNode[]>([]);
   const [nodeType, setNodeType] = useState<NodeType>(initialNodeType);
   const [parentId, setParentId] = useState(initialParentId);
   const [form, setForm] = useState<Record<string, string>>({ name: "" });
@@ -263,6 +165,109 @@ export default function CreateComponentForm({
     return allNodes.filter((node) => node.nodeType === requiredParentType);
   }, [allNodes, requiredParentType]);
 
+  function typeLabel(type: NodeType) {
+    switch (type) {
+      case "AUDIT_AREA":
+        return t.structure.auditArea;
+      case "PROCESS":
+        return t.structure.process;
+      case "CONTROL":
+        return t.structure.control;
+      case "TEST_STEP":
+        return t.structure.testStep;
+      case "FINDING":
+        return t.structure.finding;
+      case "EVIDENCE":
+        return t.structure.evidence;
+    }
+  }
+
+  const nodeStatusOptions = [
+    { value: "NOT_STARTED", label: t.structure.notStarted },
+    { value: "IN_PROGRESS", label: t.structure.inProgress },
+    { value: "COMPLETED", label: t.structure.completed },
+    { value: "CLOSED", label: t.structure.closed },
+    { value: "NOT_APPLICABLE", label: t.structure.notApplicable },
+  ];
+
+  const riskLevelOptions = [
+    { value: "LOW", label: t.structure.low },
+    { value: "MEDIUM", label: t.structure.medium },
+    { value: "HIGH", label: t.structure.high },
+    { value: "CRITICAL", label: t.structure.critical },
+  ];
+
+  const frequencyOptions = [
+    { value: "AD_HOC", label: t.structure.adHoc },
+    { value: "DAILY", label: t.structure.daily },
+    { value: "WEEKLY", label: t.structure.weekly },
+    { value: "MONTHLY", label: t.structure.monthly },
+    { value: "QUARTERLY", label: t.structure.quarterly },
+    { value: "YEARLY", label: t.structure.yearly },
+  ];
+
+  const controlTypeOptions = [
+    { value: "PREVENTIVE", label: t.structure.preventive },
+    { value: "DETECTIVE", label: t.structure.detective },
+    { value: "CORRECTIVE", label: t.structure.corrective },
+  ];
+
+  const controlNatureOptions = [
+    { value: "MANUAL", label: t.structure.manual },
+    { value: "AUTOMATED", label: t.structure.automated },
+    { value: "IT_DEPENDENT_MANUAL", label: t.structure.itDependentManual },
+  ];
+
+  const testMethodOptions = [
+    { value: "INQUIRY", label: t.structure.inquiry },
+    { value: "INSPECTION", label: t.structure.inspection },
+    { value: "OBSERVATION", label: t.structure.observation },
+    { value: "REPERFORMANCE", label: t.structure.reperformance },
+    { value: "WALKTHROUGH", label: t.structure.walkthrough },
+    { value: "ANALYTICAL_PROCEDURE", label: t.structure.analyticalProcedure },
+    { value: "MIXED", label: t.structure.mixed },
+  ];
+
+  const testStepStatusOptions = [
+    { value: "NOT_STARTED", label: t.structure.notStarted },
+    { value: "IN_PROGRESS", label: t.structure.inProgress },
+    { value: "PASSED", label: t.structure.passed },
+    { value: "FAILED", label: t.structure.failed },
+    { value: "BLOCKED", label: t.structure.blocked },
+    { value: "NOT_APPLICABLE", label: t.structure.notApplicable },
+  ];
+
+  const findingStatusOptions = [
+    { value: "DRAFT", label: t.structure.draft },
+    { value: "OPEN", label: t.structure.openStatus },
+    { value: "ACCEPTED", label: t.structure.accepted },
+    { value: "IN_PROGRESS", label: t.structure.inProgress },
+    { value: "RESOLVED", label: t.structure.resolved },
+    { value: "CLOSED", label: t.structure.closed },
+    { value: "REJECTED", label: t.structure.rejected },
+  ];
+
+  const evidenceStatusOptions = [
+    { value: "REQUESTED", label: t.structure.requested },
+    { value: "RECEIVED", label: t.structure.received },
+    { value: "REVIEWED", label: t.structure.reviewed },
+    { value: "ACCEPTED", label: t.structure.accepted },
+    { value: "REJECTED", label: t.structure.rejected },
+  ];
+
+  const reliabilityOptions = [
+    { value: "LOW", label: t.structure.low },
+    { value: "MEDIUM", label: t.structure.medium },
+    { value: "HIGH", label: t.structure.high },
+  ];
+
+  const confidentialityOptions = [
+    { value: "PUBLIC", label: t.structure.public },
+    { value: "INTERNAL", label: t.structure.internal },
+    { value: "CONFIDENTIAL", label: t.structure.confidential },
+    { value: "RESTRICTED", label: t.structure.restricted },
+  ];
+
   function updateField(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -277,7 +282,7 @@ export default function CreateComponentForm({
         if (!res.ok) {
           const text = await res.text();
           throw new Error(
-            toUserFriendlyError(text || "Failed to load project structure."),
+            toUserFriendlyError(text || t.rolesManagement.loadStructureFailed, locale),
           );
         }
 
@@ -286,8 +291,8 @@ export default function CreateComponentForm({
       } catch (e) {
         setError(
           e instanceof Error
-            ? toUserFriendlyError(e.message)
-            : "Something went wrong. Please try again.",
+            ? e.message
+            : toUserFriendlyError("", locale),
         );
       } finally {
         setLoading(false);
@@ -295,7 +300,7 @@ export default function CreateComponentForm({
     }
 
     void loadStructure();
-  }, [projectId]);
+  }, [projectId, locale, t.rolesManagement.loadStructureFailed]);
 
   useEffect(() => {
     setParentId((prev) => {
@@ -306,7 +311,7 @@ export default function CreateComponentForm({
         return queryParentId;
       }
 
-      return "";
+      return prev && queryNodeType !== nodeType ? "" : prev;
     });
 
     switch (nodeType) {
@@ -419,7 +424,7 @@ export default function CreateComponentForm({
         });
         break;
     }
-  }, [nodeType]);
+  }, [nodeType, searchParams]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -476,15 +481,12 @@ export default function CreateComponentForm({
               : nodeType === "TEST_STEP"
                 ? {
                     description: form.description ?? "",
-                    stepNo: form.stepNo?.trim()
-                      ? Number(form.stepNo)
-                      : undefined,
+                    stepNo: form.stepNo?.trim() ? Number(form.stepNo) : undefined,
                     expectedResult: form.expectedResult?.trim() || undefined,
                     actualResult: form.actualResult?.trim() || undefined,
                     testMethod: form.testMethod || undefined,
                     status: form.status || undefined,
-                    sampleReference:
-                      form.sampleReference?.trim() || undefined,
+                    sampleReference: form.sampleReference?.trim() || undefined,
                     performedBy: form.performedBy?.trim() || undefined,
                     performedAt: form.performedAt || undefined,
                     reviewedBy: form.reviewedBy?.trim() || undefined,
@@ -500,10 +502,8 @@ export default function CreateComponentForm({
                       condition: form.condition?.trim() || undefined,
                       cause: form.cause?.trim() || undefined,
                       effect: form.effect?.trim() || undefined,
-                      recommendation:
-                        form.recommendation?.trim() || undefined,
-                      managementResponse:
-                        form.managementResponse?.trim() || undefined,
+                      recommendation: form.recommendation?.trim() || undefined,
+                      managementResponse: form.managementResponse?.trim() || undefined,
                       actionOwner: form.actionOwner?.trim() || undefined,
                       dueDate: form.dueDate || undefined,
                       severity: form.severity ?? "",
@@ -523,10 +523,8 @@ export default function CreateComponentForm({
                       collectedAt: form.collectedAt || undefined,
                       validFrom: form.validFrom || undefined,
                       validTo: form.validTo || undefined,
-                      reliabilityLevel:
-                        form.reliabilityLevel || undefined,
-                      confidentiality:
-                        form.confidentiality || undefined,
+                      reliabilityLevel: form.reliabilityLevel || undefined,
+                      confidentiality: form.confidentiality || undefined,
                       status: form.status || undefined,
                       version: form.version?.trim() || undefined,
                       notes: form.notes?.trim() || undefined,
@@ -545,7 +543,7 @@ export default function CreateComponentForm({
       if (!res.ok) {
         const text = await res.text();
         throw new Error(
-          toUserFriendlyError(text || "Failed to create component."),
+          toUserFriendlyError(text || t.structure.createComponent, locale),
         );
       }
 
@@ -553,9 +551,7 @@ export default function CreateComponentForm({
       router.refresh();
     } catch (e) {
       setError(
-        e instanceof Error
-          ? toUserFriendlyError(e.message)
-          : "Something went wrong. Please try again.",
+        e instanceof Error ? e.message : toUserFriendlyError("", locale),
       );
     } finally {
       setSubmitting(false);
@@ -572,7 +568,7 @@ export default function CreateComponentForm({
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-1">
-          <label className="block text-sm">Component type</label>
+          <label className="block text-sm">{t.structure.componentType}</label>
           <select
             className="w-full border rounded px-3 py-2"
             value={nodeType}
@@ -590,7 +586,7 @@ export default function CreateComponentForm({
         {requiredParentType && (
           <div className="space-y-1">
             <label className="block text-sm">
-              Parent {typeLabel(requiredParentType).toLowerCase()}
+              {t.structure.selectParent} {typeLabel(requiredParentType).toLowerCase()}
             </label>
             <select
               className="w-full border rounded px-3 py-2"
@@ -599,7 +595,7 @@ export default function CreateComponentForm({
               required
               disabled={loading}
             >
-              <option value="">Select parent</option>
+              <option value="">{t.structure.selectParent}</option>
               {parentOptions.map((node) => (
                 <option key={node.id} value={node.id}>
                   {node.label}
@@ -612,51 +608,23 @@ export default function CreateComponentForm({
         {nodeType === "AUDIT_AREA" && (
           <section className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {textInput("Name", form.name ?? "", (v) => updateField("name", v), true)}
-              {textInput("Code", form.code ?? "", (v) => updateField("code", v))}
+              {textInput(t.structure.name, form.name ?? "", (v) => updateField("name", v), true)}
+              {textInput(t.structure.code, form.code ?? "", (v) => updateField("code", v))}
             </div>
 
-            {textAreaInput(
-              "Description",
-              form.description ?? "",
-              (v) => updateField("description", v),
-            )}
-            {textAreaInput(
-              "Objective",
-              form.objective ?? "",
-              (v) => updateField("objective", v),
-            )}
-            {textAreaInput("Scope", form.scope ?? "", (v) => updateField("scope", v))}
+            {textAreaInput(t.structure.description, form.description ?? "", (v) => updateField("description", v))}
+            {textAreaInput(t.structure.objective, form.objective ?? "", (v) => updateField("objective", v))}
+            {textAreaInput(t.structure.scope, form.scope ?? "", (v) => updateField("scope", v))}
 
             <div className="grid gap-4 md:grid-cols-3">
-              {selectInput(
-                "Risk level",
-                form.riskLevel ?? "",
-                (v) => updateField("riskLevel", v),
-                riskLevelOptions,
-              )}
-              {selectInput(
-                "Residual risk",
-                form.residualRisk ?? "",
-                (v) => updateField("residualRisk", v),
-                riskLevelOptions,
-              )}
-              {selectInput(
-                "Status",
-                form.status ?? "NOT_STARTED",
-                (v) => updateField("status", v),
-                nodeStatusOptions,
-                true,
-              )}
+              {selectInput(t.structure.riskLevel, form.riskLevel ?? "", (v) => updateField("riskLevel", v), riskLevelOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.residualRisk, form.residualRisk ?? "", (v) => updateField("residualRisk", v), riskLevelOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.status, form.status ?? "NOT_STARTED", (v) => updateField("status", v), nodeStatusOptions, true)}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              {textInput(
-                "Area owner",
-                form.areaOwner ?? "",
-                (v) => updateField("areaOwner", v),
-              )}
-              {textAreaInput("Notes", form.notes ?? "", (v) => updateField("notes", v))}
+              {textInput(t.structure.areaOwner, form.areaOwner ?? "", (v) => updateField("areaOwner", v))}
+              {textAreaInput(t.structure.notes, form.notes ?? "", (v) => updateField("notes", v))}
             </div>
           </section>
         )}
@@ -664,385 +632,170 @@ export default function CreateComponentForm({
         {nodeType === "PROCESS" && (
           <section className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {textInput("Name", form.name ?? "", (v) => updateField("name", v), true)}
-              {textInput("Code", form.code ?? "", (v) => updateField("code", v))}
+              {textInput(t.structure.name, form.name ?? "", (v) => updateField("name", v), true)}
+              {textInput(t.structure.code, form.code ?? "", (v) => updateField("code", v))}
             </div>
 
-            {textAreaInput(
-              "Description",
-              form.description ?? "",
-              (v) => updateField("description", v),
-            )}
-            {textAreaInput(
-              "Objective",
-              form.objective ?? "",
-              (v) => updateField("objective", v),
-            )}
+            {textAreaInput(t.structure.description, form.description ?? "", (v) => updateField("description", v))}
+            {textAreaInput(t.structure.objective, form.objective ?? "", (v) => updateField("objective", v))}
 
             <div className="grid gap-4 md:grid-cols-3">
-              {textInput(
-                "Process owner",
-                form.processOwner ?? "",
-                (v) => updateField("processOwner", v),
-              )}
-              {selectInput(
-                "Frequency",
-                form.frequency ?? "",
-                (v) => updateField("frequency", v),
-                frequencyOptions,
-              )}
-              {selectInput(
-                "Risk level",
-                form.riskLevel ?? "",
-                (v) => updateField("riskLevel", v),
-                riskLevelOptions,
-              )}
+              {textInput(t.structure.processOwner, form.processOwner ?? "", (v) => updateField("processOwner", v))}
+              {selectInput(t.structure.frequency, form.frequency ?? "", (v) => updateField("frequency", v), frequencyOptions, false, t.rolesManagement.selectItem)}
+              {selectInput(t.structure.riskLevel, form.riskLevel ?? "", (v) => updateField("riskLevel", v), riskLevelOptions, false, t.rolesManagement.selectItem)}
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              {selectInput(
-                "Status",
-                form.status ?? "NOT_STARTED",
-                (v) => updateField("status", v),
-                nodeStatusOptions,
-                true,
-              )}
-              {textInput(
-                "Systems involved",
-                form.systemsInvolved ?? "",
-                (v) => updateField("systemsInvolved", v),
-              )}
-              {textInput(
-                "Key inputs",
-                form.keyInputs ?? "",
-                (v) => updateField("keyInputs", v),
-              )}
+              {selectInput(t.structure.status, form.status ?? "NOT_STARTED", (v) => updateField("status", v), nodeStatusOptions, true)}
+              {textInput(t.structure.systemsInvolved, form.systemsInvolved ?? "", (v) => updateField("systemsInvolved", v))}
+              {textInput(t.structure.keyInputs, form.keyInputs ?? "", (v) => updateField("keyInputs", v))}
             </div>
 
-            {textInput(
-              "Key outputs",
-              form.keyOutputs ?? "",
-              (v) => updateField("keyOutputs", v),
-            )}
-            {textAreaInput("Notes", form.notes ?? "", (v) => updateField("notes", v))}
+            {textInput(t.structure.keyOutputs, form.keyOutputs ?? "", (v) => updateField("keyOutputs", v))}
+            {textAreaInput(t.structure.notes, form.notes ?? "", (v) => updateField("notes", v))}
           </section>
         )}
 
         {nodeType === "CONTROL" && (
           <section className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {textInput("Name", form.name ?? "", (v) => updateField("name", v), true)}
-              {textInput("Code", form.code ?? "", (v) => updateField("code", v))}
+              {textInput(t.structure.name, form.name ?? "", (v) => updateField("name", v), true)}
+              {textInput(t.structure.code, form.code ?? "", (v) => updateField("code", v))}
             </div>
 
-            {textAreaInput(
-              "Description",
-              form.description ?? "",
-              (v) => updateField("description", v),
-            )}
-            {textAreaInput(
-              "Control objective",
-              form.controlObjective ?? "",
-              (v) => updateField("controlObjective", v),
-            )}
+            {textAreaInput(t.structure.description, form.description ?? "", (v) => updateField("description", v))}
+            {textAreaInput(t.structure.controlObjective, form.controlObjective ?? "", (v) => updateField("controlObjective", v))}
 
             <div className="grid gap-4 md:grid-cols-3">
-              {selectInput(
-                "Control type",
-                form.controlType ?? "",
-                (v) => updateField("controlType", v),
-                controlTypeOptions,
-              )}
-              {selectInput(
-                "Control nature",
-                form.controlNature ?? "",
-                (v) => updateField("controlNature", v),
-                controlNatureOptions,
-              )}
-              {textInput(
-                "Control owner",
-                form.controlOwner ?? "",
-                (v) => updateField("controlOwner", v),
-              )}
+              {selectInput(t.structure.controlType, form.controlType ?? "", (v) => updateField("controlType", v), controlTypeOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.controlNature, form.controlNature ?? "", (v) => updateField("controlNature", v), controlNatureOptions, false, t.structure.selectParent)}
+              {textInput(t.structure.controlOwner, form.controlOwner ?? "", (v) => updateField("controlOwner", v))}
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              {selectInput(
-                "Frequency",
-                form.frequency ?? "",
-                (v) => updateField("frequency", v),
-                frequencyOptions,
-              )}
-              {selectInput(
-                "Testing strategy",
-                form.testingStrategy ?? "",
-                (v) => updateField("testingStrategy", v),
-                testMethodOptions,
-              )}
-              {selectInput(
-                "Status",
-                form.status ?? "NOT_STARTED",
-                (v) => updateField("status", v),
-                nodeStatusOptions,
-                true,
-              )}
+              {selectInput(t.structure.frequency, form.frequency ?? "", (v) => updateField("frequency", v), frequencyOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.testingStrategy, form.testingStrategy ?? "", (v) => updateField("testingStrategy", v), testMethodOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.status, form.status ?? "NOT_STARTED", (v) => updateField("status", v), nodeStatusOptions, true)}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              {textInput(
-                "Related risk",
-                form.relatedRisk ?? "",
-                (v) => updateField("relatedRisk", v),
-              )}
-              {textInput(
-                "Expected evidence",
-                form.expectedEvidence ?? "",
-                (v) => updateField("expectedEvidence", v),
-              )}
+              {textInput(t.structure.relatedRisk, form.relatedRisk ?? "", (v) => updateField("relatedRisk", v))}
+              {textInput(t.structure.expectedEvidence, form.expectedEvidence ?? "", (v) => updateField("expectedEvidence", v))}
             </div>
 
             {selectInput(
-              "Key control",
+              t.structure.keyControl,
               form.keyControl ?? "false",
               (v) => updateField("keyControl", v),
               [
-                { value: "false", label: "No" },
-                { value: "true", label: "Yes" },
+                { value: "false", label: t.structure.no },
+                { value: "true", label: t.structure.yes },
               ],
               true,
             )}
 
-            {textAreaInput("Notes", form.notes ?? "", (v) => updateField("notes", v))}
+            {textAreaInput(t.structure.notes, form.notes ?? "", (v) => updateField("notes", v))}
           </section>
         )}
 
         {nodeType === "TEST_STEP" && (
           <section className="space-y-4">
-            {textAreaInput(
-              "Description",
-              form.description ?? "",
-              (v) => updateField("description", v),
-              true,
-            )}
+            {textAreaInput(t.structure.description, form.description ?? "", (v) => updateField("description", v), true)}
 
             <div className="grid gap-4 md:grid-cols-3">
-              {textInput("Step no", form.stepNo ?? "", (v) => updateField("stepNo", v))}
-              {selectInput(
-                "Test method",
-                form.testMethod ?? "",
-                (v) => updateField("testMethod", v),
-                testMethodOptions,
-              )}
-              {selectInput(
-                "Status",
-                form.status ?? "NOT_STARTED",
-                (v) => updateField("status", v),
-                testStepStatusOptions,
-                true,
-              )}
+              {textInput(t.structure.stepNo, form.stepNo ?? "", (v) => updateField("stepNo", v))}
+              {selectInput(t.structure.testMethod, form.testMethod ?? "", (v) => updateField("testMethod", v), testMethodOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.status, form.status ?? "NOT_STARTED", (v) => updateField("status", v), testStepStatusOptions, true)}
             </div>
 
-            {textAreaInput(
-              "Expected result",
-              form.expectedResult ?? "",
-              (v) => updateField("expectedResult", v),
-            )}
-            {textAreaInput(
-              "Actual result",
-              form.actualResult ?? "",
-              (v) => updateField("actualResult", v),
-            )}
+            {textAreaInput(t.structure.expectedResult, form.expectedResult ?? "", (v) => updateField("expectedResult", v))}
+            {textAreaInput(t.structure.actualResult, form.actualResult ?? "", (v) => updateField("actualResult", v))}
 
             <div className="grid gap-4 md:grid-cols-3">
-              {textInput(
-                "Sample reference",
-                form.sampleReference ?? "",
-                (v) => updateField("sampleReference", v),
-              )}
-              {textInput(
-                "Performed by",
-                form.performedBy ?? "",
-                (v) => updateField("performedBy", v),
-              )}
-              {textInput(
-                "Reviewed by",
-                form.reviewedBy ?? "",
-                (v) => updateField("reviewedBy", v),
-              )}
+              {textInput(t.structure.sampleReference, form.sampleReference ?? "", (v) => updateField("sampleReference", v))}
+              {textInput(t.structure.performedBy, form.performedBy ?? "", (v) => updateField("performedBy", v))}
+              {textInput(t.structure.reviewedBy, form.reviewedBy ?? "", (v) => updateField("reviewedBy", v))}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              {dateInput(
-                "Performed at",
-                form.performedAt ?? "",
-                (v) => updateField("performedAt", v),
-              )}
-              {dateInput(
-                "Reviewed at",
-                form.reviewedAt ?? "",
-                (v) => updateField("reviewedAt", v),
-              )}
+              {dateInput(t.structure.performedAt, form.performedAt ?? "", (v) => updateField("performedAt", v))}
+              {dateInput(t.structure.reviewedAt, form.reviewedAt ?? "", (v) => updateField("reviewedAt", v))}
             </div>
 
-            {textAreaInput("Notes", form.notes ?? "", (v) => updateField("notes", v))}
+            {textAreaInput(t.structure.notes, form.notes ?? "", (v) => updateField("notes", v))}
           </section>
         )}
 
         {nodeType === "FINDING" && (
           <section className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {textInput("Title", form.title ?? "", (v) => updateField("title", v), true)}
-              {textInput("Code", form.code ?? "", (v) => updateField("code", v))}
+              {textInput(t.structure.title, form.title ?? "", (v) => updateField("title", v), true)}
+              {textInput(t.structure.code, form.code ?? "", (v) => updateField("code", v))}
             </div>
 
-            {textAreaInput(
-              "Description",
-              form.description ?? "",
-              (v) => updateField("description", v),
-              true,
-            )}
-            {textAreaInput(
-              "Criteria",
-              form.criteria ?? "",
-              (v) => updateField("criteria", v),
-            )}
-            {textAreaInput(
-              "Condition",
-              form.condition ?? "",
-              (v) => updateField("condition", v),
-            )}
-            {textAreaInput("Cause", form.cause ?? "", (v) => updateField("cause", v))}
-            {textAreaInput("Effect", form.effect ?? "", (v) => updateField("effect", v))}
-            {textAreaInput(
-              "Recommendation",
-              form.recommendation ?? "",
-              (v) => updateField("recommendation", v),
-            )}
-            {textAreaInput(
-              "Management response",
-              form.managementResponse ?? "",
-              (v) => updateField("managementResponse", v),
-            )}
+            {textAreaInput(t.structure.description, form.description ?? "", (v) => updateField("description", v), true)}
+            {textAreaInput(t.structure.criteria, form.criteria ?? "", (v) => updateField("criteria", v))}
+            {textAreaInput(t.structure.condition, form.condition ?? "", (v) => updateField("condition", v))}
+            {textAreaInput(t.structure.cause, form.cause ?? "", (v) => updateField("cause", v))}
+            {textAreaInput(t.structure.effect, form.effect ?? "", (v) => updateField("effect", v))}
+            {textAreaInput(t.structure.recommendation, form.recommendation ?? "", (v) => updateField("recommendation", v))}
+            {textAreaInput(t.structure.managementResponse, form.managementResponse ?? "", (v) => updateField("managementResponse", v))}
 
             <div className="grid gap-4 md:grid-cols-3">
-              {textInput(
-                "Action owner",
-                form.actionOwner ?? "",
-                (v) => updateField("actionOwner", v),
-              )}
-              {textInput(
-                "Severity",
-                form.severity ?? "",
-                (v) => updateField("severity", v),
-                true,
-              )}
-              {selectInput(
-                "Status",
-                form.status ?? "DRAFT",
-                (v) => updateField("status", v),
-                findingStatusOptions,
-                true,
-              )}
+              {textInput(t.structure.actionOwner, form.actionOwner ?? "", (v) => updateField("actionOwner", v))}
+              {textInput(t.structure.severity, form.severity ?? "", (v) => updateField("severity", v), true)}
+              {selectInput(t.structure.status, form.status ?? "DRAFT", (v) => updateField("status", v), findingStatusOptions, true)}
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              {dateInput("Due date", form.dueDate ?? "", (v) => updateField("dueDate", v))}
-              {dateInput(
-                "Identified at",
-                form.identifiedAt ?? "",
-                (v) => updateField("identifiedAt", v),
-              )}
-              {dateInput(
-                "Closed at",
-                form.closedAt ?? "",
-                (v) => updateField("closedAt", v),
-              )}
+              {dateInput(t.structure.dueDate, form.dueDate ?? "", (v) => updateField("dueDate", v))}
+              {dateInput(t.structure.identifiedAt, form.identifiedAt ?? "", (v) => updateField("identifiedAt", v))}
+              {dateInput(t.structure.closedAt, form.closedAt ?? "", (v) => updateField("closedAt", v))}
             </div>
 
-            {textAreaInput("Notes", form.notes ?? "", (v) => updateField("notes", v))}
+            {textAreaInput(t.structure.notes, form.notes ?? "", (v) => updateField("notes", v))}
           </section>
         )}
 
         {nodeType === "EVIDENCE" && (
           <section className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {textInput("Title", form.title ?? "", (v) => updateField("title", v), true)}
-              {textInput("Type", form.type ?? "", (v) => updateField("type", v), true)}
+              {textInput(t.structure.title, form.title ?? "", (v) => updateField("title", v), true)}
+              {textInput(t.structure.type, form.type ?? "", (v) => updateField("type", v), true)}
             </div>
 
-            {textAreaInput(
-              "Description",
-              form.description ?? "",
-              (v) => updateField("description", v),
-            )}
+            {textAreaInput(t.structure.description, form.description ?? "", (v) => updateField("description", v))}
 
             <div className="grid gap-4 md:grid-cols-3">
-              {textInput("Source", form.source ?? "", (v) => updateField("source", v))}
-              {textInput(
-                "Reference number",
-                form.referenceNo ?? "",
-                (v) => updateField("referenceNo", v),
-              )}
-              {textInput(
-                "External URL",
-                form.externalUrl ?? "",
-                (v) => updateField("externalUrl", v),
-              )}
+              {textInput(t.structure.source, form.source ?? "", (v) => updateField("source", v))}
+              {textInput(t.structure.referenceNo, form.referenceNo ?? "", (v) => updateField("referenceNo", v))}
+              {textInput(t.structure.externalUrl, form.externalUrl ?? "", (v) => updateField("externalUrl", v))}
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              {textInput(
-                "Collected by",
-                form.collectedBy ?? "",
-                (v) => updateField("collectedBy", v),
-              )}
-              {dateInput(
-                "Collected at",
-                form.collectedAt ?? "",
-                (v) => updateField("collectedAt", v),
-              )}
-              {textInput("Version", form.version ?? "", (v) => updateField("version", v))}
+              {textInput(t.structure.collectedBy, form.collectedBy ?? "", (v) => updateField("collectedBy", v))}
+              {dateInput(t.structure.collectedAt, form.collectedAt ?? "", (v) => updateField("collectedAt", v))}
+              {textInput(t.structure.version, form.version ?? "", (v) => updateField("version", v))}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              {dateInput(
-                "Valid from",
-                form.validFrom ?? "",
-                (v) => updateField("validFrom", v),
-              )}
-              {dateInput("Valid to", form.validTo ?? "", (v) => updateField("validTo", v))}
+              {dateInput(t.structure.validFrom, form.validFrom ?? "", (v) => updateField("validFrom", v))}
+              {dateInput(t.structure.validTo, form.validTo ?? "", (v) => updateField("validTo", v))}
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              {selectInput(
-                "Reliability level",
-                form.reliabilityLevel ?? "",
-                (v) => updateField("reliabilityLevel", v),
-                reliabilityOptions,
-              )}
-              {selectInput(
-                "Confidentiality",
-                form.confidentiality ?? "INTERNAL",
-                (v) => updateField("confidentiality", v),
-                confidentialityOptions,
-                true,
-              )}
-              {selectInput(
-                "Status",
-                form.status ?? "REQUESTED",
-                (v) => updateField("status", v),
-                evidenceStatusOptions,
-                true,
-              )}
+              {selectInput(t.structure.reliabilityLevel, form.reliabilityLevel ?? "", (v) => updateField("reliabilityLevel", v), reliabilityOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.confidentiality, form.confidentiality ?? "INTERNAL", (v) => updateField("confidentiality", v), confidentialityOptions, true)}
+              {selectInput(t.structure.status, form.status ?? "REQUESTED", (v) => updateField("status", v), evidenceStatusOptions, true)}
             </div>
 
-            {textAreaInput("Notes", form.notes ?? "", (v) => updateField("notes", v))}
+            {textAreaInput(t.structure.notes, form.notes ?? "", (v) => updateField("notes", v))}
           </section>
         )}
 
         <div className="flex gap-2">
           <button className="border rounded px-3 py-2" disabled={submitting}>
-            {submitting ? "Creating..." : "Create component"}
+            {submitting ? t.structure.creatingComponent : t.structure.createComponent}
           </button>
 
           <button
@@ -1050,7 +803,7 @@ export default function CreateComponentForm({
             className="border rounded px-3 py-2"
             onClick={() => router.push(`/projects/${projectId}`)}
           >
-            Cancel
+            {t.common.cancel}
           </button>
         </div>
       </form>

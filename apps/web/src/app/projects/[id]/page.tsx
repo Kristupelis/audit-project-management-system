@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
@@ -6,6 +7,7 @@ import Members from "./members";
 import ProjectStructureSection from "./project-structure-section";
 import AuditPreview from "./audit-preview";
 import DeleteProjectButton from "./delete-project-button";
+import { getDictionary, type Locale } from "@/i18n/get-dictionary";
 
 type Project = {
   id: string;
@@ -44,15 +46,21 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get("locale")?.value;
+  const locale: Locale = localeCookie === "lt" ? "lt" : "en";
+  const t = getDictionary(locale);
+
   const session = await getServerSession(authOptions);
   const token = session?.apiAccessToken;
 
   if (!token) {
     return (
       <main className="p-6">
-        <p>You are not logged in.</p>
+        <p>{t.auth.notLoggedIn}</p>
         <Link className="underline" href="/login">
-          Go to login
+          {t.auth.login}
         </Link>
       </main>
     );
@@ -66,11 +74,26 @@ export default async function ProjectDetailPage({
   const canManageProject =
     project.isOwner || session?.user?.systemRole === "SUPER_ADMIN";
 
+  const statusLabel =
+    t.enums.projectStatus[
+      project.status as keyof typeof t.enums.projectStatus
+    ] ?? project.status;
+
+  const auditTypeLabel =
+    t.enums.auditType[
+      project.auditType as keyof typeof t.enums.auditType
+    ] ?? project.auditType;
+
+  const priorityLabel =
+    t.enums.priority[
+      project.priority as keyof typeof t.enums.priority
+    ] ?? project.priority;
+
   return (
     <main className="p-6 space-y-6">
       <header className="space-y-4">
         <Link className="underline text-sm" href="/projects">
-          ← Back to projects
+          ← {t.projects.backToProjects}
         </Link>
 
         <div className="flex items-start justify-between gap-4">
@@ -81,17 +104,17 @@ export default async function ProjectDetailPage({
               <div className="flex flex-wrap gap-2 text-xs">
                 {project.code && (
                   <span className="border rounded-full px-2 py-1">
-                    Code: {project.code}
+                    {t.main.code} {project.code}
                   </span>
                 )}
                 <span className="border rounded-full px-2 py-1">
-                  Status: {project.status}
+                  {t.projects.status}: {statusLabel}
                 </span>
                 <span className="border rounded-full px-2 py-1">
-                  Type: {project.auditType}
+                  {t.projects.type}: {auditTypeLabel}
                 </span>
                 <span className="border rounded-full px-2 py-1">
-                  Priority: {project.priority}
+                  {t.projects.priority}: {priorityLabel}
                 </span>
               </div>
             </div>
@@ -101,7 +124,7 @@ export default async function ProjectDetailPage({
                 <>
                   <Link href={`/projects/${id}/edit`}>
                     <button className="border px-3 py-1 rounded">
-                      Edit project
+                      {t.projects.editProject}
                     </button>
                   </Link>
 
@@ -111,98 +134,100 @@ export default async function ProjectDetailPage({
 
               {(project.isOwner || session?.user?.systemRole === "SUPER_ADMIN") && (
                 <Link href={`/projects/${id}/roles`}>
-                  <button className="border px-3 py-1 rounded">Roles</button>
+                  <button className="border px-3 py-1 rounded">
+                    {t.rolesPage.roles}
+                  </button>
                 </Link>
               )}
             </div>
           </div>
 
           <span className="text-xs border rounded-full px-2 py-1">
-            {project.isOwner ? "OWNER" : project.roles.join(", ") || "MEMBER"}
+            {project.isOwner ? t.roles.owner : project.roles.join(", ") || t.roles.member}
           </span>
         </div>
       </header>
 
       <section className="border rounded-xl p-4 space-y-3">
-        <h2 className="font-medium">Project details</h2>
+        <h2 className="font-medium">{t.projects.projectDetails}</h2>
 
         {project.description && (
           <p className="text-sm opacity-80">
-            <strong>Description:</strong> {project.description}
+            <strong>{t.projects.description}:</strong> {project.description}
           </p>
         )}
 
         {project.scope && (
           <p className="text-sm opacity-80">
-            <strong>Scope:</strong> {project.scope}
+            <strong>{t.projects.scope}:</strong> {project.scope}
           </p>
         )}
 
         {project.objective && (
           <p className="text-sm opacity-80">
-            <strong>Objective:</strong> {project.objective}
+            <strong>{t.projects.objective}:</strong> {project.objective}
           </p>
         )}
 
         {project.methodology && (
           <p className="text-sm opacity-80">
-            <strong>Methodology:</strong> {project.methodology}
+            <strong>{t.projects.methodology}:</strong> {project.methodology}
           </p>
         )}
 
         <div className="grid gap-2 md:grid-cols-2 text-sm opacity-80">
           {project.auditedEntityName && (
             <div>
-              <strong>Audited entity:</strong> {project.auditedEntityName}
+              <strong>{t.projects.auditedEntity}:</strong> {project.auditedEntityName}
             </div>
           )}
 
           {project.location && (
             <div>
-              <strong>Location:</strong> {project.location}
+              <strong>{t.projects.location}:</strong> {project.location}
             </div>
           )}
 
           {project.engagementLead && (
             <div>
-              <strong>Lead auditor:</strong> {project.engagementLead}
+              <strong>{t.projects.leadAuditor}:</strong> {project.engagementLead}
             </div>
           )}
 
           {(project.periodStart || project.periodEnd) && (
             <div>
-              <strong>Audited period:</strong> {formatDate(project.periodStart)} -{" "}
+              <strong>{t.projects.auditedPeriod}:</strong> {formatDate(project.periodStart)} -{" "}
               {formatDate(project.periodEnd)}
             </div>
           )}
 
           {project.plannedStartDate && (
             <div>
-              <strong>Planned start:</strong> {formatDate(project.plannedStartDate)}
+              <strong>{t.projects.plannedStartDate}:</strong> {formatDate(project.plannedStartDate)}
             </div>
           )}
 
           {project.plannedEndDate && (
             <div>
-              <strong>Planned end:</strong> {formatDate(project.plannedEndDate)}
+              <strong>{t.projects.plannedEndDate}:</strong> {formatDate(project.plannedEndDate)}
             </div>
           )}
 
           {project.actualStartDate && (
             <div>
-              <strong>Actual start:</strong> {formatDate(project.actualStartDate)}
+              <strong>{t.projects.actualStartDate}:</strong> {formatDate(project.actualStartDate)}
             </div>
           )}
 
           {project.actualEndDate && (
             <div>
-              <strong>Actual end:</strong> {formatDate(project.actualEndDate)}
+              <strong>{t.projects.actualEndDate}:</strong> {formatDate(project.actualEndDate)}
             </div>
           )}
         </div>
 
         <p className="text-xs opacity-60">
-          Updated: {new Date(project.updatedAt).toLocaleString()}
+          {t.main.updated} {new Date(project.updatedAt).toLocaleString()}
         </p>
       </section>
 

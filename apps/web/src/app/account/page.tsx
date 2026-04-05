@@ -1,10 +1,16 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { useT } from "@/i18n/use-t";
+import { useLanguage } from "@/providers/language-provider";
+import { toUserFriendlyError } from "@/lib/error-message";
 
 export default function AccountPage() {
   const { data: session, status } = useSession();
+  const t = useT();
+  const { locale } = useLanguage();
 
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
@@ -33,13 +39,20 @@ export default function AccountPage() {
         },
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(
+          toUserFriendlyError(text || t.accountPage.setupFailed, locale),
+        );
+      }
 
       const data = await res.json();
       setQrCode(data.qrCode);
       setSecret(data.base32);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Setup failed");
+      setMsg(
+        e instanceof Error ? e.message : toUserFriendlyError("", locale),
+      );
     } finally {
       setLoading(false);
     }
@@ -61,31 +74,46 @@ export default function AccountPage() {
         body: JSON.stringify({ secret, code }),
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(
+          toUserFriendlyError(text || t.accountPage.enableFailed, locale),
+        );
+      }
 
-      setMsg("2FA enabled ✅");
+      setMsg(t.accountPage.enabledSuccess);
       setCode("");
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Enable failed");
+      setMsg(
+        e instanceof Error ? e.message : toUserFriendlyError("", locale),
+      );
     } finally {
       setLoading(false);
     }
   }
 
-  if (status === "loading") return <main className="p-6">Loading...</main>;
-  if (!session) return <main className="p-6">Please login first.</main>;
+  if (status === "loading") {
+    return <main className="p-6">{t.common.loading}</main>;
+  }
+
+  if (!session) {
+    return <main className="p-6">{t.accountPage.pleaseLoginFirst}</main>;
+  }
 
   return (
     <main className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Account</h1>
+        <h1 className="text-2xl font-semibold">{t.accountPage.title}</h1>
         <p className="text-sm opacity-80">
-          Logged in as <span className="font-medium">{session.user?.name ?? session.user?.email}</span>
+          {t.accountPage.loggedInAs}{" "}
+          <span className="font-medium">
+            {session.user?.name ?? session.user?.email}
+          </span>
         </p>
       </div>
 
       <section className="border rounded-xl p-4 space-y-4">
-        <h2 className="font-medium">Two-factor authentication (TOTP)</h2>
+        <h2 className="font-medium">{t.accountPage.twoFactorTitle}</h2>
 
         {!qrCode ? (
           <button
@@ -93,23 +121,27 @@ export default function AccountPage() {
             onClick={setup2fa}
             disabled={loading}
           >
-            {loading ? "Generating..." : "Setup 2FA"}
+            {loading ? t.accountPage.generating : t.accountPage.setup2fa}
           </button>
         ) : (
           <>
             <p className="text-sm opacity-80">
-              Scan this QR code using Google Authenticator (or Authy / Microsoft Authenticator).
+              {t.accountPage.scanQrDescription}
             </p>
 
-            <img src={qrCode} alt="2FA QR code" className="w-56 h-56 border rounded-md" />
+            <img
+              src={qrCode}
+              alt="2FA QR code"
+              className="w-56 h-56 border rounded-md"
+            />
 
             <div className="text-xs opacity-70 break-all">
-              <div className="font-medium">Secret (base32):</div>
+              <div className="font-medium">{t.accountPage.secretLabel}</div>
               <div>{secret}</div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm">Enter 6-digit code</label>
+              <label className="text-sm">{t.accountPage.enterCode}</label>
               <input
                 className="border rounded-md p-2 w-48"
                 value={code}
@@ -123,7 +155,7 @@ export default function AccountPage() {
               onClick={enable2fa}
               disabled={loading || code.length < 6}
             >
-              {loading ? "Enabling..." : "Enable 2FA"}
+              {loading ? t.accountPage.enabling : t.accountPage.enable2fa}
             </button>
           </>
         )}

@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import CreateProjectForm from "../../create-project-form";
+import { getDictionary, type Locale } from "@/i18n/get-dictionary";
 
 type Project = {
   id: string;
@@ -44,11 +46,17 @@ export default async function EditProjectPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get("locale")?.value;
+  const locale: Locale = localeCookie === "lt" ? "lt" : "en";
+  const t = getDictionary(locale);
+
   const session = await getServerSession(authOptions);
   const token = session?.apiAccessToken;
 
   if (!token) {
-    return <main className="p-6">Not logged in.</main>;
+    return <main className="p-6">{t.auth.notLoggedIn}</main>;
   }
 
   const project = await apiFetch<Project>(`/projects/${id}`, token);
@@ -56,7 +64,9 @@ export default async function EditProjectPage({
   if (!project.isOwner && session?.user?.systemRole !== "SUPER_ADMIN") {
     return (
       <main className="p-6">
-        Only project owners or superadmins can edit projects.
+        {locale === "lt"
+          ? "Tik projekto savininkai arba superadministratoriai gali redaguoti projektus."
+          : "Only project owners or superadmins can edit projects."}
       </main>
     );
   }
@@ -65,9 +75,11 @@ export default async function EditProjectPage({
     <main className="p-6 space-y-6">
       <div>
         <Link href={`/projects/${id}`} className="underline text-sm">
-          ← Back to project
+          ← {t.rolesManagement.backToProject}
         </Link>
-        <h1 className="text-2xl font-semibold mt-2">Edit project</h1>
+        <h1 className="text-2xl font-semibold mt-2">
+          {t.projects.editProject}
+        </h1>
       </div>
 
       <CreateProjectForm

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toUserFriendlyError } from "@/lib/error-message";
+import { useLanguage } from "@/providers/language-provider";
+import { useT } from "@/i18n/use-t";
 
 type NodeType =
   | "AUDIT_AREA"
@@ -198,23 +200,6 @@ type TreeNode =
 type StructureResponse = {
   tree: TreeNode[];
 };
-
-function typeLabel(type: NodeType) {
-  switch (type) {
-    case "AUDIT_AREA":
-      return "Audit area";
-    case "PROCESS":
-      return "Process";
-    case "CONTROL":
-      return "Control";
-    case "TEST_STEP":
-      return "Test step";
-    case "FINDING":
-      return "Finding";
-    case "EVIDENCE":
-      return "Evidence";
-  }
-}
 
 function allowedChildTypes(type: NodeType): NodeType[] {
   switch (type) {
@@ -472,27 +457,62 @@ function findNodeById(nodes: TreeNode[], id: string): TreeNode | null {
   return null;
 }
 
+function Field({
+  label,
+  value,
+  yesLabel,
+  noLabel,
+}: {
+  label: string;
+  value?: string | number | boolean | null;
+  yesLabel: string;
+  noLabel: string;
+}) {
+  if (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === "false"
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="text-sm font-medium">{label}</div>
+      <div className="text-sm opacity-80 whitespace-pre-wrap break-words">
+        {typeof value === "boolean" ? (value ? yesLabel : noLabel) : String(value)}
+      </div>
+    </div>
+  );
+}
+
 function ErrorModal({
   message,
   onClose,
+  title,
+  closeLabel,
 }: {
   message: string;
   onClose: () => void;
+  title: string;
+  closeLabel: string;
 }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
       <div className="w-full max-w-2xl rounded-md border border-red-300 bg-red-50 p-4 shadow-lg">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-base font-semibold text-red-700">Error</h3>
+            <h3 className="text-base font-semibold text-red-700">{title}</h3>
             <p className="text-sm text-red-700 whitespace-pre-wrap">{message}</p>
           </div>
 
           <button
             className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
             onClick={onClose}
+            type="button"
           >
-            Close
+            {closeLabel}
           </button>
         </div>
       </div>
@@ -505,28 +525,36 @@ function DeleteModal({
   onCancel,
   onConfirm,
   loading,
+  title,
+  message,
+  warning,
+  cancelLabel,
+  deleteLabel,
+  deletingLabel,
 }: {
   node: TreeNode;
   onCancel: () => void;
   onConfirm: () => void;
   loading: boolean;
+  title: string;
+  message: string;
+  warning: string;
+  cancelLabel: string;
+  deleteLabel: string;
+  deletingLabel: string;
 }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
       <div className="w-full max-w-2xl rounded-md border border-red-300 bg-red-50 p-4 shadow-lg">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-base font-semibold text-red-700">
-              Confirm deletion
-            </h3>
+            <h3 className="text-base font-semibold text-red-700">{title}</h3>
 
             <p className="text-sm text-red-700 whitespace-pre-wrap">
-              Delete <strong>{node.label}</strong>?
+              {message} <strong>{node.label}</strong>?
             </p>
 
-            <p className="text-sm text-red-700 whitespace-pre-wrap">
-              All related child components of this component will also be deleted.
-            </p>
+            <p className="text-sm text-red-700 whitespace-pre-wrap">{warning}</p>
           </div>
 
           <div className="flex gap-2">
@@ -534,16 +562,18 @@ function DeleteModal({
               className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
               onClick={onCancel}
               disabled={loading}
+              type="button"
             >
-              Cancel
+              {cancelLabel}
             </button>
 
             <button
               className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
               onClick={onConfirm}
               disabled={loading}
+              type="button"
             >
-              {loading ? "Deleting..." : "Delete"}
+              {loading ? deletingLabel : deleteLabel}
             </button>
           </div>
         </div>
@@ -558,12 +588,14 @@ function TreeItem({
   selectedId,
   onToggle,
   onSelect,
+  typeLabel,
 }: {
   node: TreeNode;
   expanded: Set<string>;
   selectedId: string | null;
   onToggle: (id: string) => void;
   onSelect: (node: TreeNode) => void;
+  typeLabel: (type: NodeType) => string;
 }) {
   const hasChildren = node.children.length > 0;
   const isExpanded = expanded.has(node.id);
@@ -590,9 +622,7 @@ function TreeItem({
           onClick={() => onSelect(node)}
         >
           <span className="font-medium">{node.label}</span>
-          <span className="ml-2 text-xs opacity-60">
-            {typeLabel(node.nodeType)}
-          </span>
+          <span className="ml-2 text-xs opacity-60">{typeLabel(node.nodeType)}</span>
         </button>
       </div>
 
@@ -606,6 +636,7 @@ function TreeItem({
               selectedId={selectedId}
               onToggle={onToggle}
               onSelect={onSelect}
+              typeLabel={typeLabel}
             />
           ))}
         </ul>
@@ -614,651 +645,36 @@ function TreeItem({
   );
 }
 
-function Field({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string | number | boolean | null;
-}) {
-  if (
-    value === undefined ||
-    value === null ||
-    value === "" ||
-    value === "false"
-  ) {
-    return null;
-  }
-
-  return (
-    <div className="space-y-1">
-      <div className="text-sm font-medium">{label}</div>
-      <div className="text-sm opacity-80 whitespace-pre-wrap break-words">
-        {typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)}
-      </div>
-    </div>
-  );
-}
-
-function DetailFields({
-  node,
-  editing,
-  form,
-  setForm,
-}: {
-  node: TreeNode;
-  editing: boolean;
-  form: Record<string, string>;
-  setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-}) {
-  if (!node.data) return null;
-
-  if (editing) {
-    switch (node.nodeType) {
-      case "AUDIT_AREA":
-        return (
-          <div className="space-y-3">
-            {[
-              ["Name", "name"],
-              ["Code", "code"],
-              ["Description", "description"],
-              ["Objective", "objective"],
-              ["Scope", "scope"],
-              ["Area owner", "areaOwner"],
-              ["Notes", "notes"],
-            ].map(([label, key]) => (
-              <div key={key} className="space-y-1">
-                <label className="block text-sm font-medium">{label}</label>
-                {["description", "objective", "scope", "notes"].includes(key) ? (
-                  <textarea
-                    className="w-full border rounded px-3 py-2 min-h-24"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                ) : (
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Risk level</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.riskLevel ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, riskLevel: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Residual risk</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.residualRisk ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, residualRisk: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Status</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.status ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, status: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case "PROCESS":
-        return (
-          <div className="space-y-3">
-            {[
-              ["Name", "name"],
-              ["Code", "code"],
-              ["Description", "description"],
-              ["Objective", "objective"],
-              ["Process owner", "processOwner"],
-              ["Systems involved", "systemsInvolved"],
-              ["Key inputs", "keyInputs"],
-              ["Key outputs", "keyOutputs"],
-              ["Notes", "notes"],
-            ].map(([label, key]) => (
-              <div key={key} className="space-y-1">
-                <label className="block text-sm font-medium">{label}</label>
-                {["description", "objective", "systemsInvolved", "keyInputs", "keyOutputs", "notes"].includes(key) ? (
-                  <textarea
-                    className="w-full border rounded px-3 py-2 min-h-24"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                ) : (
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Frequency</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.frequency ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, frequency: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Risk level</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.riskLevel ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, riskLevel: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Status</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.status ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, status: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case "CONTROL":
-        return (
-          <div className="space-y-3">
-            {[
-              ["Name", "name"],
-              ["Code", "code"],
-              ["Description", "description"],
-              ["Control objective", "controlObjective"],
-              ["Control owner", "controlOwner"],
-              ["Related risk", "relatedRisk"],
-              ["Expected evidence", "expectedEvidence"],
-              ["Notes", "notes"],
-            ].map(([label, key]) => (
-              <div key={key} className="space-y-1">
-                <label className="block text-sm font-medium">{label}</label>
-                {["description", "controlObjective", "relatedRisk", "expectedEvidence", "notes"].includes(key) ? (
-                  <textarea
-                    className="w-full border rounded px-3 py-2 min-h-24"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                ) : (
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {["controlType", "controlNature", "frequency", "testingStrategy", "status"].map((key) => (
-                <div key={key} className="space-y-1">
-                  <label className="block text-sm font-medium">{key}</label>
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                </div>
-              ))}
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Key control</label>
-                <select
-                  className="w-full border rounded px-3 py-2"
-                  value={form.keyControl ?? "false"}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, keyControl: e.target.value }))
-                  }
-                >
-                  <option value="false">No</option>
-                  <option value="true">Yes</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "TEST_STEP":
-        return (
-          <div className="space-y-3">
-            {[
-              ["Description", "description"],
-              ["Expected result", "expectedResult"],
-              ["Actual result", "actualResult"],
-              ["Sample reference", "sampleReference"],
-              ["Performed by", "performedBy"],
-              ["Reviewed by", "reviewedBy"],
-              ["Notes", "notes"],
-            ].map(([label, key]) => (
-              <div key={key} className="space-y-1">
-                <label className="block text-sm font-medium">{label}</label>
-                {["description", "expectedResult", "actualResult", "notes"].includes(key) ? (
-                  <textarea
-                    className="w-full border rounded px-3 py-2 min-h-24"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                ) : (
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {["stepNo", "testMethod", "status"].map((key) => (
-                <div key={key} className="space-y-1">
-                  <label className="block text-sm font-medium">{key}</label>
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                </div>
-              ))}
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Performed at</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={form.performedAt ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, performedAt: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Reviewed at</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={form.reviewedAt ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, reviewedAt: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case "FINDING":
-        return (
-          <div className="space-y-3">
-            {[
-              ["Title", "title"],
-              ["Code", "code"],
-              ["Description", "description"],
-              ["Criteria", "criteria"],
-              ["Condition", "condition"],
-              ["Cause", "cause"],
-              ["Effect", "effect"],
-              ["Recommendation", "recommendation"],
-              ["Management response", "managementResponse"],
-              ["Action owner", "actionOwner"],
-              ["Severity", "severity"],
-              ["Notes", "notes"],
-            ].map(([label, key]) => (
-              <div key={key} className="space-y-1">
-                <label className="block text-sm font-medium">{label}</label>
-                {["description", "criteria", "condition", "cause", "effect", "recommendation", "managementResponse", "notes"].includes(key) ? (
-                  <textarea
-                    className="w-full border rounded px-3 py-2 min-h-24"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                ) : (
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Status</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={form.status ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, status: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Due date</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={form.dueDate ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, dueDate: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Identified at</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={form.identifiedAt ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, identifiedAt: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Closed at</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={form.closedAt ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, closedAt: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case "EVIDENCE":
-        return (
-          <div className="space-y-3">
-            {[
-              ["Title", "title"],
-              ["Description", "description"],
-              ["Type", "type"],
-              ["Source", "source"],
-              ["Reference number", "referenceNo"],
-              ["External URL", "externalUrl"],
-              ["Collected by", "collectedBy"],
-              ["Version", "version"],
-              ["Notes", "notes"],
-            ].map(([label, key]) => (
-              <div key={key} className="space-y-1">
-                <label className="block text-sm font-medium">{label}</label>
-                {["description", "notes"].includes(key) ? (
-                  <textarea
-                    className="w-full border rounded px-3 py-2 min-h-24"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                ) : (
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {["reliabilityLevel", "confidentiality", "status"].map((key) => (
-                <div key={key} className="space-y-1">
-                  <label className="block text-sm font-medium">{key}</label>
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    value={form[key] ?? ""}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                  />
-                </div>
-              ))}
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Collected at</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={form.collectedAt ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, collectedAt: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Valid from</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={form.validFrom ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, validFrom: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">Valid to</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={form.validTo ?? ""}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, validTo: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        );
-    }
-  }
-
-  switch (node.nodeType) {
-    case "AUDIT_AREA":
-      return (
-        <div className="space-y-2">
-          <Field label="Name" value={node.data.name} />
-          <Field label="Code" value={node.data.code} />
-          <Field label="Description" value={node.data.description} />
-          <Field label="Objective" value={node.data.objective} />
-          <Field label="Scope" value={node.data.scope} />
-          <Field label="Risk level" value={node.data.riskLevel} />
-          <Field label="Residual risk" value={node.data.residualRisk} />
-          <Field label="Status" value={node.data.status} />
-          <Field label="Area owner" value={node.data.areaOwner} />
-          <Field label="Notes" value={node.data.notes} />
-        </div>
-      );
-
-    case "PROCESS":
-      return (
-        <div className="space-y-2">
-          <Field label="Name" value={node.data.name} />
-          <Field label="Code" value={node.data.code} />
-          <Field label="Description" value={node.data.description} />
-          <Field label="Objective" value={node.data.objective} />
-          <Field label="Process owner" value={node.data.processOwner} />
-          <Field label="Frequency" value={node.data.frequency} />
-          <Field label="Risk level" value={node.data.riskLevel} />
-          <Field label="Status" value={node.data.status} />
-          <Field label="Systems involved" value={node.data.systemsInvolved} />
-          <Field label="Key inputs" value={node.data.keyInputs} />
-          <Field label="Key outputs" value={node.data.keyOutputs} />
-          <Field label="Notes" value={node.data.notes} />
-        </div>
-      );
-
-    case "CONTROL":
-      return (
-        <div className="space-y-2">
-          <Field label="Name" value={node.data.name} />
-          <Field label="Code" value={node.data.code} />
-          <Field label="Description" value={node.data.description} />
-          <Field label="Control objective" value={node.data.controlObjective} />
-          <Field label="Control type" value={node.data.controlType} />
-          <Field label="Control nature" value={node.data.controlNature} />
-          <Field label="Control owner" value={node.data.controlOwner} />
-          <Field label="Frequency" value={node.data.frequency} />
-          <Field label="Key control" value={node.data.keyControl} />
-          <Field label="Related risk" value={node.data.relatedRisk} />
-          <Field label="Expected evidence" value={node.data.expectedEvidence} />
-          <Field label="Testing strategy" value={node.data.testingStrategy} />
-          <Field label="Status" value={node.data.status} />
-          <Field label="Notes" value={node.data.notes} />
-        </div>
-      );
-
-    case "TEST_STEP":
-      return (
-        <div className="space-y-2">
-          <Field label="Step no" value={node.data.stepNo} />
-          <Field label="Description" value={node.data.description} />
-          <Field label="Expected result" value={node.data.expectedResult} />
-          <Field label="Actual result" value={node.data.actualResult} />
-          <Field label="Test method" value={node.data.testMethod} />
-          <Field label="Status" value={node.data.status} />
-          <Field label="Sample reference" value={node.data.sampleReference} />
-          <Field label="Performed by" value={node.data.performedBy} />
-          <Field label="Performed at" value={node.data.performedAt?.slice(0, 10)} />
-          <Field label="Reviewed by" value={node.data.reviewedBy} />
-          <Field label="Reviewed at" value={node.data.reviewedAt?.slice(0, 10)} />
-          <Field label="Notes" value={node.data.notes} />
-        </div>
-      );
-
-    case "FINDING":
-      return (
-        <div className="space-y-2">
-          <Field label="Title" value={node.data.title} />
-          <Field label="Code" value={node.data.code} />
-          <Field label="Description" value={node.data.description} />
-          <Field label="Criteria" value={node.data.criteria} />
-          <Field label="Condition" value={node.data.condition} />
-          <Field label="Cause" value={node.data.cause} />
-          <Field label="Effect" value={node.data.effect} />
-          <Field label="Recommendation" value={node.data.recommendation} />
-          <Field label="Management response" value={node.data.managementResponse} />
-          <Field label="Action owner" value={node.data.actionOwner} />
-          <Field label="Due date" value={node.data.dueDate?.slice(0, 10)} />
-          <Field label="Severity" value={node.data.severity} />
-          <Field label="Status" value={node.data.status} />
-          <Field label="Identified at" value={node.data.identifiedAt?.slice(0, 10)} />
-          <Field label="Closed at" value={node.data.closedAt?.slice(0, 10)} />
-          <Field label="Notes" value={node.data.notes} />
-        </div>
-      );
-
-    case "EVIDENCE":
-      return (
-        <div className="space-y-2">
-          <Field label="Title" value={node.data.title} />
-          <Field label="Description" value={node.data.description} />
-          <Field label="Type" value={node.data.type} />
-          <Field label="Source" value={node.data.source} />
-          <Field label="Reference number" value={node.data.referenceNo} />
-          <Field label="External URL" value={node.data.externalUrl} />
-          <Field label="Collected by" value={node.data.collectedBy} />
-          <Field label="Collected at" value={node.data.collectedAt?.slice(0, 10)} />
-          <Field label="Valid from" value={node.data.validFrom?.slice(0, 10)} />
-          <Field label="Valid to" value={node.data.validTo?.slice(0, 10)} />
-          <Field label="Reliability level" value={node.data.reliabilityLevel} />
-          <Field label="Confidentiality" value={node.data.confidentiality} />
-          <Field label="Status" value={node.data.status} />
-          <Field label="Version" value={node.data.version} />
-          <Field label="Notes" value={node.data.notes} />
-        </div>
-      );
-  }
-}
-
 function CreateChildForm({
   projectId,
   parent,
-  onSuccess,
   onCancel,
-  onError,
+  typeLabel,
+  title,
+  componentTypeLabel,
+  richFormsMessage,
+  openCreatePageLabel,
+  cancelLabel,
 }: {
   projectId: string;
   parent: TreeNode;
-  onSuccess: () => void;
   onCancel: () => void;
-  onError: (message: string) => void;
+  typeLabel: (type: NodeType) => string;
+  title: string;
+  componentTypeLabel: string;
+  richFormsMessage: string;
+  openCreatePageLabel: string;
+  cancelLabel: string;
 }) {
   const childTypes = allowedChildTypes(parent.nodeType);
   const [nodeType, setNodeType] = useState<NodeType>(childTypes[0]);
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    onError(
-      "For now, use the full 'Create component' page to create new child components, because it has the richer audit-specific form fields."
-    );
-    setSubmitting(false);
-  }
 
   return (
-    <form onSubmit={handleSubmit} className="border rounded-xl p-4 space-y-3">
-      <h4 className="font-medium">Add child component</h4>
+    <form className="border rounded-xl p-4 space-y-3">
+      <h4 className="font-medium">{title}</h4>
 
       <div className="space-y-1">
-        <label className="block text-sm">Component type</label>
+        <label className="block text-sm">{componentTypeLabel}</label>
         <select
           className="w-full border rounded px-3 py-2"
           value={nodeType}
@@ -1272,23 +688,22 @@ function CreateChildForm({
         </select>
       </div>
 
-      <p className="text-sm opacity-70">
-        Rich create forms are now handled in the dedicated create page.
-      </p>
+      <p className="text-sm opacity-70">{richFormsMessage}</p>
 
       <div className="flex gap-2">
-        <Link href={`/projects/${projectId}/create-component`}>
+        <Link
+          href={`/projects/${projectId}/create-component?nodeType=${nodeType}&parentId=${parent.id}`}
+        >
           <button type="button" className="border rounded px-3 py-2">
-            Open create page
+            {openCreatePageLabel}
           </button>
         </Link>
         <button
           type="button"
           className="border rounded px-3 py-2"
           onClick={onCancel}
-          disabled={submitting}
         >
-          Cancel
+          {cancelLabel}
         </button>
       </div>
     </form>
@@ -1300,6 +715,9 @@ export default function ProjectStructureSection({
 }: {
   projectId: string;
 }) {
+  const t = useT();
+  const { locale } = useLanguage();
+
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -1313,8 +731,106 @@ export default function ProjectStructureSection({
 
   const selectedNode = useMemo(
     () => (selectedId ? findNodeById(tree, selectedId) : null),
-    [tree, selectedId]
+    [tree, selectedId],
   );
+
+  const typeLabel = (type: NodeType) => {
+    switch (type) {
+      case "AUDIT_AREA":
+        return t.structure.auditArea;
+      case "PROCESS":
+        return t.structure.process;
+      case "CONTROL":
+        return t.structure.control;
+      case "TEST_STEP":
+        return t.structure.testStep;
+      case "FINDING":
+        return t.structure.finding;
+      case "EVIDENCE":
+        return t.structure.evidence;
+    }
+  };
+
+  const statusLabel = (value?: string | null) => {
+    if (!value) return value;
+    return t.enums.projectStatus[
+      value as keyof typeof t.enums.projectStatus
+    ] ?? value;
+  };
+
+  const riskLabel = (value?: string | null) => {
+    if (!value) return value;
+    return t.structure.riskLevelValues?.[
+      value as keyof typeof t.structure.riskLevelValues
+    ] ?? value;
+  };
+
+  const severityLabel = (value?: string | null) => {
+    if (!value) return value;
+    return t.structure.severityValues?.[
+      value as keyof typeof t.structure.severityValues
+    ] ?? value;
+  };
+
+  const yesNo = (value?: boolean | null) => (value ? t.structure.yes : t.structure.no);
+
+  const fieldLabel: Record<string, string> = {
+    name: t.structure.name,
+    code: t.structure.code,
+    description: t.structure.description,
+    objective: t.structure.objective,
+    scope: t.structure.scope,
+    riskLevel: t.structure.riskLevel,
+    residualRisk: t.structure.residualRisk,
+    status: t.structure.status,
+    areaOwner: t.structure.areaOwner,
+    notes: t.structure.notes,
+    processOwner: t.structure.processOwner,
+    frequency: t.structure.frequency,
+    systemsInvolved: t.structure.systemsInvolved,
+    keyInputs: t.structure.keyInputs,
+    keyOutputs: t.structure.keyOutputs,
+    controlObjective: t.structure.controlObjective,
+    controlType: t.structure.controlType,
+    controlNature: t.structure.controlNature,
+    controlOwner: t.structure.controlOwner,
+    keyControl: t.structure.keyControl,
+    relatedRisk: t.structure.relatedRisk,
+    expectedEvidence: t.structure.expectedEvidence,
+    testingStrategy: t.structure.testingStrategy,
+    stepNo: t.structure.stepNo,
+    expectedResult: t.structure.expectedResult,
+    actualResult: t.structure.actualResult,
+    testMethod: t.structure.testMethod,
+    sampleReference: t.structure.sampleReference,
+    performedBy: t.structure.performedBy,
+    performedAt: t.structure.performedAt,
+    reviewedBy: t.structure.reviewedBy,
+    reviewedAt: t.structure.reviewedAt,
+    title: t.structure.title,
+    criteria: t.structure.criteria,
+    condition: t.structure.condition,
+    cause: t.structure.cause,
+    effect: t.structure.effect,
+    recommendation: t.structure.recommendation,
+    managementResponse: t.structure.managementResponse,
+    actionOwner: t.structure.actionOwner,
+    dueDate: t.structure.dueDate,
+    severity: t.structure.severity,
+    identifiedAt: t.structure.identifiedAt,
+    closedAt: t.structure.closedAt,
+    type: t.structure.type,
+    source: t.structure.source,
+    referenceNo: t.structure.referenceNo,
+    externalUrl: t.structure.externalUrl,
+    collectedBy: t.structure.collectedBy,
+    collectedAt: t.structure.collectedAt,
+    validFrom: t.structure.validFrom,
+    validTo: t.structure.validTo,
+    reliabilityLevel: t.structure.reliabilityLevel,
+    confidentiality: t.structure.confidentiality,
+    version: t.structure.version,
+  };
 
   async function loadTree() {
     setLoading(true);
@@ -1325,7 +841,9 @@ export default function ProjectStructureSection({
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(toUserFriendlyError(text || "Failed to load structure."));
+        throw new Error(
+          toUserFriendlyError(text || "Failed to load structure.", locale),
+        );
       }
 
       const data = (await res.json()) as StructureResponse;
@@ -1342,7 +860,11 @@ export default function ProjectStructureSection({
       }
     } catch (e) {
       setError(
-        e instanceof Error ? toUserFriendlyError(e.message) : "Something went wrong. Please try again."
+        e instanceof Error
+          ? e.message
+          : locale === "lt"
+            ? "Įvyko klaida. Bandykite dar kartą."
+            : "Something went wrong. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -1380,19 +902,25 @@ export default function ProjectStructureSection({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(getNodeEditPayload(selectedNode, editForm)),
-        }
+        },
       );
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(toUserFriendlyError(text || "Failed to update component."));
+        throw new Error(
+          toUserFriendlyError(text || "Failed to update component.", locale),
+        );
       }
 
       setEditing(false);
       await loadTree();
     } catch (e) {
       setError(
-        e instanceof Error ? toUserFriendlyError(e.message) : "Something went wrong. Please try again."
+        e instanceof Error
+          ? e.message
+          : locale === "lt"
+            ? "Įvyko klaida. Bandykite dar kartą."
+            : "Something went wrong. Please try again.",
       );
     } finally {
       setBusy(false);
@@ -1408,12 +936,14 @@ export default function ProjectStructureSection({
         `/api/projects/${projectId}/structure/item/${selectedNode.nodeType}/${selectedNode.id}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(toUserFriendlyError(text || "Failed to delete component."));
+        throw new Error(
+          toUserFriendlyError(text || "Failed to delete component.", locale),
+        );
       }
 
       setShowDelete(false);
@@ -1425,8 +955,10 @@ export default function ProjectStructureSection({
       setShowDelete(false);
       setError(
         e instanceof Error
-          ? toUserFriendlyError(e.message)
-          : "Something went wrong. Please try again."
+          ? e.message
+          : locale === "lt"
+            ? "Įvyko klaida. Bandykite dar kartą."
+            : "Something went wrong. Please try again.",
       );
     } finally {
       setBusy(false);
@@ -1436,23 +968,432 @@ export default function ProjectStructureSection({
   const selectedChildren = selectedNode?.children ?? [];
   const allFlat = useMemo(() => flattenTree(tree), [tree]);
 
+  const renderReadFields = (node: TreeNode) => {
+    if (!node.data) return null;
+
+    switch (node.nodeType) {
+      case "AUDIT_AREA":
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.name} value={node.data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={node.data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.objective} value={node.data.objective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.scope} value={node.data.scope} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.riskLevel} value={riskLabel(node.data.riskLevel)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.residualRisk} value={riskLabel(node.data.residualRisk)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.areaOwner} value={node.data.areaOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+
+      case "PROCESS":
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.name} value={node.data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={node.data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.objective} value={node.data.objective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.processOwner} value={node.data.processOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.frequency} value={node.data.frequency} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.riskLevel} value={riskLabel(node.data.riskLevel)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.systemsInvolved} value={node.data.systemsInvolved} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.keyInputs} value={node.data.keyInputs} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.keyOutputs} value={node.data.keyOutputs} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+
+      case "CONTROL":
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.name} value={node.data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={node.data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlObjective} value={node.data.controlObjective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlType} value={node.data.controlType} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlNature} value={node.data.controlNature} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlOwner} value={node.data.controlOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.frequency} value={node.data.frequency} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.keyControl} value={yesNo(node.data.keyControl)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.relatedRisk} value={node.data.relatedRisk} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.expectedEvidence} value={node.data.expectedEvidence} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.testingStrategy} value={node.data.testingStrategy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+
+      case "TEST_STEP":
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.stepNo} value={node.data.stepNo} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.expectedResult} value={node.data.expectedResult} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.actualResult} value={node.data.actualResult} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.testMethod} value={node.data.testMethod} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.sampleReference} value={node.data.sampleReference} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.performedBy} value={node.data.performedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.performedAt} value={node.data.performedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.reviewedBy} value={node.data.reviewedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.reviewedAt} value={node.data.reviewedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+
+      case "FINDING":
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.title} value={node.data.title} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={node.data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.criteria} value={node.data.criteria} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.condition} value={node.data.condition} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.cause} value={node.data.cause} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.effect} value={node.data.effect} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.recommendation} value={node.data.recommendation} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.managementResponse} value={node.data.managementResponse} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.actionOwner} value={node.data.actionOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.dueDate} value={node.data.dueDate?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.severity} value={severityLabel(node.data.severity)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.identifiedAt} value={node.data.identifiedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.closedAt} value={node.data.closedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+
+      case "EVIDENCE":
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.title} value={node.data.title} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.type} value={node.data.type} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.source} value={node.data.source} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.referenceNo} value={node.data.referenceNo} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.externalUrl} value={node.data.externalUrl} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.collectedBy} value={node.data.collectedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.collectedAt} value={node.data.collectedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.validFrom} value={node.data.validFrom?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.validTo} value={node.data.validTo?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.reliabilityLevel} value={node.data.reliabilityLevel} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.confidentiality} value={node.data.confidentiality} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.version} value={node.data.version} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+    }
+  };
+
+  const renderEditFields = (node: TreeNode) => {
+    const textAreaKeys = new Set([
+      "description",
+      "objective",
+      "scope",
+      "notes",
+      "systemsInvolved",
+      "keyInputs",
+      "keyOutputs",
+      "controlObjective",
+      "relatedRisk",
+      "expectedEvidence",
+      "criteria",
+      "condition",
+      "cause",
+      "effect",
+      "recommendation",
+      "managementResponse",
+    ]);
+
+    const renderTextField = (key: string) => (
+      <div key={key} className="space-y-1">
+        <label className="block text-sm font-medium">{fieldLabel[key] ?? key}</label>
+        {textAreaKeys.has(key) ? (
+          <textarea
+            className="w-full border rounded px-3 py-2 min-h-24"
+            value={editForm[key] ?? ""}
+            onChange={(e) =>
+              setEditForm((prev) => ({ ...prev, [key]: e.target.value }))
+            }
+          />
+        ) : (
+          <input
+            className="w-full border rounded px-3 py-2"
+            value={editForm[key] ?? ""}
+            onChange={(e) =>
+              setEditForm((prev) => ({ ...prev, [key]: e.target.value }))
+            }
+          />
+        )}
+      </div>
+    );
+
+    switch (node.nodeType) {
+      case "AUDIT_AREA":
+        return (
+          <div className="space-y-3">
+            {[
+              "name",
+              "code",
+              "description",
+              "objective",
+              "scope",
+              "areaOwner",
+              "notes",
+            ].map(renderTextField)}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {["riskLevel", "residualRisk", "status"].map(renderTextField)}
+            </div>
+          </div>
+        );
+
+      case "PROCESS":
+        return (
+          <div className="space-y-3">
+            {[
+              "name",
+              "code",
+              "description",
+              "objective",
+              "processOwner",
+              "systemsInvolved",
+              "keyInputs",
+              "keyOutputs",
+              "notes",
+            ].map(renderTextField)}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {["frequency", "riskLevel", "status"].map(renderTextField)}
+            </div>
+          </div>
+        );
+
+      case "CONTROL":
+        return (
+          <div className="space-y-3">
+            {[
+              "name",
+              "code",
+              "description",
+              "controlObjective",
+              "controlOwner",
+              "relatedRisk",
+              "expectedEvidence",
+              "notes",
+            ].map(renderTextField)}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {[
+                "controlType",
+                "controlNature",
+                "frequency",
+                "testingStrategy",
+                "status",
+              ].map(renderTextField)}
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">{t.structure.keyControl}</label>
+                <select
+                  className="w-full border rounded px-3 py-2"
+                  value={editForm.keyControl ?? "false"}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, keyControl: e.target.value }))
+                  }
+                >
+                  <option value="false">{t.structure.no}</option>
+                  <option value="true">{t.structure.yes}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "TEST_STEP":
+        return (
+          <div className="space-y-3">
+            {[
+              "description",
+              "expectedResult",
+              "actualResult",
+              "sampleReference",
+              "performedBy",
+              "reviewedBy",
+              "notes",
+            ].map(renderTextField)}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {["stepNo", "testMethod", "status"].map(renderTextField)}
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">{t.structure.performedAt}</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={editForm.performedAt ?? ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, performedAt: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">{t.structure.reviewedAt}</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={editForm.reviewedAt ?? ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, reviewedAt: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case "FINDING":
+        return (
+          <div className="space-y-3">
+            {[
+              "title",
+              "code",
+              "description",
+              "criteria",
+              "condition",
+              "cause",
+              "effect",
+              "recommendation",
+              "managementResponse",
+              "actionOwner",
+              "severity",
+              "notes",
+            ].map(renderTextField)}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {["status"].map(renderTextField)}
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">{t.structure.dueDate}</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={editForm.dueDate ?? ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, dueDate: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">{t.structure.identifiedAt}</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={editForm.identifiedAt ?? ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, identifiedAt: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">{t.structure.closedAt}</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={editForm.closedAt ?? ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, closedAt: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case "EVIDENCE":
+        return (
+          <div className="space-y-3">
+            {[
+              "title",
+              "description",
+              "type",
+              "source",
+              "referenceNo",
+              "externalUrl",
+              "collectedBy",
+              "version",
+              "notes",
+            ].map(renderTextField)}
+
+            <div className="grid gap-3 md:grid-cols-3">
+              {["reliabilityLevel", "confidentiality", "status"].map(renderTextField)}
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">{t.structure.collectedAt}</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={editForm.collectedAt ?? ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, collectedAt: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">{t.structure.validFrom}</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={editForm.validFrom ?? ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, validFrom: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">{t.structure.validTo}</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={editForm.validTo ?? ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, validTo: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
+
   return (
     <>
       <section className="border rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="font-medium">Project structure</h2>
+          <h2 className="font-medium">{t.structure.projectStructure}</h2>
 
           <Link href={`/projects/${projectId}/create-component`}>
-            <button className="border px-3 py-2 rounded">Create component</button>
+            <button className="border px-3 py-2 rounded">
+              {t.structure.createComponent}
+            </button>
           </Link>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[360px,1fr]">
           <div className="border rounded-xl p-3 min-h-[100px]">
             {loading ? (
-              <p className="text-sm opacity-70">Loading structure...</p>
+              <p className="text-sm opacity-70">{t.structure.loadingStructure}</p>
             ) : tree.length === 0 ? (
-              <p className="text-sm opacity-70">No components in this project yet.</p>
+              <p className="text-sm opacity-70">{t.structure.noComponents}</p>
             ) : (
               <ul className="space-y-2">
                 {tree.map((node) => (
@@ -1467,7 +1408,7 @@ export default function ProjectStructureSection({
                         setSelectedId(null);
                         setEditing(false);
                         setShowAddChild(false);
-                        setError("You can see this component in the tree, but you do not have permission to open its details.");
+                        setError(t.structure.noPermissionToOpenDetails);
                         return;
                       }
 
@@ -1475,6 +1416,7 @@ export default function ProjectStructureSection({
                       setEditing(false);
                       setShowAddChild(false);
                     }}
+                    typeLabel={typeLabel}
                   />
                 ))}
               </ul>
@@ -1484,7 +1426,7 @@ export default function ProjectStructureSection({
           <div className="border rounded-xl p-4 min-h-[150px]">
             {!selectedNode ? (
               <div className="h-full flex items-center justify-center text-sm opacity-70">
-                Select a component from the tree.
+                {t.structure.selectComponent}
               </div>
             ) : (
               <div className="space-y-4">
@@ -1503,21 +1445,17 @@ export default function ProjectStructureSection({
                       setEditing(false);
                       setShowAddChild(false);
                     }}
+                    type="button"
                   >
-                    Go back
+                    {t.structure.goBack}
                   </button>
                 </div>
 
-                <DetailFields
-                  node={selectedNode}
-                  editing={editing}
-                  form={editForm}
-                  setForm={setEditForm}
-                />
+                {editing ? renderEditFields(selectedNode) : renderReadFields(selectedNode)}
 
                 {selectedChildren.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="font-medium">Child components</h4>
+                    <h4 className="font-medium">{t.structure.childComponents}</h4>
                     <ul className="space-y-2">
                       {selectedChildren.map((child) => (
                         <li
@@ -1541,7 +1479,7 @@ export default function ProjectStructureSection({
                                 setSelectedId(null);
                                 setEditing(false);
                                 setShowAddChild(false);
-                                setError("You can see this component in the tree, but you do not have permission to open its details.");
+                                setError(t.structure.noPermissionToOpenDetails);
                                 return;
                               }
 
@@ -1549,8 +1487,9 @@ export default function ProjectStructureSection({
                               setEditing(false);
                               setShowAddChild(false);
                             }}
+                            type="button"
                           >
-                            Open
+                            {t.structure.open}
                           </button>
                         </li>
                       ))}
@@ -1563,8 +1502,9 @@ export default function ProjectStructureSection({
                     <button
                       className="border rounded px-3 py-2"
                       onClick={() => setEditing(true)}
+                      type="button"
                     >
-                      Edit
+                      {t.common.edit}
                     </button>
                   ) : (
                     <>
@@ -1572,8 +1512,9 @@ export default function ProjectStructureSection({
                         className="border rounded px-3 py-2"
                         onClick={() => void saveEdit()}
                         disabled={busy}
+                        type="button"
                       >
-                        {busy ? "Saving..." : "Save"}
+                        {busy ? t.projects.saving : t.common.save}
                       </button>
                       <button
                         className="border rounded px-3 py-2"
@@ -1581,8 +1522,9 @@ export default function ProjectStructureSection({
                           setEditing(false);
                           setEditForm(buildInitialForm(selectedNode));
                         }}
+                        type="button"
                       >
-                        Cancel edit
+                        {t.structure.cancelEdit}
                       </button>
                     </>
                   )}
@@ -1590,49 +1532,36 @@ export default function ProjectStructureSection({
                   <button
                     className="border rounded px-3 py-2"
                     onClick={() => setShowDelete(true)}
+                    type="button"
                   >
-                    Delete
+                    {t.common.delete}
                   </button>
 
                   {allowedChildTypes(selectedNode.nodeType).length > 0 && (
                     <button
                       className="border rounded px-3 py-2"
                       onClick={() => setShowAddChild((prev) => !prev)}
+                      type="button"
                     >
                       {selectedNode.nodeType === "CONTROL"
-                        ? "Add test step"
-                        : "Add child component"}
+                        ? t.structure.addTestStep
+                        : t.structure.addChildComponent}
                     </button>
                   )}
                 </div>
 
                 {showAddChild && (
-                  <div className="border rounded-xl p-4 space-y-3">
-                    <h4 className="font-medium">Add child component</h4>
-                    <p className="text-sm opacity-70">
-                      Continue in the dedicated create page with the child type and parent preselected.
-                    </p>
-
-                    <div className="flex gap-2">
-                      <Link
-                        href={`/projects/${projectId}/create-component?nodeType=${
-                          allowedChildTypes(selectedNode.nodeType)[0]
-                        }&parentId=${selectedNode.id}`}
-                      >
-                        <button type="button" className="border rounded px-3 py-2">
-                          Open create page
-                        </button>
-                      </Link>
-
-                      <button
-                        type="button"
-                        className="border rounded px-3 py-2"
-                        onClick={() => setShowAddChild(false)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
+                  <CreateChildForm
+                    projectId={projectId}
+                    parent={selectedNode}
+                    onCancel={() => setShowAddChild(false)}
+                    typeLabel={typeLabel}
+                    title={t.structure.addChildComponent}
+                    componentTypeLabel={t.structure.componentType}
+                    richFormsMessage={t.structure.richCreateFormsMoved}
+                    openCreatePageLabel={t.structure.openCreatePage}
+                    cancelLabel={t.common.cancel}
+                  />
                 )}
               </div>
             )}
@@ -1640,7 +1569,14 @@ export default function ProjectStructureSection({
         </div>
       </section>
 
-      {error && <ErrorModal message={error} onClose={() => setError(null)} />}
+      {error && (
+        <ErrorModal
+          message={error}
+          onClose={() => setError(null)}
+          title={t.common.error}
+          closeLabel={t.common.close}
+        />
+      )}
 
       {showDelete && selectedNode && (
         <DeleteModal
@@ -1648,6 +1584,12 @@ export default function ProjectStructureSection({
           loading={busy}
           onCancel={() => setShowDelete(false)}
           onConfirm={() => void deleteNode()}
+          title={t.projects.confirmDeleteTitle}
+          message={t.structure.deleteNodeMessage}
+          warning={t.structure.deleteNodeWarning}
+          cancelLabel={t.common.cancel}
+          deleteLabel={t.common.delete}
+          deletingLabel={t.projects.deleting}
         />
       )}
     </>

@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import DeleteRoleButton from "./delete-role-button";
+import { getDictionary, type Locale } from "@/i18n/get-dictionary";
 
 type RolePermission = {
   id: string;
@@ -31,24 +33,55 @@ export default async function RolesPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get("locale")?.value;
+  const locale: Locale = localeCookie === "lt" ? "lt" : "en";
+  const t = getDictionary(locale);
+
   const session = await getServerSession(authOptions);
   const token = session?.apiAccessToken;
 
   if (!token) {
-    return <main className="p-6">Not logged in.</main>;
+    return <main className="p-6">{t.rolesManagement.notLoggedIn}</main>;
   }
 
   const project = await apiFetch<Project>(`/projects/${id}`, token);
   const roles = await apiFetch<Role[]>(`/projects/${id}/roles`, token);
+
+  const resourceLabel = (resource: string) => {
+    const map: Record<string, string> = {
+      PROJECT: t.rolesManagement.resourceProject,
+      AUDIT_AREA: t.rolesManagement.resourceAuditArea,
+      PROCESS: t.rolesManagement.resourceProcess,
+      CONTROL: t.rolesManagement.resourceControl,
+      TEST_STEP: t.rolesManagement.resourceTestStep,
+      FINDING: t.rolesManagement.resourceFinding,
+      EVIDENCE: t.rolesManagement.resourceEvidence,
+    };
+
+    return map[resource] ?? resource;
+  };
+
+  const actionLabel = (action: string) => {
+    const map: Record<string, string> = {
+      READ: t.rolesManagement.actionView,
+      CREATE: t.rolesManagement.actionCreate,
+      UPDATE: t.rolesManagement.actionEdit,
+      DELETE: t.rolesManagement.actionDelete,
+    };
+
+    return map[action] ?? action;
+  };
 
   return (
     <main className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <Link href={`/projects/${id}`} className="underline text-sm">
-            ← Back to project
+            ← {t.rolesManagement.backToProject}
           </Link>
-          <h1 className="text-2xl font-semibold mt-2">Roles</h1>
+          <h1 className="text-2xl font-semibold mt-2">{t.rolesPage.roles}</h1>
         </div>
 
         {project.isOwner && (
@@ -56,7 +89,7 @@ export default async function RolesPage({
             href={`/projects/${id}/roles/create`}
             className="border rounded-md px-3 py-2"
           >
-            Create role
+            {t.rolesManagement.createRole}
           </Link>
         )}
       </div>
@@ -64,8 +97,7 @@ export default async function RolesPage({
       {roles.length === 0 ? (
         <section className="border rounded-xl p-4">
           <p className="text-sm opacity-80">
-            There are no roles created. If you want to create a role, press
-            &quot;Create role&quot;.
+            {t.rolesManagement.noRoles} {t.rolesManagement.noRolesHint}
           </p>
         </section>
       ) : (
@@ -86,13 +118,10 @@ export default async function RolesPage({
                       href={`/projects/${id}/roles/${role.id}/edit`}
                       className="border rounded-md px-3 py-1 text-sm"
                     >
-                      Edit
+                      {t.common.edit}
                     </Link>
 
-                    <DeleteRoleButton
-                        projectId={id}
-                        roleId={role.id}
-                      />
+                    <DeleteRoleButton projectId={id} roleId={role.id} />
                   </div>
                 )}
               </div>
@@ -100,7 +129,7 @@ export default async function RolesPage({
               <div className="text-xs opacity-70">
                 {role.permissions.map((p) => (
                   <div key={p.id}>
-                    {p.action} {p.resource}
+                    {actionLabel(p.action)} {resourceLabel(p.resource)}
                     {p.scopeId ? ` (${p.scopeId})` : ""}
                   </div>
                 ))}
