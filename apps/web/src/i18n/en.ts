@@ -245,6 +245,8 @@ export type TranslationDictionary = {
         medium: string;
         high: string;
         critical: string;
+        createComponentFailed: string;
+        updateComponentFailed: string;
     };
     members: {
         title: string;
@@ -259,6 +261,13 @@ export type TranslationDictionary = {
         confirmTransferMessage: string;
         };
     audit: {
+        memberFilter: string;
+        allMembers: string;
+        dateFilter: string;
+        noDateFilter: string;
+        afterDate: string;
+        beforeDate: string;
+        dateLabel: string;
         previewTitle: string;
         openAllLogs: string;
         loading: string;
@@ -359,7 +368,7 @@ export type TranslationDictionary = {
         name: string;
         yourName: string;
         createAccountTitle: string;
-    }
+    };
     accountPage: {
         title: string;
         loggedInAs: string;
@@ -375,7 +384,7 @@ export type TranslationDictionary = {
         setupFailed: string;
         enableFailed: string;
         pleaseLoginFirst: string;
-    }
+    };
 };
 
 const en: TranslationDictionary = {
@@ -495,6 +504,8 @@ const en: TranslationDictionary = {
   structure: {
         projectStructure: "Project structure",
         createComponent: "Create component",
+        createComponentFailed: "Failed to create component.",
+        updateComponentFailed: "Failed to update component.",
         loadingStructure: "Loading structure...",
         noComponents: "No components in this project yet.",
         selectComponent: "Select a component from the tree.",
@@ -653,6 +664,13 @@ const en: TranslationDictionary = {
         confirmTransferMessage: "Transfer ownership to:",
         },
     audit: {
+        memberFilter: "Member",
+        allMembers: "All members",
+        dateFilter: "Date filter",
+        noDateFilter: "No date filter",
+        afterDate: "After date",
+        beforeDate: "Before date",
+        dateLabel: "Date",
         previewTitle: "Audit log (recent 20)",
         openAllLogs: "Open all logs",
         loading: "Loading audit log...",

@@ -214,222 +214,6 @@ function allowedChildTypes(type: NodeType): NodeType[] {
   }
 }
 
-function getNodeEditPayload(node: TreeNode, form: Record<string, string>) {
-  switch (node.nodeType) {
-    case "AUDIT_AREA":
-      return {
-        name: form.name ?? "",
-        code: form.code?.trim() || undefined,
-        description: form.description?.trim() || undefined,
-        objective: form.objective?.trim() || undefined,
-        scope: form.scope?.trim() || undefined,
-        riskLevel: form.riskLevel || undefined,
-        residualRisk: form.residualRisk || undefined,
-        status: form.status || undefined,
-        areaOwner: form.areaOwner?.trim() || undefined,
-        notes: form.notes?.trim() || undefined,
-      };
-
-    case "PROCESS":
-      return {
-        name: form.name ?? "",
-        code: form.code?.trim() || undefined,
-        description: form.description?.trim() || undefined,
-        objective: form.objective?.trim() || undefined,
-        processOwner: form.processOwner?.trim() || undefined,
-        frequency: form.frequency || undefined,
-        riskLevel: form.riskLevel || undefined,
-        status: form.status || undefined,
-        systemsInvolved: form.systemsInvolved?.trim() || undefined,
-        keyInputs: form.keyInputs?.trim() || undefined,
-        keyOutputs: form.keyOutputs?.trim() || undefined,
-        notes: form.notes?.trim() || undefined,
-      };
-
-    case "CONTROL":
-      return {
-        name: form.name ?? "",
-        code: form.code?.trim() || undefined,
-        description: form.description?.trim() || undefined,
-        controlObjective: form.controlObjective?.trim() || undefined,
-        controlType: form.controlType || undefined,
-        controlNature: form.controlNature || undefined,
-        controlOwner: form.controlOwner?.trim() || undefined,
-        frequency: form.frequency || undefined,
-        keyControl: form.keyControl === "true",
-        relatedRisk: form.relatedRisk?.trim() || undefined,
-        expectedEvidence: form.expectedEvidence?.trim() || undefined,
-        testingStrategy: form.testingStrategy || undefined,
-        status: form.status || undefined,
-        notes: form.notes?.trim() || undefined,
-      };
-
-    case "TEST_STEP":
-      return {
-        description: form.description ?? "",
-        stepNo: form.stepNo?.trim() ? Number(form.stepNo) : undefined,
-        expectedResult: form.expectedResult?.trim() || undefined,
-        actualResult: form.actualResult?.trim() || undefined,
-        testMethod: form.testMethod || undefined,
-        status: form.status || undefined,
-        sampleReference: form.sampleReference?.trim() || undefined,
-        performedBy: form.performedBy?.trim() || undefined,
-        performedAt: form.performedAt || undefined,
-        reviewedBy: form.reviewedBy?.trim() || undefined,
-        reviewedAt: form.reviewedAt || undefined,
-        notes: form.notes?.trim() || undefined,
-      };
-
-    case "FINDING":
-      return {
-        title: form.title ?? "",
-        code: form.code?.trim() || undefined,
-        description: form.description ?? "",
-        criteria: form.criteria?.trim() || undefined,
-        condition: form.condition?.trim() || undefined,
-        cause: form.cause?.trim() || undefined,
-        effect: form.effect?.trim() || undefined,
-        recommendation: form.recommendation?.trim() || undefined,
-        managementResponse: form.managementResponse?.trim() || undefined,
-        actionOwner: form.actionOwner?.trim() || undefined,
-        dueDate: form.dueDate || undefined,
-        severity: form.severity ?? "",
-        status: form.status || undefined,
-        identifiedAt: form.identifiedAt || undefined,
-        closedAt: form.closedAt || undefined,
-        notes: form.notes?.trim() || undefined,
-      };
-
-    case "EVIDENCE":
-      return {
-        title: form.title ?? "",
-        description: form.description?.trim() || undefined,
-        type: form.type ?? "",
-        source: form.source?.trim() || undefined,
-        referenceNo: form.referenceNo?.trim() || undefined,
-        externalUrl: form.externalUrl?.trim() || undefined,
-        collectedBy: form.collectedBy?.trim() || undefined,
-        collectedAt: form.collectedAt || undefined,
-        validFrom: form.validFrom || undefined,
-        validTo: form.validTo || undefined,
-        reliabilityLevel: form.reliabilityLevel || undefined,
-        confidentiality: form.confidentiality || undefined,
-        status: form.status || undefined,
-        version: form.version?.trim() || undefined,
-        notes: form.notes?.trim() || undefined,
-      };
-  }
-}
-
-function buildInitialForm(node: TreeNode): Record<string, string> {
-  if (!node.data) return {};
-
-  switch (node.nodeType) {
-    case "AUDIT_AREA":
-      return {
-        name: node.data.name ?? "",
-        code: node.data.code ?? "",
-        description: node.data.description ?? "",
-        objective: node.data.objective ?? "",
-        scope: node.data.scope ?? "",
-        riskLevel: node.data.riskLevel ?? "",
-        residualRisk: node.data.residualRisk ?? "",
-        status: node.data.status ?? "",
-        areaOwner: node.data.areaOwner ?? "",
-        notes: node.data.notes ?? "",
-      };
-
-    case "PROCESS":
-      return {
-        name: node.data.name ?? "",
-        code: node.data.code ?? "",
-        description: node.data.description ?? "",
-        objective: node.data.objective ?? "",
-        processOwner: node.data.processOwner ?? "",
-        frequency: node.data.frequency ?? "",
-        riskLevel: node.data.riskLevel ?? "",
-        status: node.data.status ?? "",
-        systemsInvolved: node.data.systemsInvolved ?? "",
-        keyInputs: node.data.keyInputs ?? "",
-        keyOutputs: node.data.keyOutputs ?? "",
-        notes: node.data.notes ?? "",
-      };
-
-    case "CONTROL":
-      return {
-        name: node.data.name ?? "",
-        code: node.data.code ?? "",
-        description: node.data.description ?? "",
-        controlObjective: node.data.controlObjective ?? "",
-        controlType: node.data.controlType ?? "",
-        controlNature: node.data.controlNature ?? "",
-        controlOwner: node.data.controlOwner ?? "",
-        frequency: node.data.frequency ?? "",
-        keyControl: String(node.data.keyControl ?? false),
-        relatedRisk: node.data.relatedRisk ?? "",
-        expectedEvidence: node.data.expectedEvidence ?? "",
-        testingStrategy: node.data.testingStrategy ?? "",
-        status: node.data.status ?? "",
-        notes: node.data.notes ?? "",
-      };
-
-    case "TEST_STEP":
-      return {
-        description: node.data.description ?? "",
-        stepNo: node.data.stepNo?.toString() ?? "",
-        expectedResult: node.data.expectedResult ?? "",
-        actualResult: node.data.actualResult ?? "",
-        testMethod: node.data.testMethod ?? "",
-        status: node.data.status ?? "",
-        sampleReference: node.data.sampleReference ?? "",
-        performedBy: node.data.performedBy ?? "",
-        performedAt: node.data.performedAt?.slice(0, 10) ?? "",
-        reviewedBy: node.data.reviewedBy ?? "",
-        reviewedAt: node.data.reviewedAt?.slice(0, 10) ?? "",
-        notes: node.data.notes ?? "",
-      };
-
-    case "FINDING":
-      return {
-        title: node.data.title ?? "",
-        code: node.data.code ?? "",
-        description: node.data.description ?? "",
-        criteria: node.data.criteria ?? "",
-        condition: node.data.condition ?? "",
-        cause: node.data.cause ?? "",
-        effect: node.data.effect ?? "",
-        recommendation: node.data.recommendation ?? "",
-        managementResponse: node.data.managementResponse ?? "",
-        actionOwner: node.data.actionOwner ?? "",
-        dueDate: node.data.dueDate?.slice(0, 10) ?? "",
-        severity: node.data.severity ?? "",
-        status: node.data.status ?? "",
-        identifiedAt: node.data.identifiedAt?.slice(0, 10) ?? "",
-        closedAt: node.data.closedAt?.slice(0, 10) ?? "",
-        notes: node.data.notes ?? "",
-      };
-
-    case "EVIDENCE":
-      return {
-        title: node.data.title ?? "",
-        description: node.data.description ?? "",
-        type: node.data.type ?? "",
-        source: node.data.source ?? "",
-        referenceNo: node.data.referenceNo ?? "",
-        externalUrl: node.data.externalUrl ?? "",
-        collectedBy: node.data.collectedBy ?? "",
-        collectedAt: node.data.collectedAt?.slice(0, 10) ?? "",
-        validFrom: node.data.validFrom?.slice(0, 10) ?? "",
-        validTo: node.data.validTo?.slice(0, 10) ?? "",
-        reliabilityLevel: node.data.reliabilityLevel ?? "",
-        confidentiality: node.data.confidentiality ?? "",
-        status: node.data.status ?? "",
-        version: node.data.version ?? "",
-        notes: node.data.notes ?? "",
-      };
-  }
-}
-
 function collectExpandedIds(nodes: TreeNode[]): string[] {
   const ids: string[] = [];
   for (const node of nodes) {
@@ -722,8 +506,6 @@ export default function ProjectStructureSection({
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [showDelete, setShowDelete] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -774,64 +556,6 @@ export default function ProjectStructureSection({
 
   const yesNo = (value?: boolean | null) => (value ? t.structure.yes : t.structure.no);
 
-  const fieldLabel: Record<string, string> = {
-    name: t.structure.name,
-    code: t.structure.code,
-    description: t.structure.description,
-    objective: t.structure.objective,
-    scope: t.structure.scope,
-    riskLevel: t.structure.riskLevel,
-    residualRisk: t.structure.residualRisk,
-    status: t.structure.status,
-    areaOwner: t.structure.areaOwner,
-    notes: t.structure.notes,
-    processOwner: t.structure.processOwner,
-    frequency: t.structure.frequency,
-    systemsInvolved: t.structure.systemsInvolved,
-    keyInputs: t.structure.keyInputs,
-    keyOutputs: t.structure.keyOutputs,
-    controlObjective: t.structure.controlObjective,
-    controlType: t.structure.controlType,
-    controlNature: t.structure.controlNature,
-    controlOwner: t.structure.controlOwner,
-    keyControl: t.structure.keyControl,
-    relatedRisk: t.structure.relatedRisk,
-    expectedEvidence: t.structure.expectedEvidence,
-    testingStrategy: t.structure.testingStrategy,
-    stepNo: t.structure.stepNo,
-    expectedResult: t.structure.expectedResult,
-    actualResult: t.structure.actualResult,
-    testMethod: t.structure.testMethod,
-    sampleReference: t.structure.sampleReference,
-    performedBy: t.structure.performedBy,
-    performedAt: t.structure.performedAt,
-    reviewedBy: t.structure.reviewedBy,
-    reviewedAt: t.structure.reviewedAt,
-    title: t.structure.title,
-    criteria: t.structure.criteria,
-    condition: t.structure.condition,
-    cause: t.structure.cause,
-    effect: t.structure.effect,
-    recommendation: t.structure.recommendation,
-    managementResponse: t.structure.managementResponse,
-    actionOwner: t.structure.actionOwner,
-    dueDate: t.structure.dueDate,
-    severity: t.structure.severity,
-    identifiedAt: t.structure.identifiedAt,
-    closedAt: t.structure.closedAt,
-    type: t.structure.type,
-    source: t.structure.source,
-    referenceNo: t.structure.referenceNo,
-    externalUrl: t.structure.externalUrl,
-    collectedBy: t.structure.collectedBy,
-    collectedAt: t.structure.collectedAt,
-    validFrom: t.structure.validFrom,
-    validTo: t.structure.validTo,
-    reliabilityLevel: t.structure.reliabilityLevel,
-    confidentiality: t.structure.confidentiality,
-    version: t.structure.version,
-  };
-
   async function loadTree() {
     setLoading(true);
     try {
@@ -854,7 +578,6 @@ export default function ProjectStructureSection({
         const stillExists = findNodeById(data.tree, selectedId);
         if (!stillExists) {
           setSelectedId(null);
-          setEditing(false);
           setShowAddChild(false);
         }
       }
@@ -876,12 +599,6 @@ export default function ProjectStructureSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  useEffect(() => {
-    if (selectedNode) {
-      setEditForm(buildInitialForm(selectedNode));
-    }
-  }, [selectedNode]);
-
   function toggleExpanded(id: string) {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -889,42 +606,6 @@ export default function ProjectStructureSection({
       else next.add(id);
       return next;
     });
-  }
-
-  async function saveEdit() {
-    if (!selectedNode) return;
-
-    setBusy(true);
-    try {
-      const res = await fetch(
-        `/api/projects/${projectId}/structure/item/${selectedNode.nodeType}/${selectedNode.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(getNodeEditPayload(selectedNode, editForm)),
-        },
-      );
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(
-          toUserFriendlyError(text || "Failed to update component.", locale),
-        );
-      }
-
-      setEditing(false);
-      await loadTree();
-    } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : locale === "lt"
-            ? "Įvyko klaida. Bandykite dar kartą."
-            : "Something went wrong. Please try again.",
-      );
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function deleteNode() {
@@ -948,7 +629,6 @@ export default function ProjectStructureSection({
 
       setShowDelete(false);
       setSelectedId(null);
-      setEditing(false);
       setShowAddChild(false);
       await loadTree();
     } catch (e) {
@@ -1089,292 +769,6 @@ export default function ProjectStructureSection({
     }
   };
 
-  const renderEditFields = (node: TreeNode) => {
-    const textAreaKeys = new Set([
-      "description",
-      "objective",
-      "scope",
-      "notes",
-      "systemsInvolved",
-      "keyInputs",
-      "keyOutputs",
-      "controlObjective",
-      "relatedRisk",
-      "expectedEvidence",
-      "criteria",
-      "condition",
-      "cause",
-      "effect",
-      "recommendation",
-      "managementResponse",
-    ]);
-
-    const renderTextField = (key: string) => (
-      <div key={key} className="space-y-1">
-        <label className="block text-sm font-medium">{fieldLabel[key] ?? key}</label>
-        {textAreaKeys.has(key) ? (
-          <textarea
-            className="w-full border rounded px-3 py-2 min-h-24"
-            value={editForm[key] ?? ""}
-            onChange={(e) =>
-              setEditForm((prev) => ({ ...prev, [key]: e.target.value }))
-            }
-          />
-        ) : (
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={editForm[key] ?? ""}
-            onChange={(e) =>
-              setEditForm((prev) => ({ ...prev, [key]: e.target.value }))
-            }
-          />
-        )}
-      </div>
-    );
-
-    switch (node.nodeType) {
-      case "AUDIT_AREA":
-        return (
-          <div className="space-y-3">
-            {[
-              "name",
-              "code",
-              "description",
-              "objective",
-              "scope",
-              "areaOwner",
-              "notes",
-            ].map(renderTextField)}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {["riskLevel", "residualRisk", "status"].map(renderTextField)}
-            </div>
-          </div>
-        );
-
-      case "PROCESS":
-        return (
-          <div className="space-y-3">
-            {[
-              "name",
-              "code",
-              "description",
-              "objective",
-              "processOwner",
-              "systemsInvolved",
-              "keyInputs",
-              "keyOutputs",
-              "notes",
-            ].map(renderTextField)}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {["frequency", "riskLevel", "status"].map(renderTextField)}
-            </div>
-          </div>
-        );
-
-      case "CONTROL":
-        return (
-          <div className="space-y-3">
-            {[
-              "name",
-              "code",
-              "description",
-              "controlObjective",
-              "controlOwner",
-              "relatedRisk",
-              "expectedEvidence",
-              "notes",
-            ].map(renderTextField)}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {[
-                "controlType",
-                "controlNature",
-                "frequency",
-                "testingStrategy",
-                "status",
-              ].map(renderTextField)}
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">{t.structure.keyControl}</label>
-                <select
-                  className="w-full border rounded px-3 py-2"
-                  value={editForm.keyControl ?? "false"}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, keyControl: e.target.value }))
-                  }
-                >
-                  <option value="false">{t.structure.no}</option>
-                  <option value="true">{t.structure.yes}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "TEST_STEP":
-        return (
-          <div className="space-y-3">
-            {[
-              "description",
-              "expectedResult",
-              "actualResult",
-              "sampleReference",
-              "performedBy",
-              "reviewedBy",
-              "notes",
-            ].map(renderTextField)}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {["stepNo", "testMethod", "status"].map(renderTextField)}
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">{t.structure.performedAt}</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={editForm.performedAt ?? ""}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, performedAt: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">{t.structure.reviewedAt}</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={editForm.reviewedAt ?? ""}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, reviewedAt: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case "FINDING":
-        return (
-          <div className="space-y-3">
-            {[
-              "title",
-              "code",
-              "description",
-              "criteria",
-              "condition",
-              "cause",
-              "effect",
-              "recommendation",
-              "managementResponse",
-              "actionOwner",
-              "severity",
-              "notes",
-            ].map(renderTextField)}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {["status"].map(renderTextField)}
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">{t.structure.dueDate}</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={editForm.dueDate ?? ""}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, dueDate: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">{t.structure.identifiedAt}</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={editForm.identifiedAt ?? ""}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, identifiedAt: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">{t.structure.closedAt}</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={editForm.closedAt ?? ""}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, closedAt: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case "EVIDENCE":
-        return (
-          <div className="space-y-3">
-            {[
-              "title",
-              "description",
-              "type",
-              "source",
-              "referenceNo",
-              "externalUrl",
-              "collectedBy",
-              "version",
-              "notes",
-            ].map(renderTextField)}
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {["reliabilityLevel", "confidentiality", "status"].map(renderTextField)}
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">{t.structure.collectedAt}</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={editForm.collectedAt ?? ""}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, collectedAt: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">{t.structure.validFrom}</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={editForm.validFrom ?? ""}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, validFrom: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">{t.structure.validTo}</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={editForm.validTo ?? ""}
-                  onChange={(e) =>
-                    setEditForm((prev) => ({ ...prev, validTo: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        );
-    }
-  };
-
   return (
     <>
       <section className="border rounded-xl p-4 space-y-4">
@@ -1406,14 +800,12 @@ export default function ProjectStructureSection({
                     onSelect={(nodeValue) => {
                       if (!nodeValue.canRead) {
                         setSelectedId(null);
-                        setEditing(false);
                         setShowAddChild(false);
                         setError(t.structure.noPermissionToOpenDetails);
                         return;
                       }
 
                       setSelectedId(nodeValue.id);
-                      setEditing(false);
                       setShowAddChild(false);
                     }}
                     typeLabel={typeLabel}
@@ -1442,7 +834,6 @@ export default function ProjectStructureSection({
                     className="border rounded px-3 py-1"
                     onClick={() => {
                       setSelectedId(null);
-                      setEditing(false);
                       setShowAddChild(false);
                     }}
                     type="button"
@@ -1451,7 +842,7 @@ export default function ProjectStructureSection({
                   </button>
                 </div>
 
-                {editing ? renderEditFields(selectedNode) : renderReadFields(selectedNode)}
+                {renderReadFields(selectedNode)}
 
                 {selectedChildren.length > 0 && (
                   <div className="space-y-2">
@@ -1477,14 +868,12 @@ export default function ProjectStructureSection({
 
                               if (!found.canRead) {
                                 setSelectedId(null);
-                                setEditing(false);
                                 setShowAddChild(false);
                                 setError(t.structure.noPermissionToOpenDetails);
                                 return;
                               }
 
                               setSelectedId(found.id);
-                              setEditing(false);
                               setShowAddChild(false);
                             }}
                             type="button"
@@ -1498,36 +887,16 @@ export default function ProjectStructureSection({
                 )}
 
                 <div className="flex flex-wrap gap-2">
-                  {!editing ? (
+                  <Link
+                    href={`/projects/${projectId}/create-component?mode=edit&nodeType=${selectedNode.nodeType}&itemId=${selectedNode.id}`}
+                  >
                     <button
                       className="border rounded px-3 py-2"
-                      onClick={() => setEditing(true)}
                       type="button"
                     >
                       {t.common.edit}
                     </button>
-                  ) : (
-                    <>
-                      <button
-                        className="border rounded px-3 py-2"
-                        onClick={() => void saveEdit()}
-                        disabled={busy}
-                        type="button"
-                      >
-                        {busy ? t.projects.saving : t.common.save}
-                      </button>
-                      <button
-                        className="border rounded px-3 py-2"
-                        onClick={() => {
-                          setEditing(false);
-                          setEditForm(buildInitialForm(selectedNode));
-                        }}
-                        type="button"
-                      >
-                        {t.structure.cancelEdit}
-                      </button>
-                    </>
-                  )}
+                  </Link>
 
                   <button
                     className="border rounded px-3 py-2"

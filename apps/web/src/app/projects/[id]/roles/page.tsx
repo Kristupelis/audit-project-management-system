@@ -5,6 +5,7 @@ import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import DeleteRoleButton from "./delete-role-button";
 import { getDictionary, type Locale } from "@/i18n/get-dictionary";
+import { withAuthRedirect } from "@/lib/with-auth-redirect";
 
 type RolePermission = {
   id: string;
@@ -46,8 +47,8 @@ export default async function RolesPage({
     return <main className="p-6">{t.rolesManagement.notLoggedIn}</main>;
   }
 
-  const project = await apiFetch<Project>(`/projects/${id}`, token);
-  const roles = await apiFetch<Role[]>(`/projects/${id}/roles`, token);
+  const project = await withAuthRedirect(apiFetch<Project>(`/projects/${id}`, token));
+  const roles = await withAuthRedirect(apiFetch<Role[]>(`/projects/${id}/roles`, token));
 
   const resourceLabel = (resource: string) => {
     const map: Record<string, string> = {

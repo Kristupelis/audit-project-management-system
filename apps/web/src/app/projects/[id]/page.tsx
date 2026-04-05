@@ -8,6 +8,7 @@ import ProjectStructureSection from "./project-structure-section";
 import AuditPreview from "./audit-preview";
 import DeleteProjectButton from "./delete-project-button";
 import { getDictionary, type Locale } from "@/i18n/get-dictionary";
+import { withAuthRedirect } from "@/lib/with-auth-redirect";
 
 type Project = {
   id: string;
@@ -66,7 +67,9 @@ export default async function ProjectDetailPage({
     );
   }
 
-  const project = await apiFetch<Project>(`/projects/${id}`, token);
+  const project = await withAuthRedirect(
+    apiFetch<Project>(`/projects/${id}`, token),
+  );
 
   const canSeeAudit =
     project.isOwner || session?.user?.systemRole === "SUPER_ADMIN";

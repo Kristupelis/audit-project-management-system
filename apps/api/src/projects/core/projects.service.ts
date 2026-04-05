@@ -316,9 +316,11 @@ export class ProjectsService {
     query?: {
       page?: string;
       pageSize?: string;
-      action?: string;
       entity?: string;
       take?: string;
+      memberId?: string;
+      dateMode?: string;
+      date?: string;
     },
   ) {
     await this.permissions.requirePermission(
@@ -330,13 +332,40 @@ export class ProjectsService {
 
     const takeOnly = query?.take ? Number(query.take) : undefined;
 
+    let createdAtFilter: Prisma.DateTimeFilter | undefined;
+
+    if (query?.date) {
+      const selectedDate = new Date(query.date);
+
+      if (!Number.isNaN(selectedDate.getTime())) {
+        if (query.dateMode === 'before') {
+          const endOfDay = new Date(selectedDate);
+          endOfDay.setHours(23, 59, 59, 999);
+
+          createdAtFilter = {
+            lte: endOfDay,
+          };
+        } else if (query.dateMode === 'after') {
+          const startOfDay = new Date(selectedDate);
+          startOfDay.setHours(0, 0, 0, 0);
+
+          createdAtFilter = {
+            gte: startOfDay,
+          };
+        }
+      }
+    }
+
+    const where: Prisma.AuditLogWhereInput = {
+      projectId: projectIdValue,
+      ...(query?.entity ? { entity: query.entity } : {}),
+      ...(query?.memberId ? { actorId: query.memberId } : {}),
+      ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
+    };
+
     if (takeOnly) {
       const items = await this.prisma.auditLog.findMany({
-        where: {
-          projectId: projectIdValue,
-          ...(query?.action ? { action: query.action as AuditAction } : {}),
-          ...(query?.entity ? { entity: query.entity } : {}),
-        },
+        where,
         orderBy: { createdAt: 'desc' },
         take: takeOnly,
         include: {
@@ -361,12 +390,6 @@ export class ProjectsService {
 
     const page = Math.max(Number(query?.page ?? 1), 1);
     const pageSize = Math.max(Number(query?.pageSize ?? 30), 1);
-
-    const where = {
-      projectId: projectIdValue,
-      ...(query?.action ? { action: query.action as AuditAction } : {}),
-      ...(query?.entity ? { entity: query.entity } : {}),
-    };
 
     const [total, items] = await this.prisma.$transaction([
       this.prisma.auditLog.count({ where }),

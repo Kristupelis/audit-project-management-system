@@ -20,6 +20,7 @@ type TreeNode = {
   label: string;
   parentId: string | null;
   children: TreeNode[];
+  data?: Record<string, unknown> | null;
 };
 
 type StructureResponse = {
@@ -35,6 +36,15 @@ function flatten(nodes: TreeNode[]): TreeNode[] {
   return out;
 }
 
+function findNodeById(nodes: TreeNode[], id: string): TreeNode | null {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const child = findNodeById(node.children, id);
+    if (child) return child;
+  }
+  return null;
+}
+
 function parentTypeFor(nodeType: NodeType): NodeType | null {
   switch (nodeType) {
     case "AUDIT_AREA":
@@ -48,6 +58,120 @@ function parentTypeFor(nodeType: NodeType): NodeType | null {
     case "FINDING":
     case "EVIDENCE":
       return "PROCESS";
+  }
+}
+
+function toDateInput(value: unknown) {
+  if (!value || typeof value !== "string") return "";
+  return value.slice(0, 10);
+}
+
+function buildInitialFormFromNode(node: TreeNode): Record<string, string> {
+  const data = node.data ?? {};
+
+  switch (node.nodeType) {
+    case "AUDIT_AREA":
+      return {
+        name: String(data.name ?? ""),
+        code: String(data.code ?? ""),
+        description: String(data.description ?? ""),
+        objective: String(data.objective ?? ""),
+        scope: String(data.scope ?? ""),
+        riskLevel: String(data.riskLevel ?? ""),
+        residualRisk: String(data.residualRisk ?? ""),
+        status: String(data.status ?? "NOT_STARTED"),
+        areaOwner: String(data.areaOwner ?? ""),
+        notes: String(data.notes ?? ""),
+      };
+
+    case "PROCESS":
+      return {
+        name: String(data.name ?? ""),
+        code: String(data.code ?? ""),
+        description: String(data.description ?? ""),
+        objective: String(data.objective ?? ""),
+        processOwner: String(data.processOwner ?? ""),
+        frequency: String(data.frequency ?? ""),
+        riskLevel: String(data.riskLevel ?? ""),
+        status: String(data.status ?? "NOT_STARTED"),
+        systemsInvolved: String(data.systemsInvolved ?? ""),
+        keyInputs: String(data.keyInputs ?? ""),
+        keyOutputs: String(data.keyOutputs ?? ""),
+        notes: String(data.notes ?? ""),
+      };
+
+    case "CONTROL":
+      return {
+        name: String(data.name ?? ""),
+        code: String(data.code ?? ""),
+        description: String(data.description ?? ""),
+        controlObjective: String(data.controlObjective ?? ""),
+        controlType: String(data.controlType ?? ""),
+        controlNature: String(data.controlNature ?? ""),
+        controlOwner: String(data.controlOwner ?? ""),
+        frequency: String(data.frequency ?? ""),
+        keyControl: String(data.keyControl ?? false),
+        relatedRisk: String(data.relatedRisk ?? ""),
+        expectedEvidence: String(data.expectedEvidence ?? ""),
+        testingStrategy: String(data.testingStrategy ?? ""),
+        status: String(data.status ?? "NOT_STARTED"),
+        notes: String(data.notes ?? ""),
+      };
+
+    case "TEST_STEP":
+      return {
+        description: String(data.description ?? ""),
+        stepNo: data.stepNo != null ? String(data.stepNo) : "",
+        expectedResult: String(data.expectedResult ?? ""),
+        actualResult: String(data.actualResult ?? ""),
+        testMethod: String(data.testMethod ?? ""),
+        status: String(data.status ?? "NOT_STARTED"),
+        sampleReference: String(data.sampleReference ?? ""),
+        performedBy: String(data.performedBy ?? ""),
+        performedAt: toDateInput(data.performedAt),
+        reviewedBy: String(data.reviewedBy ?? ""),
+        reviewedAt: toDateInput(data.reviewedAt),
+        notes: String(data.notes ?? ""),
+      };
+
+    case "FINDING":
+      return {
+        title: String(data.title ?? ""),
+        code: String(data.code ?? ""),
+        description: String(data.description ?? ""),
+        criteria: String(data.criteria ?? ""),
+        condition: String(data.condition ?? ""),
+        cause: String(data.cause ?? ""),
+        effect: String(data.effect ?? ""),
+        recommendation: String(data.recommendation ?? ""),
+        managementResponse: String(data.managementResponse ?? ""),
+        actionOwner: String(data.actionOwner ?? ""),
+        dueDate: toDateInput(data.dueDate),
+        severity: String(data.severity ?? ""),
+        status: String(data.status ?? "DRAFT"),
+        identifiedAt: toDateInput(data.identifiedAt),
+        closedAt: toDateInput(data.closedAt),
+        notes: String(data.notes ?? ""),
+      };
+
+    case "EVIDENCE":
+      return {
+        title: String(data.title ?? ""),
+        description: String(data.description ?? ""),
+        type: String(data.type ?? ""),
+        source: String(data.source ?? ""),
+        referenceNo: String(data.referenceNo ?? ""),
+        externalUrl: String(data.externalUrl ?? ""),
+        collectedBy: String(data.collectedBy ?? ""),
+        collectedAt: toDateInput(data.collectedAt),
+        validFrom: toDateInput(data.validFrom),
+        validTo: toDateInput(data.validTo),
+        reliabilityLevel: String(data.reliabilityLevel ?? ""),
+        confidentiality: String(data.confidentiality ?? "INTERNAL"),
+        status: String(data.status ?? "REQUESTED"),
+        version: String(data.version ?? ""),
+        notes: String(data.notes ?? ""),
+      };
   }
 }
 
@@ -145,6 +269,9 @@ export default function CreateComponentForm({
   const { locale } = useLanguage();
   const t = useT();
 
+  const mode = searchParams.get("mode") === "edit" ? "edit" : "create";
+  const itemId = searchParams.get("itemId") ?? "";
+
   const initialNodeType =
     (searchParams.get("nodeType") as NodeType | null) ?? "AUDIT_AREA";
   const initialParentId = searchParams.get("parentId") ?? "";
@@ -159,6 +286,11 @@ export default function CreateComponentForm({
 
   const allNodes = useMemo(() => flatten(tree), [tree]);
   const requiredParentType = parentTypeFor(nodeType);
+
+  const editingNode = useMemo(() => {
+    if (mode !== "edit" || !itemId) return null;
+    return findNodeById(tree, itemId);
+  }, [mode, itemId, tree]);
 
   const parentOptions = useMemo(() => {
     if (!requiredParentType) return [];
@@ -303,6 +435,13 @@ export default function CreateComponentForm({
   }, [projectId, locale, t.rolesManagement.loadStructureFailed]);
 
   useEffect(() => {
+    if (mode === "edit" && editingNode) {
+      setNodeType(editingNode.nodeType);
+      setParentId(editingNode.parentId ?? "");
+      setForm(buildInitialFormFromNode(editingNode));
+      return;
+    }
+
     setParentId((prev) => {
       const queryParentId = searchParams.get("parentId") ?? "";
       const queryNodeType = searchParams.get("nodeType") as NodeType | null;
@@ -424,7 +563,7 @@ export default function CreateComponentForm({
         });
         break;
     }
-  }, [nodeType, searchParams]);
+  }, [nodeType, searchParams, mode, editingNode]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -530,20 +669,38 @@ export default function CreateComponentForm({
                       notes: form.notes?.trim() || undefined,
                     };
 
-      const res = await fetch(`/api/projects/${projectId}/structure/item`, {
-        method: "POST",
+      const url =
+        mode === "edit" && itemId
+          ? `/api/projects/${projectId}/structure/item/${nodeType}/${itemId}`
+          : `/api/projects/${projectId}/structure/item`;
+
+      const method = mode === "edit" ? "PATCH" : "POST";
+
+      const body =
+        mode === "edit"
+          ? JSON.stringify(payload)
+          : JSON.stringify({
+              nodeType,
+              parentId: parentId || null,
+              payload,
+            });
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nodeType,
-          parentId: parentId || null,
-          payload,
-        }),
+        body,
       });
 
       if (!res.ok) {
         const text = await res.text();
         throw new Error(
-          toUserFriendlyError(text || t.structure.createComponent, locale),
+          toUserFriendlyError(
+            text ||
+              (mode === "edit"
+                ? t.structure.updateComponentFailed
+                : t.structure.createComponentFailed),
+            locale,
+          ),
         );
       }
 
@@ -573,6 +730,7 @@ export default function CreateComponentForm({
             className="w-full border rounded px-3 py-2"
             value={nodeType}
             onChange={(e) => setNodeType(e.target.value as NodeType)}
+            disabled={mode === "edit"}
           >
             <option value="AUDIT_AREA">{typeLabel("AUDIT_AREA")}</option>
             <option value="PROCESS">{typeLabel("PROCESS")}</option>
@@ -593,7 +751,7 @@ export default function CreateComponentForm({
               value={parentId}
               onChange={(e) => setParentId(e.target.value)}
               required
-              disabled={loading}
+              disabled={loading || mode === "edit"}
             >
               <option value="">{t.structure.selectParent}</option>
               {parentOptions.map((node) => (
@@ -795,7 +953,13 @@ export default function CreateComponentForm({
 
         <div className="flex gap-2">
           <button className="border rounded px-3 py-2" disabled={submitting}>
-            {submitting ? t.structure.creatingComponent : t.structure.createComponent}
+            {submitting
+              ? mode === "edit"
+                ? t.projects.saving
+                : t.structure.creatingComponent
+              : mode === "edit"
+                ? t.common.save
+                : t.structure.createComponent}
           </button>
 
           <button

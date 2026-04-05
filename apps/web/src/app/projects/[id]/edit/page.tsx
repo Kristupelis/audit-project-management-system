@@ -5,6 +5,7 @@ import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import CreateProjectForm from "../../create-project-form";
 import { getDictionary, type Locale } from "@/i18n/get-dictionary";
+import { withAuthRedirect } from "@/lib/with-auth-redirect";
 
 type Project = {
   id: string;
@@ -59,7 +60,9 @@ export default async function EditProjectPage({
     return <main className="p-6">{t.auth.notLoggedIn}</main>;
   }
 
-  const project = await apiFetch<Project>(`/projects/${id}`, token);
+  const project = await withAuthRedirect(
+    apiFetch<Project>(`/projects/${id}`, token),
+  );
 
   if (!project.isOwner && session?.user?.systemRole !== "SUPER_ADMIN") {
     return (

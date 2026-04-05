@@ -226,16 +226,20 @@ export class ProjectsController {
     @CurrentUser('sub') userId: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
-    @Query('action') action?: string,
     @Query('entity') entity?: string,
     @Query('take') take?: string,
+    @Query('memberId') memberId?: string,
+    @Query('dateMode') dateMode?: string,
+    @Query('date') date?: string,
   ) {
     return this.projects.listAudit(id, userId, {
       page,
       pageSize,
-      action,
       entity,
       take,
+      memberId,
+      dateMode,
+      date,
     });
   }
 

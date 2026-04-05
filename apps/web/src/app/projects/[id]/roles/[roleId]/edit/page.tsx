@@ -5,6 +5,7 @@ import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import RoleForm from "../../role-form";
 import { getDictionary, type Locale } from "@/i18n/get-dictionary";
+import { withAuthRedirect } from "@/lib/with-auth-redirect";
 
 type Project = {
   id: string;
@@ -40,9 +41,11 @@ export default async function EditRolePage({
 
   if (!token) return <main className="p-6">{t.rolesManagement.notLoggedIn}</main>;
 
-  const project = await apiFetch<Project>(`/projects/${id}`, token);
-  const role = await apiFetch(`/projects/${id}/roles/${roleId}`, token);
-  const membersData = await apiFetch<MembersResponse>(`/projects/${id}/members`, token);
+  const project = await withAuthRedirect(
+    apiFetch<Project>(`/projects/${id}`, token),
+  );
+  const role = await withAuthRedirect(apiFetch(`/projects/${id}/roles/${roleId}`, token));
+  const membersData = await withAuthRedirect(apiFetch<MembersResponse>(`/projects/${id}/members`, token));
 
   if (!project.isOwner && session?.user?.systemRole !== "SUPER_ADMIN") {
     return <main className="p-6">{t.rolesManagement.onlyOwnersCanEdit}</main>;

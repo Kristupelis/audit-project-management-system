@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import { getDictionary, type Locale } from "@/i18n/get-dictionary";
+import { withAuthRedirect } from "@/lib/with-auth-redirect";
 
 type AuditLog = {
   id: string;
@@ -27,37 +28,16 @@ type AuditResponse = {
   totalPages: number;
 };
 
-const actionOptions = [
-  "MEMBER_ADDED",
-  "MEMBER_ROLE_UPDATED",
-  "MEMBER_REMOVED",
-  "OWNER_TRANSFERRED",
-  "ROLE_CREATED",
-  "ROLE_UPDATED",
-  "ROLE_DELETED",
-  "ROLE_ASSIGNED_TO_MEMBER",
-  "ROLE_REMOVED_FROM_MEMBER",
-  "DIRECT_PERMISSION_GRANTED",
-  "DIRECT_PERMISSION_REVOKED",
-  "AUDIT_AREA_CREATED",
-  "AUDIT_AREA_UPDATED",
-  "AUDIT_AREA_DELETED",
-  "PROCESS_CREATED",
-  "PROCESS_UPDATED",
-  "PROCESS_DELETED",
-  "CONTROL_CREATED",
-  "CONTROL_UPDATED",
-  "CONTROL_DELETED",
-  "TEST_STEP_CREATED",
-  "TEST_STEP_UPDATED",
-  "TEST_STEP_DELETED",
-  "EVIDENCE_CREATED",
-  "EVIDENCE_UPDATED",
-  "EVIDENCE_DELETED",
-  "FINDING_CREATED",
-  "FINDING_UPDATED",
-  "FINDING_DELETED",
-];
+type MembersResponse = {
+  members: {
+    id: string;
+    user: {
+      id: string;
+      email: string;
+      name?: string;
+    };
+  }[];
+};
 
 const entityOptions = [
   "ProjectRole",
@@ -70,7 +50,7 @@ const entityOptions = [
   "Evidence",
   "Finding",
   "Project",
-];
+] as const;
 
 export default async function AuditPage({
   params,
@@ -79,8 +59,10 @@ export default async function AuditPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{
     page?: string;
-    action?: string;
     entity?: string;
+    memberId?: string;
+    dateMode?: string;
+    date?: string;
   }>;
 }) {
   const { id } = await params;
@@ -99,26 +81,32 @@ export default async function AuditPage({
   }
 
   const page = sp.page ?? "1";
-  const action = sp.action ?? "";
   const entity = sp.entity ?? "";
+  const memberId = sp.memberId ?? "";
+  const dateMode = sp.dateMode ?? "";
+  const date = sp.date ?? "";
 
   const query = new URLSearchParams({
     page,
     pageSize: "30",
-    ...(action ? { action } : {}),
     ...(entity ? { entity } : {}),
+    ...(memberId ? { memberId } : {}),
+    ...(dateMode ? { dateMode } : {}),
+    ...(date ? { date } : {}),
   });
 
-  const audit = await apiFetch<AuditResponse>(
-    `/projects/${id}/audit?${query.toString()}`,
-    token,
-  );
+  const [audit, membersData] = await Promise.all([
+    withAuthRedirect(apiFetch<AuditResponse>(`/projects/${id}/audit?${query.toString()}`, token)),
+    withAuthRedirect(apiFetch<MembersResponse>(`/projects/${id}/members`, token)),
+  ]);
 
   function buildLink(nextPage: number) {
     const p = new URLSearchParams({
       page: String(nextPage),
-      ...(action ? { action } : {}),
       ...(entity ? { entity } : {}),
+      ...(memberId ? { memberId } : {}),
+      ...(dateMode ? { dateMode } : {}),
+      ...(date ? { date } : {}),
     });
 
     return `/projects/${id}/audit?${p.toString()}`;
@@ -141,23 +129,10 @@ export default async function AuditPage({
         <h1 className="text-2xl font-semibold mt-2">{t.audit.auditLogTitle}</h1>
       </div>
 
-      <form className="border rounded-xl p-4 grid gap-4 md:grid-cols-3">
-        <div className="space-y-1">
-          <label className="text-sm">{t.audit.actionFilter}</label>
-          <select
-            name="action"
-            defaultValue={action}
-            className="w-full border rounded-md p-2"
-          >
-            <option value="">{t.audit.allActions}</option>
-            {actionOptions.map((item) => (
-              <option key={item} value={item}>
-                {actionLabel(item)}
-              </option>
-            ))}
-          </select>
-        </div>
-
+      <form
+        key={`${entity}-${memberId}-${dateMode}-${date}`}
+        className="border rounded-xl p-4 grid gap-4 md:grid-cols-4"
+      >
         <div className="space-y-1">
           <label className="text-sm">{t.audit.entityFilter}</label>
           <select
@@ -174,7 +149,60 @@ export default async function AuditPage({
           </select>
         </div>
 
-        <div className="flex items-end gap-2">
+        <div className="space-y-1">
+          <label className="text-sm">
+            {t.audit.memberFilter}
+          </label>
+          <select
+            name="memberId"
+            defaultValue={memberId}
+            className="w-full border rounded-md p-2"
+          >
+            <option value="">
+              {t.audit.allMembers}
+            </option>
+            {membersData.members.map((member) => (
+              <option key={member.id} value={member.user.id}>
+                {member.user.name || member.user.email}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm">
+            {t.audit.dateFilter}
+          </label>
+          <select
+            name="dateMode"
+            defaultValue={dateMode}
+            className="w-full border rounded-md p-2"
+          >
+            <option value="">
+              {t.audit.noDateFilter}
+            </option>
+            <option value="after">
+              {t.audit.afterDate}
+            </option>
+            <option value="before">
+              {t.audit.beforeDate}
+            </option>
+          </select>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm">
+            {t.audit.dateLabel}
+          </label>
+          <input
+            type="date"
+            name="date"
+            defaultValue={date}
+            className="w-full border rounded-md p-2"
+          />
+        </div>
+
+        <div className="flex items-end gap-2 md:col-span-4">
           <button className="border rounded-md px-4 py-2">
             {t.audit.applyFilters}
           </button>

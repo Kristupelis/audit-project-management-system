@@ -117,6 +117,8 @@ const lt: TranslationDictionary = {
   structure: {
         projectStructure: "Projekto struktūra",
         createComponent: "Kurti komponentą",
+        createComponentFailed: "Nepavyko sukurti komponento.",
+        updateComponentFailed: "Nepavyko atnaujinti komponento.",
         loadingStructure: "Kraunama struktūra...",
         noComponents: "Šiame projekte dar nėra komponentų.",
         selectComponent: "Pasirinkite komponentą iš medžio.",
@@ -275,6 +277,13 @@ const lt: TranslationDictionary = {
     confirmTransferMessage: "Perduoti savininko teises naudotojui:",
     },
     audit: {
+        memberFilter: "Narys",
+        allMembers: "Visi nariai",
+        dateFilter: "Datos filtras",
+        noDateFilter: "Be datos filtro",
+        afterDate: "Po datos",
+        beforeDate: "Prieš datą",
+        dateLabel: "Data",
         previewTitle: "Audito žurnalas (paskutiniai 20)",
         openAllLogs: "Atidaryti visus žurnalus",
         loading: "Kraunamas audito žurnalas...",
