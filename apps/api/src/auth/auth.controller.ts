@@ -1,16 +1,11 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    name?: string;
-  } | null;
-}
+import { CurrentUser } from './current-user.decorator';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -28,8 +23,26 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Req() req: AuthenticatedRequest) {
-    return req.user ?? null;
+  me(@CurrentUser('sub') userId: string) {
+    return this.auth.getMe(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  updateProfile(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.auth.updateProfile(userId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('password')
+  changePassword(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.auth.changePassword(userId, dto);
   }
 
   @Post('2fa/setup')

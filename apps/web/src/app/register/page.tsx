@@ -98,9 +98,11 @@ export default function RegisterPage() {
             type="password"
             autoComplete="new-password"
             minLength={8}
-            pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$"
+            pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$"
+            title={t.authPages.passwordRequirements}
             required
           />
+          <p className="text-xs opacity-70">{t.authPages.passwordRequirements}</p>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

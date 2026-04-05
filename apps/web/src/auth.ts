@@ -82,7 +82,7 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.email = user.email;
         token.name = user.name;
@@ -90,6 +90,12 @@ export const authOptions: NextAuthOptions = {
         token.apiAccessToken = (user as CustomUser).apiAccessToken;
         token.apiAccessExpiresAt = (user as CustomUser).apiAccessExpiresAt;
       }
+
+      if (trigger === 'update' && session?.user) {
+        token.name = session.user.name;
+        token.email = session.user.email;
+      }
+
       return token;
     },
 
@@ -99,7 +105,6 @@ export const authOptions: NextAuthOptions = {
         name: token.name as string,
         systemRole: (token.systemRole as string | null | undefined) ?? null,
       };
-      
 
       (session as CustomSession).apiAccessToken = token.apiAccessToken as
         | string

@@ -7,7 +7,6 @@ export class LoginDto {
   @IsString()
   password!: string;
 
-  // 2FA later; keep placeholder so we don't change API shape again
   @IsOptional()
   @IsString()
   otp?: string | null;

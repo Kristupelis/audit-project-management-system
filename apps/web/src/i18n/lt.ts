@@ -428,6 +428,8 @@ const lt: TranslationDictionary = {
         name: "Vardas",
         yourName: "Jūsų vardas",
         createAccountTitle: "Sukurti paskyrą",
+        passwordRequirements:
+            "Slaptažodis turi būti bent 8 simbolių ilgio ir turėti bent vieną didžiąją raidę, vieną mažąją raidę, vieną skaičių ir vieną specialų simbolį.",
     },
     accountPage: {
         title: "Paskyra",

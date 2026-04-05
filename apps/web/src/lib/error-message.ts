@@ -10,6 +10,12 @@ const errorTexts = {
     notFound: "The requested item was not found.",
     nameMin: "Name must be at least 2 characters long.",
     descriptionMin: "Description must be at least 2 characters long.",
+    emailInUse: "This email address is already in use.",
+    currentPasswordIncorrect: "Current password is incorrect.",
+    newPasswordMustDiffer:
+      "New password must be different from the current password.",
+    invalidEmail: "Please enter a valid email address.",
+    userNotFound: "User was not found.",
     mustBeAtLeast: (field: string, count: string) =>
       `${field} must be at least ${count} characters long.`,
     isRequired: (field: string) => `${field} is required.`,
@@ -21,9 +27,15 @@ const errorTexts = {
     noPermission: "Jūs neturite teisės atlikti šio veiksmo.",
     unauthorized: "Jūsų sesija pasibaigė arba nesate prisijungę.",
     notProjectMember: "Jūs nesate šio projekto narys.",
-    notFound: "Praśomas objektas nerastas.",
+    notFound: "Prašomas objektas nerastas.",
     nameMin: "Pavadinimas turi būti bent 2 simbolių ilgio.",
     descriptionMin: "Aprašymas turi būti bent 2 simbolių ilgio.",
+    emailInUse: "Šis el. pašto adresas jau naudojamas.",
+    currentPasswordIncorrect: "Dabartinis slaptažodis yra neteisingas.",
+    newPasswordMustDiffer:
+      "Naujas slaptažodis turi skirtis nuo dabartinio slaptažodžio.",
+    invalidEmail: "Įveskite teisingą el. pašto adresą.",
+    userNotFound: "Naudotojas nerastas.",
     mustBeAtLeast: (field: string, count: string) =>
       `${field} turi būti bent ${count} simbolių ilgio.`,
     isRequired: (field: string) => `Laukas „${field}“ yra privalomas.`,
@@ -58,6 +70,10 @@ function translateFieldName(field: string, locale: Locale): string {
       priority: "Prioritetas",
       type: "Tipas",
       severity: "Svarbumas",
+      email: "El. paštas",
+      password: "Slaptažodis",
+      currentpassword: "Dabartinis slaptažodis",
+      newpassword: "Naujas slaptažodis",
     };
 
     return ltFieldMap[normalized] ?? field.trim();
@@ -66,7 +82,10 @@ function translateFieldName(field: string, locale: Locale): string {
   return normalizeSentence(field, locale).replace(/\.$/, "");
 }
 
-export function toUserFriendlyError(raw: string, locale: Locale = "en"): string {
+export function toUserFriendlyError(
+  raw: string,
+  locale: Locale = "en",
+): string {
   const t = errorTexts[locale];
   const fallback = t.fallback;
 
@@ -112,11 +131,35 @@ export function toUserFriendlyError(raw: string, locale: Locale = "en"): string 
     return t.notFound;
   }
 
+  if (normalized.includes("email already in use")) {
+    return t.emailInUse;
+  }
+
+  if (normalized.includes("current password is incorrect")) {
+    return t.currentPasswordIncorrect;
+  }
+
+  if (
+    normalized.includes("new password must be different from current password")
+  ) {
+    return t.newPasswordMustDiffer;
+  }
+
+  if (normalized.includes("email must be a valid email address")) {
+    return t.invalidEmail;
+  }
+
+  if (normalized === "user not found") {
+    return t.userNotFound;
+  }
+
   if (normalized === "name must be longer than or equal to 2 characters") {
     return t.nameMin;
   }
 
-  if (normalized === "description must be longer than or equal to 2 characters") {
+  if (
+    normalized === "description must be longer than or equal to 2 characters"
+  ) {
     return t.descriptionMin;
   }
 

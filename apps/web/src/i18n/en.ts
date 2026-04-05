@@ -368,6 +368,7 @@ export type TranslationDictionary = {
         name: string;
         yourName: string;
         createAccountTitle: string;
+        passwordRequirements: string;
     };
     accountPage: {
         title: string;
@@ -815,6 +816,8 @@ const en: TranslationDictionary = {
         name: "Name",
         yourName: "Your name",
         createAccountTitle: "Create account",
+        passwordRequirements:
+            "Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.",
     },
     accountPage: {
         title: "Account",
