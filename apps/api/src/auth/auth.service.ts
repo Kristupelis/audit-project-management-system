@@ -16,6 +16,7 @@ import * as QRCode from 'qrcode';
 import { userId } from '../common/id';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { SystemRole } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -90,6 +91,7 @@ export class AuthService {
         id: true,
         email: true,
         name: true,
+        systemRole: true,
         isTwoFactorEnabled: true,
         createdAt: true,
         updatedAt: true,
@@ -110,6 +112,10 @@ export class AuthService {
         id: true,
         email: true,
         name: true,
+        systemRole: true,
+        isTwoFactorEnabled: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -245,11 +251,20 @@ export class AuthService {
       },
     });
 
-    const token = await this.issueAccessToken(user.id, user.email);
+    const token = await this.issueAccessToken(
+      user.id,
+      user.email,
+      user.systemRole,
+    );
 
     return {
       success: true,
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        systemRole: user.systemRole,
+      },
       ...token,
     };
   }
@@ -280,15 +295,28 @@ export class AuthService {
       throw new UnauthorizedException('Invalid 2FA code');
     }
 
-    const token = await this.issueAccessToken(user.id, user.email);
+    const token = await this.issueAccessToken(
+      user.id,
+      user.email,
+      user.systemRole,
+    );
 
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        systemRole: user.systemRole,
+      },
       ...token,
     };
   }
 
-  private async issueAccessToken(userIdValue: string, email: string) {
+  private async issueAccessToken(
+    userIdValue: string,
+    email: string,
+    systemRole: SystemRole,
+  ) {
     const accessSecret = this.config.get<string>('JWT_ACCESS_SECRET');
     if (!accessSecret) throw new Error('JWT_ACCESS_SECRET missing');
 
@@ -296,7 +324,7 @@ export class AuthService {
       this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '1h';
     const accessExp = this.asExpiresIn(accessExpRaw);
 
-    const payload = { sub: userIdValue, email };
+    const payload = { sub: userIdValue, email, systemRole };
 
     const accessToken = await this.jwt.signAsync(payload, {
       secret: accessSecret,

@@ -6,6 +6,7 @@ import {
   PermissionAction,
   ResourceType,
   Prisma,
+  SystemRole,
 } from '@prisma/client';
 import { ProjectPermissionsService } from '../permissions.service';
 import { projectId, memberId, auditId } from '../../common/id';
@@ -130,6 +131,40 @@ export class ProjectsService {
   }
 
   async listMyProjects(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { systemRole: true },
+    });
+
+    if (user?.systemRole === SystemRole.SUPER_ADMIN) {
+      const projects = await this.prisma.project.findMany({
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          description: true,
+          status: true,
+          auditType: true,
+          priority: true,
+          periodStart: true,
+          periodEnd: true,
+          plannedStartDate: true,
+          plannedEndDate: true,
+          actualStartDate: true,
+          actualEndDate: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return projects.map((project) => ({
+        isOwner: false,
+        roles: ['SUPER_ADMIN'],
+        ...project,
+      }));
+    }
+
     const memberships = await this.prisma.projectMember.findMany({
       where: { userId },
       include: {
@@ -169,13 +204,57 @@ export class ProjectsService {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return memberships.map((m) => ({
       isOwner: m.isOwner,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       roles: m.roles.map((r) => r.role.name),
       ...m.project,
     }));
   }
 
   async getProjectIfMember(projectIdValue: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { systemRole: true },
+    });
+
+    if (user?.systemRole === SystemRole.SUPER_ADMIN) {
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectIdValue },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          description: true,
+          status: true,
+          auditType: true,
+          priority: true,
+          scope: true,
+          objective: true,
+          methodology: true,
+          auditedEntityName: true,
+          location: true,
+          engagementLead: true,
+          periodStart: true,
+          periodEnd: true,
+          plannedStartDate: true,
+          plannedEndDate: true,
+          actualStartDate: true,
+          actualEndDate: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      if (!project) {
+        throw new ForbiddenException('Project not found');
+      }
+
+      return {
+        isOwner: false,
+        roles: ['SUPER_ADMIN'],
+        ...project,
+      };
+    }
+
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId: projectIdValue, userId } },
       include: {
@@ -222,7 +301,7 @@ export class ProjectsService {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return {
       isOwner: member.isOwner,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       roles: member.roles.map((r) => r.role.name),
       ...member.project,
     };
