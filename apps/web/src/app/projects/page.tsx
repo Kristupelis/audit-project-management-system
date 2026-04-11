@@ -68,7 +68,7 @@ export default async function ProjectsPage() {
 
   return (
     <main className="p-6 space-y-6">
-      <ProjectsHeader name={session.user?.name} />
+      <ProjectsHeader name={session.user?.name} systemRole={session.user?.systemRole} />
 
       <div className="flex items-center justify-between gap-4">
         <div>

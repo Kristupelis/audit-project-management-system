@@ -58,10 +58,26 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        passwordHash: true,
+        isTwoFactorEnabled: true,
+        systemRole: true,
+        isBlocked: true,
+        blockedReason: true,
+      },
     });
 
     if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.isBlocked) {
+      throw new UnauthorizedException(
+        `BLOCKED:${user.blockedReason ?? 'Your account has been blocked'}`,
+      );
     }
 
     const ok = await argon2.verify(user.passwordHash, password);
@@ -95,6 +111,8 @@ export class AuthService {
         isTwoFactorEnabled: true,
         createdAt: true,
         updatedAt: true,
+        isBlocked: true,
+        blockedReason: true,
       },
     });
 
@@ -116,6 +134,8 @@ export class AuthService {
         isTwoFactorEnabled: true,
         createdAt: true,
         updatedAt: true,
+        isBlocked: true,
+        blockedReason: true,
       },
     });
 
@@ -220,10 +240,24 @@ export class AuthService {
   async enableTwoFactor(userIdValue: string, secret: string, code: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userIdValue },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        systemRole: true,
+        isBlocked: true,
+        blockedReason: true,
+      },
     });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
+    }
+
+    if (user.isBlocked) {
+      throw new UnauthorizedException(
+        `BLOCKED:${user.blockedReason ?? 'Your account has been blocked'}`,
+      );
     }
 
     const normalizedCode = code.trim();
@@ -272,10 +306,25 @@ export class AuthService {
   async verifyTwoFactorLogin(userIdValue: string, code: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userIdValue },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        twoFactorSecret: true,
+        systemRole: true,
+        isBlocked: true,
+        blockedReason: true,
+      },
     });
 
     if (!user || !user.twoFactorSecret) {
       throw new UnauthorizedException('Invalid user');
+    }
+
+    if (user.isBlocked) {
+      throw new UnauthorizedException(
+        `BLOCKED:${user.blockedReason ?? 'Your account has been blocked'}`,
+      );
     }
 
     const normalizedCode = code.trim();

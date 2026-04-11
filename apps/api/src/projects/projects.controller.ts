@@ -20,7 +20,10 @@ import {
   CreateProjectRoleDto,
   GrantDirectPermissionDto,
 } from './dto/role.dto';
-import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
+import {
+  TransferOwnershipDto,
+  RemoveOwnershipDto,
+} from './dto/transfer-ownership.dto';
 
 import { CreateAuditAreaDto } from './dto/audit-area.dto';
 import { AuditAreaService } from './structure/audit-area.service';
@@ -214,6 +217,15 @@ export class ProjectsController {
     @Body() dto: TransferOwnershipDto,
   ) {
     return this.roles.transferOwnership(projectId, userId, dto.memberId);
+  }
+
+  @Post(':id/remove-ownership')
+  removeOwnership(
+    @Param('id') projectId: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: RemoveOwnershipDto,
+  ) {
+    return this.roles.removeOwnership(projectId, userId, dto.memberId);
   }
 
   // =========================

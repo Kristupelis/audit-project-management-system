@@ -58,27 +58,48 @@ export const authOptions: NextAuthOptions = {
           body: JSON.stringify({ email, password }),
         });
 
-        if (!res.ok) return null;
+        const text = await res.text();
+        let data: Record<string, unknown> = {};
 
-        const data = await res.json();
+        try {
+          data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+        } catch {
+          data = {};
+        }
+
+        if (!res.ok) {
+          const message =
+            typeof data.message === 'string'
+              ? data.message
+              : text || 'Login failed';
+
+          throw new Error(message);
+        }
 
         if (data.requiresTwoFactorSetup) {
-          throw new Error(`2FA_SETUP_REQUIRED:${data.userId}:${data.email}`);
+          throw new Error(
+            `2FA_SETUP_REQUIRED:${String(data.userId)}:${String(data.email ?? email)}`,
+          );
         }
 
         if (data.requiresTwoFactor) {
-          throw new Error(`2FA_REQUIRED:${data.userId}:${data.email}`);
+          throw new Error(
+            `2FA_REQUIRED:${String(data.userId)}:${String(data.email ?? email)}`,
+          );
         }
 
-        if (!data?.user?.id || !data?.accessToken) return null;
+        const user = data.user as Record<string, unknown> | undefined;
+
+        if (!user?.id || !data.accessToken) return null;
 
         return {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name ?? '',
-          systemRole: data.user.systemRole ?? null,
-          apiAccessToken: data.accessToken,
-          apiAccessExpiresAt: data.accessExpiresAt ?? null,
+          id: String(user.id),
+          email: String(user.email),
+          name: String(user.name ?? ''),
+          systemRole: (user.systemRole as string | null | undefined) ?? null,
+          apiAccessToken: String(data.accessToken),
+          apiAccessExpiresAt:
+            (data.accessExpiresAt as number | null | undefined) ?? null,
         } as CustomUser;
       },
     }),

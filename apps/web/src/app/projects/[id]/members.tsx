@@ -24,12 +24,14 @@ type Member = {
 type MembersResponse = {
   currentUserId: string;
   canDeleteMembers: boolean;
+  canTransferOwnership: boolean;
   members: Member[];
 };
 
 type PendingAction =
   | { type: "remove"; memberId: string; memberName: string }
   | { type: "transfer"; memberId: string; memberName: string }
+  | { type: "removeOwnership"; memberId: string; memberName: string }
   | null;
 
 export default function Members({ projectId }: { projectId: string }) {
@@ -39,6 +41,7 @@ export default function Members({ projectId }: { projectId: string }) {
   const [members, setMembers] = useState<Member[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [canDeleteMembers, setCanDeleteMembers] = useState(false);
+  const [canTransferOwnership, setCanTransferOwnership] = useState(false);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -65,13 +68,14 @@ export default function Members({ projectId }: { projectId: string }) {
       setMembers(data.members ?? []);
       setCurrentUserId(data.currentUserId);
       setCanDeleteMembers(data.canDeleteMembers);
+      setCanTransferOwnership(data.canTransferOwnership);
     } catch (err) {
       setMembers([]);
       setError(
         err instanceof Error
           ? err.message
           : locale === "lt"
-            ? "Įvyko klaida."
+            ? "An error occurred."
             : "Something went wrong.",
       );
     } finally {
@@ -125,6 +129,21 @@ export default function Members({ projectId }: { projectId: string }) {
         }
       }
 
+      if (pendingAction.type === "removeOwnership") {
+        const res = await fetch(`/api/projects/${projectId}/remove-ownership`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ memberId: pendingAction.memberId }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(toUserFriendlyError(text, locale));
+        }
+      }
+
       if (pendingAction.type === "transfer") {
         const res = await fetch(`/api/projects/${projectId}/transfer-ownership`, {
           method: "POST",
@@ -133,6 +152,7 @@ export default function Members({ projectId }: { projectId: string }) {
           },
           body: JSON.stringify({ memberId: pendingAction.memberId }),
         });
+        
 
         if (!res.ok) {
           const text = await res.text();
@@ -148,7 +168,7 @@ export default function Members({ projectId }: { projectId: string }) {
         err instanceof Error
           ? err.message
           : locale === "lt"
-            ? "Įvyko klaida."
+            ? "An error occurred."
             : "Something went wrong.",
       );
     } finally {
@@ -181,53 +201,73 @@ export default function Members({ projectId }: { projectId: string }) {
       )}
 
       <ul className="space-y-2">
-        {members.map((m) => (
-          <li key={m.id} className="border rounded p-3 flex justify-between gap-4">
-            <div>
-              <div className="font-medium">{getMemberDisplayName(m)}</div>
-              <div className="text-xs opacity-70">{m.user.email}</div>
-              <div className="text-xs opacity-70 mt-1">
-                {m.isOwner
-                  ? t.roles.owner
-                  : m.roles.map((r) => r.role.name).join(", ") || t.roles.member}
+        {members.map((m) => {
+          const isCurrentUser = m.user.id === currentUserId;
+
+          return (
+            <li key={m.id} className="border rounded p-3 flex justify-between gap-4">
+              <div>
+                <div className="font-medium">{getMemberDisplayName(m)}</div>
+                <div className="text-xs opacity-70">{m.user.email}</div>
+                <div className="text-xs opacity-70 mt-1">
+                  {m.isOwner
+                    ? t.roles.owner
+                    : m.roles.map((r) => r.role.name).join(", ") || t.roles.member}
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-col items-end gap-2">
-              {!m.isOwner && m.user.id !== currentUserId && (
-                <button
-                  className="text-sm border rounded px-2 py-1"
-                  onClick={() =>
-                    setPendingAction({
-                      type: "transfer",
-                      memberId: m.id,
-                      memberName: getMemberDisplayName(m),
-                    })
-                  }
-                  type="button"
-                >
-                  {t.members.makeOwner}
-                </button>
-              )}
+              <div className="flex flex-col items-end gap-2">
+                {!isCurrentUser && canTransferOwnership && !m.isOwner && (
+                  <button
+                    className="text-sm border rounded px-2 py-1"
+                    onClick={() =>
+                      setPendingAction({
+                        type: "transfer",
+                        memberId: m.id,
+                        memberName: getMemberDisplayName(m),
+                      })
+                    }
+                    type="button"
+                  >
+                    {t.members.makeOwner}
+                  </button>
+                )}
 
-              {canDeleteMembers && !m.isOwner && m.user.id !== currentUserId && (
-                <button
-                  className="text-red-600 text-sm"
-                  onClick={() =>
-                    setPendingAction({
-                      type: "remove",
-                      memberId: m.id,
-                      memberName: getMemberDisplayName(m),
-                    })
-                  }
-                  type="button"
-                >
-                  {t.members.remove}
-                </button>
-              )}
-            </div>
-          </li>
-        ))}
+                {!isCurrentUser && canTransferOwnership && m.isOwner && (
+                  <button
+                    className="text-sm border rounded px-2 py-1"
+                    onClick={() =>
+                      setPendingAction({
+                        type: "removeOwnership",
+                        memberId: m.id,
+                        memberName: getMemberDisplayName(m),
+                      })
+                    }
+                    type="button"
+                  >
+                    {locale === "lt" ? "Pašalinti savininką" : "Remove owner"}
+                  </button>
+                )}
+
+                {!isCurrentUser && canDeleteMembers && (
+                  <button
+                    className="text-red-600 text-sm"
+                    onClick={() =>
+                      setPendingAction({
+                        type: "remove",
+                        memberId: m.id,
+                        memberName: getMemberDisplayName(m),
+                      })
+                    }
+                    type="button"
+                  >
+                    {t.members.remove}
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
 
       {pendingAction && (
@@ -238,13 +278,23 @@ export default function Members({ projectId }: { projectId: string }) {
                 <h3 className="text-base font-semibold text-red-700">
                   {pendingAction.type === "remove"
                     ? t.members.confirmRemoveTitle
-                    : t.members.confirmTransferTitle}
+                    : pendingAction.type === "transfer"
+                      ? t.members.confirmTransferTitle
+                      : locale === "lt"
+                        ? "Patvirtinti savininko šalinimą"
+                        : "Confirm owner removal"}
                 </h3>
 
                 <p className="text-sm text-red-700 whitespace-pre-wrap">
                   {pendingAction.type === "remove"
                     ? `${t.members.confirmRemoveMessage} ${pendingAction.memberName}?`
-                    : `${t.members.confirmTransferMessage} ${pendingAction.memberName}?`}
+                    : pendingAction.type === "transfer"
+                      ? `${t.members.confirmTransferMessage} ${pendingAction.memberName}?`
+                      : `${
+                          locale === "lt"
+                            ? "Ar tikrai norite pašalinti savininko statusą nuo"
+                            : "Are you sure you want to remove owner status from"
+                        } ${pendingAction.memberName}?`}
                 </p>
               </div>
 
@@ -268,7 +318,11 @@ export default function Members({ projectId }: { projectId: string }) {
                     ? t.common.loading
                     : pendingAction.type === "remove"
                       ? t.members.remove
-                      : t.members.makeOwner}
+                      : pendingAction.type === "transfer"
+                        ? t.members.makeOwner
+                        : locale === "lt"
+                          ? "Pašalinti savininką"
+                          : "Remove owner"}
                 </button>
               </div>
             </div>

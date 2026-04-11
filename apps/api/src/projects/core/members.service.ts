@@ -15,10 +15,6 @@ export class MembersService {
     private permissions: ProjectPermissionsService,
   ) {}
 
-  // =========================
-  // MEMBERS
-  // =========================
-
   async listMembers(projectId: string, userId: string) {
     await this.permissions.requirePermission(
       projectId,
@@ -51,22 +47,21 @@ export class MembersService {
       orderBy: { createdAt: 'asc' },
     });
 
-    const canDeleteMembers = await this.permissions.can(
+    const canManageMembers = await this.permissions.canManageMembers(
       projectId,
       userId,
-      ResourceType.PROJECT,
-      PermissionAction.DELETE,
     );
 
     return {
       currentUserId: userId,
-      canDeleteMembers,
+      canDeleteMembers: canManageMembers,
+      canTransferOwnership: canManageMembers,
       members,
     };
   }
 
   async addMember(projectId: string, actorId: string, email: string) {
-    await this.permissions.requireOwner(projectId, actorId);
+    await this.permissions.requireCanManageMembers(projectId, actorId);
 
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) throw new NotFoundException('User not found');
@@ -80,7 +75,6 @@ export class MembersService {
           projectId,
           userId: user.id,
           isOwner: false,
-
           permissions: {
             create: [
               {
@@ -155,11 +149,15 @@ export class MembersService {
     });
   }
 
-  async removeMember(projectId: string, actorId: string, memberId: string) {
-    await this.permissions.requireOwner(projectId, actorId);
+  async removeMember(
+    projectId: string,
+    actorId: string,
+    memberIdValue: string,
+  ) {
+    await this.permissions.requireCanManageMembers(projectId, actorId);
 
     const member = await this.prisma.projectMember.findUnique({
-      where: { id: memberId },
+      where: { id: memberIdValue },
       select: {
         id: true,
         projectId: true,
@@ -172,7 +170,6 @@ export class MembersService {
       throw new NotFoundException('Member not found in this project');
     }
 
-    // Prevent removing the last owner
     if (member.isOwner) {
       const owners = await this.prisma.projectMember.count({
         where: {
@@ -186,14 +183,13 @@ export class MembersService {
       }
     }
 
-    // Prevent from removing themselves - must transfer ownership first
     if (member.userId === actorId) {
       throw new ForbiddenException('Use transfer ownership instead');
     }
 
     return this.prisma.$transaction(async (tx) => {
       await tx.projectMember.delete({
-        where: { id: memberId },
+        where: { id: memberIdValue },
       });
 
       await tx.auditLog.create({
@@ -203,7 +199,7 @@ export class MembersService {
           actorId,
           action: AuditAction.MEMBER_REMOVED,
           entity: 'ProjectMember',
-          entityId: memberId,
+          entityId: memberIdValue,
           details: { removedUserId: member.userId },
         },
       });

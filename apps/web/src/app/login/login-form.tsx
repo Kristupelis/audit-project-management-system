@@ -13,9 +13,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setBlockedMessage(null);
     setError(null);
     setLoading(true);
 
@@ -44,6 +46,15 @@ export default function LoginPage() {
       const [, userId, returnedEmail] = res.error.split(":");
       router.push(
         `/login/2fa?mode=verify&userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(returnedEmail ?? email)}`,
+      );
+      return;
+    }
+
+    if (res.error?.startsWith("BLOCKED:")) {
+      const reason = res.error.slice("BLOCKED:".length).trim();
+
+      setBlockedMessage(
+        `Your account is blocked.${reason ? ` Reason: ${reason}.` : ""} For unblock requests, contact ckristupas@gmail.com.`,
       );
       return;
     }
@@ -103,6 +114,21 @@ export default function LoginPage() {
           {t.authPages.register}
         </button>
       </form>
+      {blockedMessage && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-md rounded-xl border border-red-700 bg-white p-6 shadow-xl space-y-4">
+            <h2 className="text-lg font-semibold text-red-700">Account blocked</h2>
+            <p className="text-sm text-red-700">{blockedMessage}</p>
+            <button
+              type="button"
+              className="w-full rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
+              onClick={() => setBlockedMessage(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
