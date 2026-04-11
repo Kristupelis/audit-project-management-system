@@ -8,8 +8,10 @@ import { useT } from "@/i18n/use-t";
 
 export default function ProjectsHeader({
   name,
+  systemRole,
 }: {
   name: string | null | undefined;
+  systemRole?: string | null;
 }) {
   const t = useT();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -39,6 +41,15 @@ export default function ProjectsHeader({
           >
             {t.main.account}
           </Link>
+
+          {systemRole === "SUPER_ADMIN" && (
+            <Link
+              href="/admin"
+              className="border rounded-md px-3 py-2 hover:bg-gray-800"
+            >
+              Admin
+            </Link>
+          )}
 
           <button
             onClick={() => setShowConfirm(true)}

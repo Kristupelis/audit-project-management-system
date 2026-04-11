@@ -483,6 +483,7 @@ export class ProjectPermissionsService {
     }
   }
 
+  // Nereikalinga - istrinti
   async requireOwner(projectId: string, userId: string) {
     if (await this.isSuperAdmin(userId)) return;
 
@@ -493,5 +494,28 @@ export class ProjectPermissionsService {
 
     if (!member) throw new ForbiddenException('Not a project member');
     if (!member.isOwner) throw new ForbiddenException('Project owner required');
+  }
+
+  async canManageMembers(projectId: string, userId: string): Promise<boolean> {
+    if (await this.isSuperAdmin(userId)) return true;
+
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+      select: { isOwner: true },
+    });
+    if (!member) throw new ForbiddenException('Not a project member');
+
+    return !!member?.isOwner;
+  }
+
+  async requireCanManageMembers(
+    projectId: string,
+    userId: string,
+  ): Promise<void> {
+    const allowed = await this.canManageMembers(projectId, userId);
+
+    if (!allowed) {
+      throw new ForbiddenException('Project owner or Admin required');
+    }
   }
 }

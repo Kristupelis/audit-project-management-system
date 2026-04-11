@@ -564,8 +564,6 @@ export default function ProjectStructureSection({
     ] ?? value;
   };
 
-  const yesNo = (value?: boolean | null) => (value ? t.structure.yes : t.structure.no);
-
   async function loadTree() {
     setLoading(true);
     try {
