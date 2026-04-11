@@ -506,6 +506,16 @@ export default function ProjectStructureSection({
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedDetails, setSelectedDetails] = useState<
+    | AuditAreaData
+    | ProcessData
+    | ControlData
+    | TestStepData
+    | FindingData
+    | EvidenceData
+    | null
+  >(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -578,6 +588,7 @@ export default function ProjectStructureSection({
         const stillExists = findNodeById(data.tree, selectedId);
         if (!stillExists) {
           setSelectedId(null);
+          setSelectedDetails(null);
           setShowAddChild(false);
         }
       }
@@ -606,6 +617,56 @@ export default function ProjectStructureSection({
       else next.add(id);
       return next;
     });
+  }
+
+  async function openNode(node: TreeNode) {
+    setDetailsLoading(true);
+
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/structure/item/${node.nodeType}/${node.id}`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      if (!res.ok) {
+        const text = await res.text();
+
+        setSelectedId(null);
+        setSelectedDetails(null);
+        setShowAddChild(false);
+
+        throw new Error(
+          toUserFriendlyError(
+            text || t.structure.noPermissionToOpenDetails,
+            locale,
+          ),
+        );
+      }
+
+      const data = (await res.json()) as
+        | AuditAreaData
+        | ProcessData
+        | ControlData
+        | TestStepData
+        | FindingData
+        | EvidenceData;
+
+      setSelectedId(node.id);
+      setSelectedDetails(data);
+      setShowAddChild(false);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : locale === "lt"
+            ? "Įvyko klaida. Bandykite dar kartą."
+            : "Something went wrong. Please try again.",
+      );
+    } finally {
+      setDetailsLoading(false);
+    }
   }
 
   async function deleteNode() {
@@ -648,124 +709,136 @@ export default function ProjectStructureSection({
   const selectedChildren = selectedNode?.children ?? [];
   const allFlat = useMemo(() => flattenTree(tree), [tree]);
 
-  const renderReadFields = (node: TreeNode) => {
-    if (!node.data) return null;
+  const renderReadFields = () => {
+    if (!selectedNode || !selectedDetails) return null;
 
-    switch (node.nodeType) {
-      case "AUDIT_AREA":
+    switch (selectedNode.nodeType) {
+      case "AUDIT_AREA": {
+        const data = selectedDetails as AuditAreaData;
         return (
           <div className="space-y-2">
-            <Field label={t.structure.name} value={node.data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.code} value={node.data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.objective} value={node.data.objective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.scope} value={node.data.scope} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.riskLevel} value={riskLabel(node.data.riskLevel)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.residualRisk} value={riskLabel(node.data.residualRisk)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.areaOwner} value={node.data.areaOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.name} value={data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.objective} value={data.objective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.scope} value={data.scope} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.riskLevel} value={riskLabel(data.riskLevel)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.residualRisk} value={riskLabel(data.residualRisk)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.areaOwner} value={data.areaOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
           </div>
         );
+      }
 
-      case "PROCESS":
+      case "PROCESS": {
+        const data = selectedDetails as ProcessData;
         return (
           <div className="space-y-2">
-            <Field label={t.structure.name} value={node.data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.code} value={node.data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.objective} value={node.data.objective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.processOwner} value={node.data.processOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.frequency} value={node.data.frequency} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.riskLevel} value={riskLabel(node.data.riskLevel)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.systemsInvolved} value={node.data.systemsInvolved} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.keyInputs} value={node.data.keyInputs} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.keyOutputs} value={node.data.keyOutputs} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.name} value={data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.objective} value={data.objective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.processOwner} value={data.processOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.frequency} value={data.frequency} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.riskLevel} value={riskLabel(data.riskLevel)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.systemsInvolved} value={data.systemsInvolved} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.keyInputs} value={data.keyInputs} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.keyOutputs} value={data.keyOutputs} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
           </div>
         );
+      }
 
-      case "CONTROL":
+      case "CONTROL": {
+        const data = selectedDetails as ControlData;
         return (
           <div className="space-y-2">
-            <Field label={t.structure.name} value={node.data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.code} value={node.data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.controlObjective} value={node.data.controlObjective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.controlType} value={node.data.controlType} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.controlNature} value={node.data.controlNature} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.controlOwner} value={node.data.controlOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.frequency} value={node.data.frequency} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.keyControl} value={yesNo(node.data.keyControl)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.relatedRisk} value={node.data.relatedRisk} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.expectedEvidence} value={node.data.expectedEvidence} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.testingStrategy} value={node.data.testingStrategy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.name} value={data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlObjective} value={data.controlObjective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlType} value={data.controlType} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlNature} value={data.controlNature} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlOwner} value={data.controlOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.frequency} value={data.frequency} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.keyControl} value={data.keyControl} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.relatedRisk} value={data.relatedRisk} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.expectedEvidence} value={data.expectedEvidence} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.testingStrategy} value={data.testingStrategy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
           </div>
         );
+      }
 
-      case "TEST_STEP":
+      case "TEST_STEP": {
+        const data = selectedDetails as TestStepData;
         return (
           <div className="space-y-2">
-            <Field label={t.structure.stepNo} value={node.data.stepNo} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.expectedResult} value={node.data.expectedResult} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.actualResult} value={node.data.actualResult} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.testMethod} value={node.data.testMethod} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.sampleReference} value={node.data.sampleReference} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.performedBy} value={node.data.performedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.performedAt} value={node.data.performedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.reviewedBy} value={node.data.reviewedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.reviewedAt} value={node.data.reviewedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.stepNo} value={data.stepNo} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.expectedResult} value={data.expectedResult} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.actualResult} value={data.actualResult} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.testMethod} value={data.testMethod} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.sampleReference} value={data.sampleReference} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.performedBy} value={data.performedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.performedAt} value={data.performedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.reviewedBy} value={data.reviewedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.reviewedAt} value={data.reviewedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
           </div>
         );
+      }
 
-      case "FINDING":
+      case "FINDING": {
+        const data = selectedDetails as FindingData;
         return (
           <div className="space-y-2">
-            <Field label={t.structure.title} value={node.data.title} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.code} value={node.data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.criteria} value={node.data.criteria} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.condition} value={node.data.condition} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.cause} value={node.data.cause} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.effect} value={node.data.effect} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.recommendation} value={node.data.recommendation} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.managementResponse} value={node.data.managementResponse} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.actionOwner} value={node.data.actionOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.dueDate} value={node.data.dueDate?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.severity} value={severityLabel(node.data.severity)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.identifiedAt} value={node.data.identifiedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.closedAt} value={node.data.closedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.title} value={data.title} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.criteria} value={data.criteria} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.condition} value={data.condition} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.cause} value={data.cause} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.effect} value={data.effect} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.recommendation} value={data.recommendation} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.managementResponse} value={data.managementResponse} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.actionOwner} value={data.actionOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.dueDate} value={data.dueDate?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.severity} value={severityLabel(data.severity)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.identifiedAt} value={data.identifiedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.closedAt} value={data.closedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
           </div>
         );
+      }
 
-      case "EVIDENCE":
+      case "EVIDENCE": {
+        const data = selectedDetails as EvidenceData;
         return (
           <div className="space-y-2">
-            <Field label={t.structure.title} value={node.data.title} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.description} value={node.data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.type} value={node.data.type} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.source} value={node.data.source} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.referenceNo} value={node.data.referenceNo} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.externalUrl} value={node.data.externalUrl} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.collectedBy} value={node.data.collectedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.collectedAt} value={node.data.collectedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.validFrom} value={node.data.validFrom?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.validTo} value={node.data.validTo?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.reliabilityLevel} value={node.data.reliabilityLevel} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.confidentiality} value={node.data.confidentiality} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(node.data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.version} value={node.data.version} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.notes} value={node.data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.title} value={data.title} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.type} value={data.type} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.source} value={data.source} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.referenceNo} value={data.referenceNo} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.externalUrl} value={data.externalUrl} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.collectedBy} value={data.collectedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.collectedAt} value={data.collectedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.validFrom} value={data.validFrom?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.validTo} value={data.validTo?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.reliabilityLevel} value={data.reliabilityLevel} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.confidentiality} value={data.confidentiality} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.version} value={data.version} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
           </div>
         );
+      }
     }
   };
 
@@ -798,15 +871,7 @@ export default function ProjectStructureSection({
                     selectedId={selectedId}
                     onToggle={toggleExpanded}
                     onSelect={(nodeValue) => {
-                      if (!nodeValue.canRead) {
-                        setSelectedId(null);
-                        setShowAddChild(false);
-                        setError(t.structure.noPermissionToOpenDetails);
-                        return;
-                      }
-
-                      setSelectedId(nodeValue.id);
-                      setShowAddChild(false);
+                      void openNode(nodeValue);
                     }}
                     typeLabel={typeLabel}
                   />
@@ -834,6 +899,7 @@ export default function ProjectStructureSection({
                     className="border rounded px-3 py-1"
                     onClick={() => {
                       setSelectedId(null);
+                      setSelectedDetails(null);
                       setShowAddChild(false);
                     }}
                     type="button"
@@ -842,7 +908,11 @@ export default function ProjectStructureSection({
                   </button>
                 </div>
 
-                {renderReadFields(selectedNode)}
+                {detailsLoading ? (
+                  <div className="text-sm opacity-70">{t.structure.loadingStructure}</div>
+                ) : (
+                  renderReadFields()
+                )}
 
                 {selectedChildren.length > 0 && (
                   <div className="space-y-2">
@@ -866,15 +936,7 @@ export default function ProjectStructureSection({
                               const found =
                                 allFlat.find((item) => item.id === child.id) ?? child;
 
-                              if (!found.canRead) {
-                                setSelectedId(null);
-                                setShowAddChild(false);
-                                setError(t.structure.noPermissionToOpenDetails);
-                                return;
-                              }
-
-                              setSelectedId(found.id);
-                              setShowAddChild(false);
+                              void openNode(found);
                             }}
                             type="button"
                           >

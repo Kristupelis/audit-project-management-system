@@ -39,7 +39,7 @@ function getPath(nodeType: NodeType, itemId: string) {
 }
 
 async function proxy(
-  method: "PATCH" | "DELETE",
+  method: "GET" | "PATCH" | "DELETE",
   request: Request,
   params: { nodeType: string; itemId: string }
 ) {
@@ -64,9 +64,10 @@ async function proxy(
   const init: RequestInit = {
     method,
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      ...(method === "PATCH" ? { "Content-Type": "application/json" } : {}),
     },
+    cache: "no-store",
   };
 
   if (method === "PATCH") {
@@ -82,6 +83,19 @@ async function proxy(
       "Content-Type": res.headers.get("Content-Type") ?? "application/json",
     },
   });
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ nodeType: string; itemId: string }> }
+) {
+  try {
+    return await proxy("GET", request, await params);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch component.";
+    return new NextResponse(message, { status: 500 });
+  }
 }
 
 export async function PATCH(
