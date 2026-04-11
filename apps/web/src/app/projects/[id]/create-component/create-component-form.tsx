@@ -775,8 +775,8 @@ export default function CreateComponentForm({
             {textAreaInput(t.structure.scope, form.scope ?? "", (v) => updateField("scope", v))}
 
             <div className="grid gap-4 md:grid-cols-3">
-              {selectInput(t.structure.riskLevel, form.riskLevel ?? "", (v) => updateField("riskLevel", v), riskLevelOptions, false, t.structure.selectParent)}
-              {selectInput(t.structure.residualRisk, form.residualRisk ?? "", (v) => updateField("residualRisk", v), riskLevelOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.riskLevel, form.riskLevel ?? "", (v) => updateField("riskLevel", v), riskLevelOptions, false, t.structure.select)}
+              {selectInput(t.structure.residualRisk, form.residualRisk ?? "", (v) => updateField("residualRisk", v), riskLevelOptions, false, t.structure.select)}
               {selectInput(t.structure.status, form.status ?? "NOT_STARTED", (v) => updateField("status", v), nodeStatusOptions, true)}
             </div>
 
@@ -825,14 +825,14 @@ export default function CreateComponentForm({
             {textAreaInput(t.structure.controlObjective, form.controlObjective ?? "", (v) => updateField("controlObjective", v))}
 
             <div className="grid gap-4 md:grid-cols-3">
-              {selectInput(t.structure.controlType, form.controlType ?? "", (v) => updateField("controlType", v), controlTypeOptions, false, t.structure.selectParent)}
-              {selectInput(t.structure.controlNature, form.controlNature ?? "", (v) => updateField("controlNature", v), controlNatureOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.controlType, form.controlType ?? "", (v) => updateField("controlType", v), controlTypeOptions, false, t.structure.select)}
+              {selectInput(t.structure.controlNature, form.controlNature ?? "", (v) => updateField("controlNature", v), controlNatureOptions, false, t.structure.select)}
               {textInput(t.structure.controlOwner, form.controlOwner ?? "", (v) => updateField("controlOwner", v))}
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              {selectInput(t.structure.frequency, form.frequency ?? "", (v) => updateField("frequency", v), frequencyOptions, false, t.structure.selectParent)}
-              {selectInput(t.structure.testingStrategy, form.testingStrategy ?? "", (v) => updateField("testingStrategy", v), testMethodOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.frequency, form.frequency ?? "", (v) => updateField("frequency", v), frequencyOptions, false, t.structure.select)}
+              {selectInput(t.structure.testingStrategy, form.testingStrategy ?? "", (v) => updateField("testingStrategy", v), testMethodOptions, false, t.structure.select)}
               {selectInput(t.structure.status, form.status ?? "NOT_STARTED", (v) => updateField("status", v), nodeStatusOptions, true)}
             </div>
 
@@ -862,7 +862,7 @@ export default function CreateComponentForm({
 
             <div className="grid gap-4 md:grid-cols-3">
               {textInput(t.structure.stepNo, form.stepNo ?? "", (v) => updateField("stepNo", v))}
-              {selectInput(t.structure.testMethod, form.testMethod ?? "", (v) => updateField("testMethod", v), testMethodOptions, false, t.structure.selectParent)}
+              {selectInput(t.structure.testMethod, form.testMethod ?? "", (v) => updateField("testMethod", v), testMethodOptions, false, t.structure.select)}
               {selectInput(t.structure.status, form.status ?? "NOT_STARTED", (v) => updateField("status", v), testStepStatusOptions, true)}
             </div>
 

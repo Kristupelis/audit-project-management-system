@@ -236,7 +236,7 @@ model ProjectRole {
   projectId   String
   name        String
   description String?
-  isSystem    Boolean  @default(false) // optional if you want default built-in project roles
+  isSystem    Boolean  @default(false) // for built-in system project roles
   createdAt   DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -457,7 +457,7 @@ model Evidence {
   type             String
   source           String?
   referenceNo      String?
-  externalUrl          String?
+  externalUrl      String?
   collectedBy      String?
   collectedAt      DateTime?
   validFrom        DateTime?

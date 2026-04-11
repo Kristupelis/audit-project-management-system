@@ -27,6 +27,7 @@ export const authOptions: NextAuthOptions = {
         accessToken: { label: 'AccessToken', type: 'text' },
         userId: { label: 'UserId', type: 'text' },
         name: { label: 'Name', type: 'text' },
+        systemRole: { label: 'SystemRole', type: 'text' },
         accessExpiresAt: { label: 'AccessExpiresAt', type: 'text' },
       },
       async authorize(credentials) {
@@ -40,6 +41,7 @@ export const authOptions: NextAuthOptions = {
             id: credentials.userId,
             email: credentials.email,
             name: credentials.name ?? '',
+            systemRole: credentials.systemRole ?? null,
             apiAccessToken: credentials.accessToken,
             apiAccessExpiresAt: credentials.accessExpiresAt ? Number(credentials.accessExpiresAt) : null,
           } as CustomUser;
@@ -74,6 +76,7 @@ export const authOptions: NextAuthOptions = {
           id: data.user.id,
           email: data.user.email,
           name: data.user.name ?? '',
+          systemRole: data.user.systemRole ?? null,
           apiAccessToken: data.accessToken,
           apiAccessExpiresAt: data.accessExpiresAt ?? null,
         } as CustomUser;

@@ -263,6 +263,7 @@ const lt: TranslationDictionary = {
         medium: "Vidutinė",
         high: "Aukšta",
         critical: "Kritinė",
+        select: "Pasirinkti",
   },
   members: {
     title: "Nariai",

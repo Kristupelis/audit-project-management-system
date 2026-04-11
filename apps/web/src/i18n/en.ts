@@ -247,6 +247,7 @@ export type TranslationDictionary = {
         critical: string;
         createComponentFailed: string;
         updateComponentFailed: string;
+        select: string;
     };
     members: {
         title: string;
@@ -651,6 +652,7 @@ const en: TranslationDictionary = {
         medium: "Medium",
         high: "High",
         critical: "Critical",
+        select: "Select",
     },
     members: {
         title: "Members",
