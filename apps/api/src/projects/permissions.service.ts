@@ -34,16 +34,16 @@ type PermissionCandidate = {
 export class ProjectPermissionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private membershipCache = new Map<string, ProjectMemberWithPermissions>();
+  //private membershipCache = new Map<string, ProjectMemberWithPermissions>();
 
   async getMembership(
     projectId: string,
     userId: string,
   ): Promise<ProjectMemberWithPermissions> {
-    const cacheKey = `${projectId}:${userId}`;
+    //const cacheKey = `${projectId}:${userId}`;
 
-    const cached = this.membershipCache.get(cacheKey);
-    if (cached) return cached;
+    //const cached = this.membershipCache.get(cacheKey);
+    //if (cached) return cached;
 
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
@@ -72,7 +72,7 @@ export class ProjectPermissionsService {
       throw new ForbiddenException('Not a project member');
     }
 
-    this.membershipCache.set(cacheKey, member);
+    //this.membershipCache.set(cacheKey, member);
     return member;
   }
 

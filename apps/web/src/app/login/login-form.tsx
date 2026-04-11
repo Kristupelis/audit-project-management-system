@@ -1,13 +1,16 @@
-'use client';
+"use client";
 
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useT } from "@/i18n/use-t";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const t = useT();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +19,7 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const res = await signIn('credentials', {
+    const res = await signIn("credentials", {
       email,
       password,
       redirect: false,
@@ -25,20 +28,20 @@ export default function LoginPage() {
     setLoading(false);
 
     if (!res) {
-      setError('Login failed');
+      setError(t.authPages.loginFailed);
       return;
     }
 
-    if (res.error?.startsWith('2FA_SETUP_REQUIRED:')) {
-      const [, userId, returnedEmail] = res.error.split(':');
+    if (res.error?.startsWith("2FA_SETUP_REQUIRED:")) {
+      const [, userId, returnedEmail] = res.error.split(":");
       router.push(
         `/login/2fa?mode=setup&userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(returnedEmail ?? email)}`,
       );
       return;
     }
 
-    if (res.error?.startsWith('2FA_REQUIRED:')) {
-      const [, userId, returnedEmail] = res.error.split(':');
+    if (res.error?.startsWith("2FA_REQUIRED:")) {
+      const [, userId, returnedEmail] = res.error.split(":");
       router.push(
         `/login/2fa?mode=verify&userId=${encodeURIComponent(userId)}&email=${encodeURIComponent(returnedEmail ?? email)}`,
       );
@@ -46,11 +49,11 @@ export default function LoginPage() {
     }
 
     if (res.error) {
-      setError('Invalid email or password');
+      setError(t.authPages.invalidEmailOrPassword);
       return;
     }
 
-    router.push('/projects');
+    router.push("/projects");
   }
 
   return (
@@ -59,10 +62,10 @@ export default function LoginPage() {
         onSubmit={onSubmit}
         className="w-full max-w-sm space-y-4 border rounded-xl p-6"
       >
-        <h1 className="text-xl font-semibold">Login</h1>
+        <h1 className="text-xl font-semibold">{t.authPages.loginTitle}</h1>
 
         <div className="space-y-2">
-          <label className="text-sm">Email</label>
+          <label className="text-sm">{t.authPages.email}</label>
           <input
             className="w-full border rounded-md p-2"
             type="email"
@@ -73,7 +76,7 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm">Password</label>
+          <label className="text-sm">{t.authPages.password}</label>
           <input
             className="w-full border rounded-md p-2"
             type="password"
@@ -89,15 +92,15 @@ export default function LoginPage() {
           className="w-full border rounded-md p-2 disabled:opacity-50"
           disabled={loading}
         >
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? t.authPages.signingIn : t.authPages.signIn}
         </button>
 
         <button
           type="button"
           className="w-full border rounded-md p-2 disabled:opacity-50"
-          onClick={() => router.push('/register')}
+          onClick={() => router.push("/register")}
         >
-          Register
+          {t.authPages.register}
         </button>
       </form>
     </main>

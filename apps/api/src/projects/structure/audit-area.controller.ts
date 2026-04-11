@@ -28,7 +28,7 @@ export class AuditAreasController {
     @CurrentUser('sub') userId: string,
     @Body() dto: UpdateAuditAreaDto,
   ) {
-    return this.auditAreas.update(areaId, userId, dto.name);
+    return this.auditAreas.update(areaId, userId, dto);
   }
 
   @Delete(':areaId')

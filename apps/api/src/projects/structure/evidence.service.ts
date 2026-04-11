@@ -1,7 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectPermissionsService } from '../permissions.service';
-import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
+import {
+  AuditAction,
+  PermissionAction,
+  Prisma,
+  ResourceType,
+} from '@prisma/client';
 import { evidenceId, auditId } from '../../common/id';
 import { CreateEvidenceDto, UpdateEvidenceDto } from '../dto/evidence.dto';
 
@@ -11,6 +17,15 @@ export class EvidenceService {
     private prisma: PrismaService,
     private permissions: ProjectPermissionsService,
   ) {}
+
+  private mapDates(dto: Partial<CreateEvidenceDto | UpdateEvidenceDto>) {
+    return {
+      ...dto,
+      collectedAt: dto.collectedAt ? new Date(dto.collectedAt) : undefined,
+      validFrom: dto.validFrom ? new Date(dto.validFrom) : undefined,
+      validTo: dto.validTo ? new Date(dto.validTo) : undefined,
+    };
+  }
 
   async resolveProject(evidenceIdValue: string) {
     const e = await this.prisma.evidence.findUnique({
@@ -58,14 +73,29 @@ export class EvidenceService {
     });
 
     const nextOrder = (last?.order ?? -1) + 1;
+    const mapped = this.mapDates(dto);
 
     return this.prisma.$transaction(async (tx) => {
       const evidence = await tx.evidence.create({
         data: {
           id: evidenceId(),
           processId: processIdValue,
-          ...dto,
           order: nextOrder,
+          title: dto.title,
+          description: dto.description ?? null,
+          type: dto.type,
+          source: dto.source ?? null,
+          referenceNo: dto.referenceNo ?? null,
+          externalUrl: dto.externalUrl ?? null,
+          collectedBy: dto.collectedBy ?? null,
+          collectedAt: 'collectedAt' in mapped ? mapped.collectedAt : undefined,
+          validFrom: 'validFrom' in mapped ? mapped.validFrom : undefined,
+          validTo: 'validTo' in mapped ? mapped.validTo : undefined,
+          reliabilityLevel: dto.reliabilityLevel,
+          confidentiality: dto.confidentiality,
+          status: dto.status,
+          version: dto.version ?? null,
+          notes: dto.notes ?? null,
         },
       });
 
@@ -77,7 +107,7 @@ export class EvidenceService {
           action: AuditAction.EVIDENCE_CREATED,
           entity: 'Evidence',
           entityId: evidence.id,
-          details: { ...dto },
+          details: dto as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -101,7 +131,6 @@ export class EvidenceService {
       p.auditArea.projectId,
       userId,
       ResourceType.PROCESS,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       PermissionAction.SEE,
       processIdValue,
     );
@@ -109,6 +138,12 @@ export class EvidenceService {
     return this.prisma.evidence.findMany({
       where: { processId: processIdValue },
       orderBy: { createdAt: 'asc' },
+      include: {
+        files: {
+          where: { isDeleted: false },
+          orderBy: { uploadedAt: 'desc' },
+        },
+      },
     });
   }
 
@@ -123,7 +158,15 @@ export class EvidenceService {
       evidenceIdValue,
     );
 
-    return this.prisma.evidence.findUnique({ where: { id: evidenceIdValue } });
+    return this.prisma.evidence.findUnique({
+      where: { id: evidenceIdValue },
+      include: {
+        files: {
+          where: { isDeleted: false },
+          orderBy: { uploadedAt: 'desc' },
+        },
+      },
+    });
   }
 
   async update(
@@ -141,21 +184,23 @@ export class EvidenceService {
       evidenceIdValue,
     );
 
+    const mapped = this.mapDates(dto);
+
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.evidence.update({
         where: { id: evidenceIdValue },
-        data: { ...dto },
+        data: mapped,
       });
 
       await tx.auditLog.create({
         data: {
           id: auditId(),
-          projectId: projectId,
+          projectId,
           actorId: userId,
           action: AuditAction.EVIDENCE_UPDATED,
           entity: 'Evidence',
           entityId: evidenceIdValue,
-          details: { ...dto },
+          details: dto as Prisma.InputJsonValue,
         },
       });
 
@@ -180,7 +225,7 @@ export class EvidenceService {
       await tx.auditLog.create({
         data: {
           id: auditId(),
-          projectId: projectId,
+          projectId,
           actorId: userId,
           action: AuditAction.EVIDENCE_DELETED,
           entity: 'Evidence',

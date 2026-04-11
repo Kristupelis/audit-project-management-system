@@ -1,8 +1,10 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { SystemRole } from '@prisma/client';
 
 export type RequestUser = {
   sub: string;
   email: string;
+  systemRole?: SystemRole;
 };
 
 export const CurrentUser = createParamDecorator(

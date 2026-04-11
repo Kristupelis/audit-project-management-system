@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { signIn } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useT } from "@/i18n/use-t";
 
 type SetupResponse = {
   base32: string;
@@ -14,6 +15,7 @@ type AuthResult = {
     id: string;
     email: string;
     name?: string | null;
+    systemRole?: string | null;
   };
   accessToken: string;
   accessExpiresAt: number | null;
@@ -22,16 +24,17 @@ type AuthResult = {
 export default function TwoFactorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useT();
 
-  const userId = searchParams.get('userId');
-  const email = searchParams.get('email') ?? '';
-  const mode = searchParams.get('mode') ?? 'verify';
+  const userId = searchParams.get("userId");
+  const email = searchParams.get("email") ?? "";
+  const mode = searchParams.get("mode") ?? "verify";
 
-  const isSetupMode = mode === 'setup';
+  const isSetupMode = mode === "setup";
 
-  const [code, setCode] = useState('');
-  const [secret, setSecret] = useState('');
-  const [qrCode, setQrCode] = useState('');
+  const [code, setCode] = useState("");
+  const [secret, setSecret] = useState("");
+  const [qrCode, setQrCode] = useState("");
   const [loadingSetup, setLoadingSetup] = useState(isSetupMode);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,14 +50,14 @@ export default function TwoFactorPage() {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/auth/2fa/setup`,
           {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId }),
           },
         );
 
         if (!res.ok) {
-          setError('Failed to load 2FA setup');
+          setError(t.authPages.failedToLoad2faSetup);
           return;
         }
 
@@ -62,27 +65,28 @@ export default function TwoFactorPage() {
         setSecret(data.base32);
         setQrCode(data.qrCode);
       } catch {
-        setError('Failed to load 2FA setup');
+        setError(t.authPages.failedToLoad2faSetup);
       } finally {
         setLoadingSetup(false);
       }
     }
 
-    loadSetup();
-  }, [isSetupMode, userId]);
+    void loadSetup();
+  }, [isSetupMode, userId, t.authPages.failedToLoad2faSetup]);
 
   async function createSession(data: AuthResult) {
-    const loginRes = await signIn('credentials', {
+    const loginRes = await signIn("credentials", {
       redirect: false,
       userId: data.user.id,
       email: data.user.email,
-      name: data.user.name ?? '',
+      name: data.user.name ?? "",
+      systemRole: data.user.systemRole ?? "",
       accessToken: data.accessToken,
-      accessExpiresAt: String(data.accessExpiresAt ?? ''),
+      accessExpiresAt: String(data.accessExpiresAt ?? ""),
     });
 
     if (loginRes?.error) {
-      throw new Error('Session creation failed');
+      throw new Error("Session creation failed");
     }
   }
 
@@ -91,17 +95,17 @@ export default function TwoFactorPage() {
     setError(null);
 
     if (!userId) {
-      setError('Missing login session');
+      setError(t.authPages.missingLoginSession);
       return;
     }
 
     if (isSetupMode && !secret) {
-      setError('2FA secret was not loaded');
+      setError(t.authPages.setupSecretNotLoaded);
       return;
     }
 
     if (!/^\d{6}$/.test(code)) {
-      setError('Enter a valid 6-digit authentication code');
+      setError(t.authPages.invalidAuthCode);
       return;
     }
 
@@ -117,27 +121,27 @@ export default function TwoFactorPage() {
         : { userId, code };
 
       const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (!res.ok) {
-        setError(
-          isSetupMode
-            ? 'Invalid code. Please confirm the code from your authenticator app.'
-            : 'Invalid authentication code',
-        );
+        setError(t.authPages.invalidAuthCode);
         return;
       }
 
       const data: AuthResult = await res.json();
       await createSession(data);
 
-      router.push('/projects');
+      router.push("/projects");
       router.refresh();
     } catch {
-      setError(isSetupMode ? '2FA setup failed' : 'Verification failed');
+      setError(
+        isSetupMode
+          ? t.authPages.setup2faFailed
+          : t.authPages.verificationFailed,
+      );
     } finally {
       setSubmitting(false);
     }
@@ -150,17 +154,21 @@ export default function TwoFactorPage() {
         className="w-full max-w-sm space-y-4 border rounded-xl p-6"
       >
         <h1 className="text-xl font-semibold">
-          {isSetupMode ? 'Set up two-factor authentication' : 'Two-factor authentication'}
+          {isSetupMode
+            ? t.authPages.setup2faTitle
+            : t.authPages.verify2faTitle}
         </h1>
 
         {isSetupMode ? (
           <>
             <p className="text-sm text-gray-600">
-              Scan this QR code in your authenticator app, then enter the 6-digit code to finish setup.
+              {t.authPages.setup2faDescription}
             </p>
 
             {loadingSetup ? (
-              <p className="text-sm text-gray-600">Loading QR code...</p>
+              <p className="text-sm text-gray-600">
+                {t.authPages.loadingQrCode}
+              </p>
             ) : qrCode ? (
               <div className="space-y-3">
                 <img
@@ -169,7 +177,9 @@ export default function TwoFactorPage() {
                   className="mx-auto h-48 w-48 border rounded-md"
                 />
                 <div className="rounded-md bg-gray-800 p-3 text-xs break-all">
-                  <p className="font-medium mb-1">Manual setup key</p>
+                  <p className="font-medium mb-1">
+                    {t.authPages.manualSetupKey}
+                  </p>
                   <p>{secret}</p>
                 </div>
               </div>
@@ -177,18 +187,22 @@ export default function TwoFactorPage() {
           </>
         ) : (
           <p className="text-sm text-gray-600">
-            Enter the 6-digit code from your authenticator app for {email || 'your account'}.
+            {t.authPages.accountLabel} {email || "your account"}.
           </p>
         )}
 
         <div className="space-y-2">
           <label className="text-sm">
-            {isSetupMode ? 'Authentication code to confirm setup' : 'Authentication code'}
+            {isSetupMode
+              ? t.authPages.confirmSetupCodeLabel
+              : t.authPages.authCodeLabel}
           </label>
           <input
             className="w-full border rounded-md p-2 text-center tracking-widest"
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onChange={(e) =>
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+            }
             placeholder="123456"
             maxLength={6}
             inputMode="numeric"
@@ -205,19 +219,19 @@ export default function TwoFactorPage() {
         >
           {submitting
             ? isSetupMode
-              ? 'Finishing setup...'
-              : 'Verifying...'
+              ? t.authPages.finishingSetup
+              : t.authPages.verifying
             : isSetupMode
-              ? 'Finish setup'
-              : 'Verify'}
+              ? t.authPages.finishSetup
+              : t.authPages.verify}
         </button>
 
         <button
           type="button"
           className="w-full border rounded-md p-2"
-          onClick={() => router.push('/login')}
+          onClick={() => router.push("/login")}
         >
-          Back to login
+          {t.authPages.backToLogin}
         </button>
       </form>
     </main>

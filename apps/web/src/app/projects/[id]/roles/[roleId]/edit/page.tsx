@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import RoleForm from "../../role-form";
+import { getDictionary, type Locale } from "@/i18n/get-dictionary";
+import { withAuthRedirect } from "@/lib/with-auth-redirect";
 
 type Project = {
   id: string;
@@ -27,26 +30,36 @@ export default async function EditRolePage({
   params: Promise<{ id: string; roleId: string }>;
 }) {
   const { id, roleId } = await params;
+
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get("locale")?.value;
+  const locale: Locale = localeCookie === "lt" ? "lt" : "en";
+  const t = getDictionary(locale);
+
   const session = await getServerSession(authOptions);
   const token = session?.apiAccessToken;
 
-  if (!token) return <main className="p-6">Not logged in.</main>;
+  if (!token) return <main className="p-6">{t.rolesManagement.notLoggedIn}</main>;
 
-  const project = await apiFetch<Project>(`/projects/${id}`, token);
-  const role = await apiFetch(`/projects/${id}/roles/${roleId}`, token);
-  const membersData = await apiFetch<MembersResponse>(`/projects/${id}/members`, token);
+  const project = await withAuthRedirect(
+    apiFetch<Project>(`/projects/${id}`, token),
+  );
+  const role = await withAuthRedirect(apiFetch(`/projects/${id}/roles/${roleId}`, token));
+  const membersData = await withAuthRedirect(apiFetch<MembersResponse>(`/projects/${id}/members`, token));
 
   if (!project.isOwner && session?.user?.systemRole !== "SUPER_ADMIN") {
-    return <main className="p-6">Only project owners or superadmins can edit roles.</main>;
+    return <main className="p-6">{t.rolesManagement.onlyOwnersCanEdit}</main>;
   }
 
   return (
     <main className="p-6 space-y-6">
       <div>
         <Link href={`/projects/${id}/roles`} className="underline text-sm">
-          ← Back to roles
+          ← {t.rolesManagement.backToRoles}
         </Link>
-        <h1 className="text-2xl font-semibold mt-2">Edit role</h1>
+        <h1 className="text-2xl font-semibold mt-2">
+          {t.rolesManagement.editRole}
+        </h1>
       </div>
 
       <RoleForm

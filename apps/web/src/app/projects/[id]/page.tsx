@@ -1,30 +1,45 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/auth";
 import { apiFetch } from "@/lib/api";
 import Members from "./members";
 import ProjectStructureSection from "./project-structure-section";
+import AuditPreview from "./audit-preview";
+import DeleteProjectButton from "./delete-project-button";
+import { getDictionary, type Locale } from "@/i18n/get-dictionary";
+import { withAuthRedirect } from "@/lib/with-auth-redirect";
 
 type Project = {
   id: string;
   name: string;
+  code: string | null;
   description: string | null;
+  status: string;
+  auditType: string;
+  priority: string;
+  scope: string | null;
+  objective: string | null;
+  methodology: string | null;
+  auditedEntityName: string | null;
+  location: string | null;
+  engagementLead: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  plannedStartDate: string | null;
+  plannedEndDate: string | null;
+  actualStartDate: string | null;
+  actualEndDate: string | null;
   createdAt: string;
   updatedAt: string;
   isOwner: boolean;
   roles: string[];
 };
 
-type AuditLog = {
-  id: string;
-  projectId: string;
-  actorId: string | null;
-  action: string;
-  entity: string | null;
-  entityId: string | null;
-  details: unknown;
-  createdAt: string;
-};
+function formatDate(value: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString();
+}
 
 export default async function ProjectDetailPage({
   params,
@@ -32,102 +47,196 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get("locale")?.value;
+  const locale: Locale = localeCookie === "lt" ? "lt" : "en";
+  const t = getDictionary(locale);
+
   const session = await getServerSession(authOptions);
   const token = session?.apiAccessToken;
 
   if (!token) {
     return (
       <main className="p-6">
-        <p>You are not logged in.</p>
+        <p>{t.auth.notLoggedIn}</p>
         <Link className="underline" href="/login">
-          Go to login
+          {t.auth.login}
         </Link>
       </main>
     );
   }
 
-  const project = await apiFetch<Project>(`/projects/${id}`, token);
+  const project = await withAuthRedirect(
+    apiFetch<Project>(`/projects/${id}`, token),
+  );
 
   const canSeeAudit =
     project.isOwner || session?.user?.systemRole === "SUPER_ADMIN";
 
-  const audit = canSeeAudit
-    ? await apiFetch<AuditLog[]>(`/projects/${id}/audit`, token)
-    : [];
+  const canManageProject =
+    project.isOwner || session?.user?.systemRole === "SUPER_ADMIN";
+
+  const statusLabel =
+    t.enums.projectStatus[
+      project.status as keyof typeof t.enums.projectStatus
+    ] ?? project.status;
+
+  const auditTypeLabel =
+    t.enums.auditType[
+      project.auditType as keyof typeof t.enums.auditType
+    ] ?? project.auditType;
+
+  const priorityLabel =
+    t.enums.priority[
+      project.priority as keyof typeof t.enums.priority
+    ] ?? project.priority;
 
   return (
     <main className="p-6 space-y-6">
-      <header className="space-y-2">
+      <header className="space-y-4">
         <Link className="underline text-sm" href="/projects">
-          ← Back to projects
+          ← {t.projects.backToProjects}
         </Link>
 
         <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold">{project.name}</h1>
+          <div className="space-y-3 flex-1">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-semibold">{project.name}</h1>
 
-            <Members projectId={id} />
-            
-            {(project.isOwner || session?.user?.systemRole === "SUPER_ADMIN") && (
-            <div className="space-y-1">
-              <Link href={`/projects/${id}/roles`}>
-                <button className="border px-3 py-1 rounded">Roles</button>
-              </Link>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {project.code && (
+                  <span className="border rounded-full px-2 py-1">
+                    {t.main.code} {project.code}
+                  </span>
+                )}
+                <span className="border rounded-full px-2 py-1">
+                  {t.projects.status}: {statusLabel}
+                </span>
+                <span className="border rounded-full px-2 py-1">
+                  {t.projects.type}: {auditTypeLabel}
+                </span>
+                <span className="border rounded-full px-2 py-1">
+                  {t.projects.priority}: {priorityLabel}
+                </span>
+              </div>
             </div>
-            )}
 
-            {project.description && (
-              <p className="text-sm opacity-80">
-                Project description: {project.description}
-              </p>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {canManageProject && (
+                <>
+                  <Link href={`/projects/${id}/edit`}>
+                    <button className="border px-3 py-1 rounded">
+                      {t.projects.editProject}
+                    </button>
+                  </Link>
 
-            <p className="text-xs opacity-60">
-              Updated: {new Date(project.updatedAt).toLocaleString()}
-            </p>
+                  <DeleteProjectButton projectId={id} />
+                </>
+              )}
+
+              {(project.isOwner || session?.user?.systemRole === "SUPER_ADMIN") && (
+                <Link href={`/projects/${id}/roles`}>
+                  <button className="border px-3 py-1 rounded">
+                    {t.rolesPage.roles}
+                  </button>
+                </Link>
+              )}
+            </div>
           </div>
 
           <span className="text-xs border rounded-full px-2 py-1">
-            {project.isOwner ? "OWNER" : project.roles.join(", ") || "MEMBER"}
+            {project.isOwner ? t.roles.owner : project.roles.join(", ") || t.roles.member}
           </span>
         </div>
       </header>
 
-      <ProjectStructureSection projectId={id} />
-      {canSeeAudit && (
-        <section className="border rounded-xl p-4 space-y-3">
-          <h2 className="font-medium">Audit log (latest 100)</h2>
+      <section className="border rounded-xl p-4 space-y-3">
+        <h2 className="font-medium">{t.projects.projectDetails}</h2>
 
-          {audit.length === 0 ? (
-            <p className="text-sm opacity-70">No audit entries yet.</p>
-          ) : (
-            <ul className="space-y-2">
-              {audit.map((a) => (
-                <li key={a.id} className="border rounded-lg p-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="text-sm font-medium">{a.action}</div>
-                      <div className="text-xs opacity-70">
-                        {a.entity ? `${a.entity}${a.entityId ? ` (${a.entityId})` : ""}` : "—"}
-                      </div>
-                      <div className="text-xs opacity-60">
-                        {new Date(a.createdAt).toLocaleString()} • actor: {a.actorId ?? "system"}
-                      </div>
-                    </div>
+        {project.description && (
+          <p className="text-sm opacity-80">
+            <strong>{t.projects.description}:</strong> {project.description}
+          </p>
+        )}
 
-                    <details className="text-xs">
-                      <summary className="cursor-pointer underline">details</summary>
-                      <pre className="mt-2 border rounded-md p-2 overflow-auto">
-                        {JSON.stringify(a.details, null, 2)}
-                      </pre>
-                    </details>
-                  </div>
-                </li>
-              ))}
-            </ul>
+        {project.scope && (
+          <p className="text-sm opacity-80">
+            <strong>{t.projects.scope}:</strong> {project.scope}
+          </p>
+        )}
+
+        {project.objective && (
+          <p className="text-sm opacity-80">
+            <strong>{t.projects.objective}:</strong> {project.objective}
+          </p>
+        )}
+
+        {project.methodology && (
+          <p className="text-sm opacity-80">
+            <strong>{t.projects.methodology}:</strong> {project.methodology}
+          </p>
+        )}
+
+        <div className="grid gap-2 md:grid-cols-2 text-sm opacity-80">
+          {project.auditedEntityName && (
+            <div>
+              <strong>{t.projects.auditedEntity}:</strong> {project.auditedEntityName}
+            </div>
           )}
-        </section>
-      )}
+
+          {project.location && (
+            <div>
+              <strong>{t.projects.location}:</strong> {project.location}
+            </div>
+          )}
+
+          {project.engagementLead && (
+            <div>
+              <strong>{t.projects.leadAuditor}:</strong> {project.engagementLead}
+            </div>
+          )}
+
+          {(project.periodStart || project.periodEnd) && (
+            <div>
+              <strong>{t.projects.auditedPeriod}:</strong> {formatDate(project.periodStart)} -{" "}
+              {formatDate(project.periodEnd)}
+            </div>
+          )}
+
+          {project.plannedStartDate && (
+            <div>
+              <strong>{t.projects.plannedStartDate}:</strong> {formatDate(project.plannedStartDate)}
+            </div>
+          )}
+
+          {project.plannedEndDate && (
+            <div>
+              <strong>{t.projects.plannedEndDate}:</strong> {formatDate(project.plannedEndDate)}
+            </div>
+          )}
+
+          {project.actualStartDate && (
+            <div>
+              <strong>{t.projects.actualStartDate}:</strong> {formatDate(project.actualStartDate)}
+            </div>
+          )}
+
+          {project.actualEndDate && (
+            <div>
+              <strong>{t.projects.actualEndDate}:</strong> {formatDate(project.actualEndDate)}
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs opacity-60">
+          {t.main.updated} {new Date(project.updatedAt).toLocaleString()}
+        </p>
+      </section>
+
+      <Members projectId={id} />
+      <ProjectStructureSection projectId={id} />
+      {canSeeAudit && <AuditPreview projectId={id} />}
     </main>
   );
 }

@@ -1,8 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectPermissionsService } from '../permissions.service';
-import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
+import {
+  AuditAction,
+  PermissionAction,
+  Prisma,
+  ResourceType,
+} from '@prisma/client';
 import { processId, auditId } from '../../common/id';
+import { CreateProcessDto, UpdateProcessDto } from '../dto/process.dto';
 
 @Injectable()
 export class ProcessService {
@@ -26,7 +33,7 @@ export class ProcessService {
     return process.auditArea.projectId;
   }
 
-  async create(auditAreaId: string, userId: string, name: string) {
+  async create(auditAreaId: string, userId: string, dto: CreateProcessDto) {
     const area = await this.prisma.auditArea.findUnique({
       where: { id: auditAreaId },
       select: { projectId: true },
@@ -55,8 +62,19 @@ export class ProcessService {
         data: {
           id: processId(),
           auditAreaId,
-          name,
           order: nextOrder,
+          name: dto.name,
+          code: dto.code ?? null,
+          description: dto.description ?? null,
+          objective: dto.objective ?? null,
+          processOwner: dto.processOwner ?? null,
+          frequency: dto.frequency,
+          riskLevel: dto.riskLevel,
+          status: dto.status,
+          systemsInvolved: dto.systemsInvolved ?? null,
+          keyInputs: dto.keyInputs ?? null,
+          keyOutputs: dto.keyOutputs ?? null,
+          notes: dto.notes ?? null,
         },
       });
 
@@ -68,7 +86,7 @@ export class ProcessService {
           action: AuditAction.PROCESS_CREATED,
           entity: 'Process',
           entityId: process.id,
-          details: { name: name },
+          details: dto as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -88,7 +106,6 @@ export class ProcessService {
       area.projectId,
       userId,
       ResourceType.AUDIT_AREA,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       PermissionAction.SEE,
       auditAreaId,
     );
@@ -120,7 +137,7 @@ export class ProcessService {
     });
   }
 
-  async update(processIdValue: string, userId: string, name: string) {
+  async update(processIdValue: string, userId: string, dto: UpdateProcessDto) {
     const projectId = await this.resolveProject(processIdValue);
 
     await this.permissions.requirePermission(
@@ -134,18 +151,31 @@ export class ProcessService {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.process.update({
         where: { id: processIdValue },
-        data: { name },
+        data: {
+          name: dto.name,
+          code: dto.code,
+          description: dto.description,
+          objective: dto.objective,
+          processOwner: dto.processOwner,
+          frequency: dto.frequency,
+          riskLevel: dto.riskLevel,
+          status: dto.status,
+          systemsInvolved: dto.systemsInvolved,
+          keyInputs: dto.keyInputs,
+          keyOutputs: dto.keyOutputs,
+          notes: dto.notes,
+        },
       });
 
       await tx.auditLog.create({
         data: {
           id: auditId(),
-          projectId: projectId,
+          projectId,
           actorId: userId,
           action: AuditAction.PROCESS_UPDATED,
           entity: 'Process',
           entityId: processIdValue,
-          details: { name: name },
+          details: dto as Prisma.InputJsonValue,
         },
       });
 
@@ -170,7 +200,7 @@ export class ProcessService {
       await tx.auditLog.create({
         data: {
           id: auditId(),
-          projectId: projectId,
+          projectId,
           actorId: userId,
           action: AuditAction.PROCESS_DELETED,
           entity: 'Process',

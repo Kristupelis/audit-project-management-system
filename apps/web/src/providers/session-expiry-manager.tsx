@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { useT } from "@/i18n/use-t";
 
 const WARNING_MS = 5 * 60 * 1000;
 
@@ -11,6 +12,7 @@ export default function SessionExpiryManager() {
 
   const [showWarning, setShowWarning] = useState(false);
   const [showExpired, setShowExpired] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     if (status !== "authenticated" || accessExpiresAt === null) {
@@ -77,16 +79,15 @@ export default function SessionExpiryManager() {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <h2 className="text-base font-semibold text-red-700">
-                  Session expiring soon
+                  {t.sessionExpiry.soon}
                 </h2>
 
                 <p className="text-sm text-red-700 whitespace-pre-wrap">
-                  Your session will expire soon. Save your work now.
+                  {t.sessionExpiry.soon2}
                 </p>
 
                 <p className="text-sm text-red-700 whitespace-pre-wrap">
-                  This app currently uses only an access token, so once the session
-                  expires you will need to sign in again.
+                  {t.sessionExpiry.soon3}
                 </p>
               </div>
 
@@ -95,14 +96,14 @@ export default function SessionExpiryManager() {
                   className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
                   onClick={() => setShowWarning(false)}
                 >
-                  Continue working
+                  {t.sessionExpiry.continue}
                 </button>
 
                 <button
                   className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
                   onClick={() => signOut({ callbackUrl: "/login" })}
                 >
-                  Log out now
+                  { t.sessionExpiry.logOut}
                 </button>
               </div>
             </div>
@@ -116,11 +117,11 @@ export default function SessionExpiryManager() {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <h2 className="text-base font-semibold text-red-700">
-                  Session expired
+                  {t.sessionExpiry.expired}
                 </h2>
 
                 <p className="text-sm text-red-700 whitespace-pre-wrap">
-                  Your session has expired. Please sign in again to continue.
+                  {t.sessionExpiry.expired2}
                 </p>
               </div>
 
@@ -129,7 +130,7 @@ export default function SessionExpiryManager() {
                   className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
                   onClick={() => signOut({ callbackUrl: "/login" })}
                 >
-                  Sign in again
+                  {t.sessionExpiry.signIn}
                 </button>
               </div>
             </div>

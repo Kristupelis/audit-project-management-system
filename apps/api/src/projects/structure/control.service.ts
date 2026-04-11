@@ -1,8 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectPermissionsService } from '../permissions.service';
-import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
+import {
+  AuditAction,
+  PermissionAction,
+  Prisma,
+  ResourceType,
+} from '@prisma/client';
 import { controlId, auditId } from '../../common/id';
+import { CreateControlDto, UpdateControlDto } from '../dto/control.dto';
 
 @Injectable()
 export class ControlService {
@@ -30,7 +37,7 @@ export class ControlService {
     return control.process.auditArea.projectId;
   }
 
-  async create(processIdValue: string, userId: string, name: string) {
+  async create(processIdValue: string, userId: string, dto: CreateControlDto) {
     const process = await this.prisma.process.findUnique({
       where: { id: processIdValue },
       include: {
@@ -63,8 +70,21 @@ export class ControlService {
         data: {
           id: controlId(),
           processId: processIdValue,
-          name,
           order: nextOrder,
+          name: dto.name,
+          code: dto.code ?? null,
+          description: dto.description ?? null,
+          controlObjective: dto.controlObjective ?? null,
+          controlType: dto.controlType,
+          controlNature: dto.controlNature,
+          controlOwner: dto.controlOwner ?? null,
+          frequency: dto.frequency,
+          keyControl: dto.keyControl ?? false,
+          relatedRisk: dto.relatedRisk ?? null,
+          expectedEvidence: dto.expectedEvidence ?? null,
+          testingStrategy: dto.testingStrategy,
+          status: dto.status,
+          notes: dto.notes ?? null,
         },
       });
 
@@ -76,7 +96,7 @@ export class ControlService {
           action: AuditAction.CONTROL_CREATED,
           entity: 'Control',
           entityId: control.id,
-          details: { name: name },
+          details: dto as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -129,7 +149,7 @@ export class ControlService {
     });
   }
 
-  async update(controlIdValue: string, userId: string, name: string) {
+  async update(controlIdValue: string, userId: string, dto: UpdateControlDto) {
     const projectId = await this.resolveProject(controlIdValue);
 
     await this.permissions.requirePermission(
@@ -143,18 +163,33 @@ export class ControlService {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.control.update({
         where: { id: controlIdValue },
-        data: { name },
+        data: {
+          name: dto.name,
+          code: dto.code,
+          description: dto.description,
+          controlObjective: dto.controlObjective,
+          controlType: dto.controlType,
+          controlNature: dto.controlNature,
+          controlOwner: dto.controlOwner,
+          frequency: dto.frequency,
+          keyControl: dto.keyControl,
+          relatedRisk: dto.relatedRisk,
+          expectedEvidence: dto.expectedEvidence,
+          testingStrategy: dto.testingStrategy,
+          status: dto.status,
+          notes: dto.notes,
+        },
       });
 
       await tx.auditLog.create({
         data: {
           id: auditId(),
-          projectId: projectId,
+          projectId,
           actorId: userId,
           action: AuditAction.CONTROL_UPDATED,
           entity: 'Control',
           entityId: controlIdValue,
-          details: { name: name },
+          details: dto as Prisma.InputJsonValue,
         },
       });
 
@@ -179,7 +214,7 @@ export class ControlService {
       await tx.auditLog.create({
         data: {
           id: auditId(),
-          projectId: projectId,
+          projectId,
           actorId: userId,
           action: AuditAction.CONTROL_DELETED,
           entity: 'Control',

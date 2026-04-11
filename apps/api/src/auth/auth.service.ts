@@ -11,24 +11,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as argon2 from 'argon2';
 import { ConfigService } from '@nestjs/config';
 import type { SignOptions } from 'jsonwebtoken';
-//import * as speakeasyRaw from 'speakeasy';
 import * as speakeasy from 'speakeasy';
 import * as QRCode from 'qrcode';
 import { userId } from '../common/id';
-
-/*
-const speakeasy = speakeasyRaw as unknown as {
-  generateSecret: (opts: { length: number; name: string }) => {
-    base32: string;
-    otpauth_url?: string;
-  };
-  totp: (opts: {
-    secret: string;
-    encoding: 'base32';
-    token: string;
-  }) => boolean;
-};
-*/
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { SystemRole } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -39,13 +27,22 @@ export class AuthService {
   ) {}
 
   async register(email: string, password: string, name?: string) {
-    const existing = await this.prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existing = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
     if (existing) throw new BadRequestException('Email already in use');
 
     const passwordHash = await argon2.hash(password);
 
     const user = await this.prisma.user.create({
-      data: { id: userId(), email, name: name ?? null, passwordHash },
+      data: {
+        id: userId(),
+        email: normalizedEmail,
+        name: name?.trim() || null,
+        passwordHash,
+      },
       select: { id: true, email: true, name: true, createdAt: true },
     });
 
@@ -57,7 +54,12 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
     if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -82,9 +84,122 @@ export class AuthService {
     };
   }
 
-  async generateTwoFactorSetup(userId: string) {
+  async getMe(userIdValue: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: userIdValue },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        systemRole: true,
+        isTwoFactorEnabled: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return user;
+  }
+
+  async updateProfile(userIdValue: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userIdValue },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        systemRole: true,
+        isTwoFactorEnabled: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const nextEmail =
+      dto.email !== undefined ? dto.email.trim().toLowerCase() : undefined;
+    const nextName = dto.name !== undefined ? dto.name.trim() : undefined;
+
+    if (nextEmail && nextEmail !== user.email) {
+      const existing = await this.prisma.user.findUnique({
+        where: { email: nextEmail },
+        select: { id: true },
+      });
+
+      if (existing && existing.id !== userIdValue) {
+        throw new BadRequestException('Email already in use');
+      }
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userIdValue },
+      data: {
+        ...(dto.email !== undefined ? { email: nextEmail } : {}),
+        ...(dto.name !== undefined ? { name: nextName || null } : {}),
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isTwoFactorEnabled: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updated;
+  }
+
+  async changePassword(userIdValue: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userIdValue },
+      select: {
+        id: true,
+        passwordHash: true,
+      },
+    });
+
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const validCurrentPassword = await argon2.verify(
+      user.passwordHash,
+      dto.currentPassword,
+    );
+
+    if (!validCurrentPassword) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
+    }
+
+    const newPasswordHash = await argon2.hash(dto.newPassword);
+
+    await this.prisma.user.update({
+      where: { id: userIdValue },
+      data: {
+        passwordHash: newPasswordHash,
+      },
+    });
+
+    return { success: true };
+  }
+
+  async generateTwoFactorSetup(userIdValue: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userIdValue },
     });
 
     if (!user) throw new UnauthorizedException('User not found');
@@ -102,9 +217,9 @@ export class AuthService {
     };
   }
 
-  async enableTwoFactor(userId: string, secret: string, code: string) {
+  async enableTwoFactor(userIdValue: string, secret: string, code: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: userIdValue },
     });
 
     if (!user) {
@@ -129,25 +244,34 @@ export class AuthService {
     }
 
     await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: userIdValue },
       data: {
         twoFactorSecret: secret,
         isTwoFactorEnabled: true,
       },
     });
 
-    const token = await this.issueAccessToken(user.id, user.email);
+    const token = await this.issueAccessToken(
+      user.id,
+      user.email,
+      user.systemRole,
+    );
 
     return {
       success: true,
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        systemRole: user.systemRole,
+      },
       ...token,
     };
   }
 
-  async verifyTwoFactorLogin(userId: string, code: string) {
+  async verifyTwoFactorLogin(userIdValue: string, code: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: userIdValue },
     });
 
     if (!user || !user.twoFactorSecret) {
@@ -171,15 +295,28 @@ export class AuthService {
       throw new UnauthorizedException('Invalid 2FA code');
     }
 
-    const token = await this.issueAccessToken(user.id, user.email);
+    const token = await this.issueAccessToken(
+      user.id,
+      user.email,
+      user.systemRole,
+    );
 
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        systemRole: user.systemRole,
+      },
       ...token,
     };
   }
 
-  private async issueAccessToken(userId: string, email: string) {
+  private async issueAccessToken(
+    userIdValue: string,
+    email: string,
+    systemRole: SystemRole,
+  ) {
     const accessSecret = this.config.get<string>('JWT_ACCESS_SECRET');
     if (!accessSecret) throw new Error('JWT_ACCESS_SECRET missing');
 
@@ -187,7 +324,7 @@ export class AuthService {
       this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '1h';
     const accessExp = this.asExpiresIn(accessExpRaw);
 
-    const payload = { sub: userId, email };
+    const payload = { sub: userIdValue, email, systemRole };
 
     const accessToken = await this.jwt.signAsync(payload, {
       secret: accessSecret,

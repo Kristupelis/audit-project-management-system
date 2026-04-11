@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toUserFriendlyError } from "@/lib/error-message";
+import { useLanguage } from "@/providers/language-provider";
+import { useT } from "@/i18n/use-t";
 
 type Member = {
   id: string;
@@ -83,25 +85,6 @@ function flattenTree(nodes: TreeNode[]): TreeNode[] {
   return out;
 }
 
-function resourceLabel(resource: ResourceType) {
-  switch (resource) {
-    case "PROJECT":
-      return "Project";
-    case "AUDIT_AREA":
-      return "Audit area";
-    case "PROCESS":
-      return "Process";
-    case "CONTROL":
-      return "Control";
-    case "TEST_STEP":
-      return "Test step";
-    case "FINDING":
-      return "Finding";
-    case "EVIDENCE":
-      return "Evidence";
-  }
-}
-
 function buildInitialRules(
   permissions: ExistingRole["permissions"] | undefined,
 ): PermissionRule[] {
@@ -151,6 +134,8 @@ export default function RoleForm({
   initialRole?: ExistingRole | null;
 }) {
   const router = useRouter();
+  const { locale } = useLanguage();
+  const t = useT();
 
   const [name, setName] = useState(initialRole?.name ?? "");
   const [description, setDescription] = useState(initialRole?.description ?? "");
@@ -160,6 +145,7 @@ export default function RoleForm({
 
   const [structureTree, setStructureTree] = useState<TreeNode[]>([]);
   const [structureError, setStructureError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [rules, setRules] = useState<PermissionRule[]>(
     buildInitialRules(initialRole?.permissions),
@@ -177,6 +163,32 @@ export default function RoleForm({
     "EVIDENCE",
   ];
 
+  const actionLabels: Record<PermissionAction, string> = {
+    READ: t.rolesManagement.actionView,
+    CREATE: t.rolesManagement.actionCreate,
+    UPDATE: t.rolesManagement.actionEdit,
+    DELETE: t.rolesManagement.actionDelete,
+  };
+
+  function resourceLabel(resource: ResourceType) {
+    switch (resource) {
+      case "PROJECT":
+        return t.rolesManagement.resourceProject;
+      case "AUDIT_AREA":
+        return t.rolesManagement.resourceAuditArea;
+      case "PROCESS":
+        return t.rolesManagement.resourceProcess;
+      case "CONTROL":
+        return t.rolesManagement.resourceControl;
+      case "TEST_STEP":
+        return t.rolesManagement.resourceTestStep;
+      case "FINDING":
+        return t.rolesManagement.resourceFinding;
+      case "EVIDENCE":
+        return t.rolesManagement.resourceEvidence;
+    }
+  }
+
   useEffect(() => {
     async function loadStructure() {
       try {
@@ -186,7 +198,12 @@ export default function RoleForm({
 
         if (!res.ok) {
           const text = await res.text();
-          throw new Error(toUserFriendlyError(text));
+          throw new Error(
+            toUserFriendlyError(
+              text || t.rolesManagement.loadStructureFailed,
+              locale,
+            ),
+          );
         }
 
         const data = (await res.json()) as StructureResponse;
@@ -195,13 +212,13 @@ export default function RoleForm({
         setStructureError(
           error instanceof Error
             ? error.message
-            : "Failed to load project structure.",
+            : t.rolesManagement.loadStructureFailed,
         );
       }
     }
 
     void loadStructure();
-  }, [projectId]);
+  }, [projectId, locale, t.rolesManagement.loadStructureFailed]);
 
   function addRule() {
     setRules((prev) => [
@@ -228,12 +245,48 @@ export default function RoleForm({
     setRules((prev) =>
       prev.map((rule, i) => {
         if (i !== index) return rule;
-        const exists = rule.actions.includes(action);
+
+        const actions = new Set(rule.actions);
+        const hasAction = actions.has(action);
+
+        if (hasAction) {
+          actions.delete(action);
+
+          if (action === "READ") {
+            actions.delete("CREATE");
+            actions.delete("UPDATE");
+            actions.delete("DELETE");
+          }
+
+          if (action === "UPDATE") {
+            actions.delete("DELETE");
+          }
+
+          return {
+            ...rule,
+            actions: Array.from(actions),
+          };
+        }
+
+        actions.add(action);
+
+        if (action === "UPDATE") {
+          actions.add("READ");
+        }
+
+        if (action === "DELETE") {
+          actions.add("READ");
+          actions.add("UPDATE");
+        }
+
+        if (action === "CREATE") {
+          actions.add("READ");
+          actions.add("UPDATE");
+        }
+
         return {
           ...rule,
-          actions: exists
-            ? rule.actions.filter((a) => a !== action)
-            : [...rule.actions, action],
+          actions: Array.from(actions),
         };
       }),
     );
@@ -248,7 +301,11 @@ export default function RoleForm({
   }
 
   const payloadPermissions = useMemo(() => {
-    const result: { resource: ResourceType; action: PermissionAction; scopeId?: string }[] = [];
+    const result: {
+      resource: ResourceType;
+      action: PermissionAction;
+      scopeId?: string;
+    }[] = [];
 
     for (const rule of rules) {
       for (const action of rule.actions) {
@@ -280,6 +337,7 @@ export default function RoleForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setFormError(null);
 
     const isEdit = Boolean(initialRole?.id);
     const url = isEdit
@@ -299,7 +357,7 @@ export default function RoleForm({
     });
 
     if (!res.ok) {
-      alert(toUserFriendlyError(await res.text()));
+      setFormError(toUserFriendlyError(await res.text(), locale));
       return;
     }
 
@@ -321,7 +379,7 @@ export default function RoleForm({
       });
 
       if (!assignRes.ok) {
-        alert(toUserFriendlyError(await assignRes.text()));
+        setFormError(toUserFriendlyError(await assignRes.text(), locale));
         return;
       }
     }
@@ -335,7 +393,7 @@ export default function RoleForm({
       );
 
       if (!removeRes.ok) {
-        alert(toUserFriendlyError(await removeRes.text()));
+        setFormError(toUserFriendlyError(await removeRes.text(), locale));
         return;
       }
     }
@@ -347,10 +405,10 @@ export default function RoleForm({
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <section className="border rounded-xl p-4 space-y-4">
-        <h2 className="font-medium">Role details</h2>
+        <h2 className="font-medium">{t.rolesManagement.roleDetails}</h2>
 
         <div className="space-y-1">
-          <label className="text-sm">Role name</label>
+          <label className="text-sm">{t.rolesManagement.roleName}</label>
           <input
             className="w-full border rounded-md p-2"
             value={name}
@@ -360,7 +418,7 @@ export default function RoleForm({
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm">Description</label>
+          <label className="text-sm">{t.projects.description}</label>
           <textarea
             className="w-full border rounded-md p-2"
             rows={3}
@@ -376,15 +434,21 @@ export default function RoleForm({
         </div>
       )}
 
+      {formError && (
+        <div className="border rounded p-3 text-sm bg-red-50 border-red-300 text-red-700">
+          {formError}
+        </div>
+      )}
+
       <section className="border rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-medium">Permission rules</h2>
+          <h2 className="font-medium">{t.rolesManagement.permissionRules}</h2>
           <button
             type="button"
             className="border rounded-md px-3 py-1"
             onClick={addRule}
           >
-            + Add rule
+            + {t.rolesManagement.addRule}
           </button>
         </div>
 
@@ -397,20 +461,22 @@ export default function RoleForm({
           return (
             <div key={index} className="border rounded-lg p-4 space-y-4">
               <div className="flex justify-between items-center">
-                <div className="font-medium">Rule {index + 1}</div>
+                <div className="font-medium">
+                  {t.rolesManagement.rule} {index + 1}
+                </div>
                 {rules.length > 1 && (
                   <button
                     type="button"
                     className="text-red-600 text-sm"
                     onClick={() => removeRule(index)}
                   >
-                    Remove
+                    {t.rolesManagement.removeRule}
                   </button>
                 )}
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm">Resource type</label>
+                <label className="text-sm">{t.rolesManagement.resourceType}</label>
                 <select
                   className="w-full border rounded-md p-2"
                   value={rule.resource}
@@ -433,7 +499,7 @@ export default function RoleForm({
               {rule.resource !== "PROJECT" && (
                 <>
                   <div className="space-y-1">
-                    <label className="text-sm">Scope mode</label>
+                    <label className="text-sm">{t.rolesManagement.scopeMode}</label>
                     <select
                       className="w-full border rounded-md p-2"
                       value={rule.scopedMode}
@@ -445,10 +511,12 @@ export default function RoleForm({
                       }
                     >
                       <option value="ALL">
-                        All {resourceLabel(rule.resource).toLowerCase()}s
+                        {t.rolesManagement.allScope}{" "}
+                        {resourceLabel(rule.resource).toLowerCase()}s
                       </option>
                       <option value="SPECIFIC">
-                        Specific {resourceLabel(rule.resource).toLowerCase()}
+                        {t.rolesManagement.specificScope}{" "}
+                        {resourceLabel(rule.resource).toLowerCase()}
                       </option>
                     </select>
                   </div>
@@ -456,7 +524,8 @@ export default function RoleForm({
                   {rule.scopedMode === "SPECIFIC" && (
                     <div className="space-y-1">
                       <label className="text-sm">
-                        Select {resourceLabel(rule.resource).toLowerCase()}
+                        {t.rolesManagement.selectItem}{" "}
+                        {resourceLabel(rule.resource).toLowerCase()}
                       </label>
                       <select
                         className="w-full border rounded-md p-2"
@@ -468,7 +537,7 @@ export default function RoleForm({
                         }
                         required
                       >
-                        <option value="">Select item</option>
+                        <option value="">{t.rolesManagement.selectItem}</option>
                         {scopeOptions.map((node) => (
                           <option key={node.id} value={node.id}>
                             {node.label}
@@ -481,7 +550,7 @@ export default function RoleForm({
               )}
 
               <div className="space-y-2">
-                <label className="text-sm">Actions</label>
+                <label className="text-sm">{t.rolesManagement.actions}</label>
 
                 <div className="grid grid-cols-2 gap-2">
                   {(["READ", "CREATE", "UPDATE", "DELETE"] as const).map((action) => (
@@ -491,7 +560,7 @@ export default function RoleForm({
                         checked={rule.actions.includes(action)}
                         onChange={() => toggleAction(index, action)}
                       />
-                      {action}
+                      {actionLabels[action]}
                     </label>
                   ))}
                 </div>
@@ -502,7 +571,7 @@ export default function RoleForm({
       </section>
 
       <section className="border rounded-xl p-4 space-y-4">
-        <h2 className="font-medium">Assign members</h2>
+        <h2 className="font-medium">{t.rolesManagement.assignMembers}</h2>
 
         <div className="space-y-2">
           {members.map((member) => (
@@ -520,7 +589,7 @@ export default function RoleForm({
 
       <div className="flex gap-2">
         <button className="border rounded-md px-4 py-2">
-          {initialRole ? "Update role" : "Create role"}
+          {initialRole ? t.rolesManagement.updateRole : t.rolesManagement.createRole}
         </button>
       </div>
     </form>

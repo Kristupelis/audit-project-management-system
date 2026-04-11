@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toUserFriendlyError } from "@/lib/error-message";
+import { useLanguage } from "@/providers/language-provider";
+import { useT } from "@/i18n/use-t";
 
 type NodeType =
   | "AUDIT_AREA"
@@ -16,52 +18,127 @@ type AuditAreaData = {
   id: string;
   projectId: string;
   name: string;
+  code?: string | null;
+  description?: string | null;
+  objective?: string | null;
+  scope?: string | null;
+  riskLevel?: string | null;
+  residualRisk?: string | null;
+  status: string;
+  areaOwner?: string | null;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type ProcessData = {
   id: string;
   auditAreaId: string;
   name: string;
+  code?: string | null;
+  description?: string | null;
+  objective?: string | null;
+  processOwner?: string | null;
+  frequency?: string | null;
+  riskLevel?: string | null;
+  status: string;
+  systemsInvolved?: string | null;
+  keyInputs?: string | null;
+  keyOutputs?: string | null;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type ControlData = {
   id: string;
   processId: string;
   name: string;
+  code?: string | null;
+  description?: string | null;
+  controlObjective?: string | null;
+  controlType?: string | null;
+  controlNature?: string | null;
+  controlOwner?: string | null;
+  frequency?: string | null;
+  keyControl: boolean;
+  relatedRisk?: string | null;
+  expectedEvidence?: string | null;
+  testingStrategy?: string | null;
+  status: string;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type TestStepData = {
   id: string;
   controlId: string;
+  stepNo?: number | null;
   description: string;
+  expectedResult?: string | null;
+  actualResult?: string | null;
+  testMethod?: string | null;
+  status: string;
+  sampleReference?: string | null;
+  performedBy?: string | null;
+  performedAt?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type FindingData = {
   id: string;
   processId: string;
   title: string;
+  code?: string | null;
   description: string;
+  criteria?: string | null;
+  condition?: string | null;
+  cause?: string | null;
+  effect?: string | null;
+  recommendation?: string | null;
+  managementResponse?: string | null;
+  actionOwner?: string | null;
+  dueDate?: string | null;
   severity: string;
+  status: string;
+  identifiedAt?: string | null;
+  closedAt?: string | null;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type EvidenceData = {
   id: string;
   processId: string;
   title: string;
+  description?: string | null;
   type: string;
-  fileUrl?: string | null;
+  source?: string | null;
+  referenceNo?: string | null;
+  externalUrl?: string | null;
+  collectedBy?: string | null;
+  collectedAt?: string | null;
+  validFrom?: string | null;
+  validTo?: string | null;
+  reliabilityLevel?: string | null;
+  confidentiality?: string | null;
+  status: string;
+  version?: string | null;
+  notes?: string | null;
   order: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type TreeNode =
@@ -124,23 +201,6 @@ type StructureResponse = {
   tree: TreeNode[];
 };
 
-function typeLabel(type: NodeType) {
-  switch (type) {
-    case "AUDIT_AREA":
-      return "Audit area";
-    case "PROCESS":
-      return "Process";
-    case "CONTROL":
-      return "Control";
-    case "TEST_STEP":
-      return "Test step";
-    case "FINDING":
-      return "Finding";
-    case "EVIDENCE":
-      return "Evidence";
-  }
-}
-
 function allowedChildTypes(type: NodeType): NodeType[] {
   switch (type) {
     case "AUDIT_AREA":
@@ -151,54 +211,6 @@ function allowedChildTypes(type: NodeType): NodeType[] {
       return ["TEST_STEP"];
     default:
       return [];
-  }
-}
-
-function getNodeEditPayload(node: TreeNode, form: Record<string, string>) {
-  switch (node.nodeType) {
-    case "AUDIT_AREA":
-    case "PROCESS":
-    case "CONTROL":
-      return { name: form.name ?? "" };
-    case "TEST_STEP":
-      return { description: form.description ?? "" };
-    case "FINDING":
-      return {
-        title: form.title ?? "",
-        description: form.description ?? "",
-        severity: form.severity ?? "",
-      };
-    case "EVIDENCE":
-      return {
-        title: form.title ?? "",
-        type: form.type ?? "",
-        fileUrl: form.fileUrl?.trim() ? form.fileUrl.trim() : undefined,
-      };
-  }
-}
-
-function buildInitialForm(node: TreeNode): Record<string, string> {
-  if (!node.data) return {};
-
-  switch (node.nodeType) {
-    case "AUDIT_AREA":
-    case "PROCESS":
-    case "CONTROL":
-      return { name: node.data.name };
-    case "TEST_STEP":
-      return { description: node.data.description };
-    case "FINDING":
-      return {
-        title: node.data.title,
-        description: node.data.description,
-        severity: node.data.severity,
-      };
-    case "EVIDENCE":
-      return {
-        title: node.data.title,
-        type: node.data.type,
-        fileUrl: node.data.fileUrl ?? "",
-      };
   }
 }
 
@@ -229,27 +241,62 @@ function findNodeById(nodes: TreeNode[], id: string): TreeNode | null {
   return null;
 }
 
+function Field({
+  label,
+  value,
+  yesLabel,
+  noLabel,
+}: {
+  label: string;
+  value?: string | number | boolean | null;
+  yesLabel: string;
+  noLabel: string;
+}) {
+  if (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === "false"
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="text-sm font-medium">{label}</div>
+      <div className="text-sm opacity-80 whitespace-pre-wrap break-words">
+        {typeof value === "boolean" ? (value ? yesLabel : noLabel) : String(value)}
+      </div>
+    </div>
+  );
+}
+
 function ErrorModal({
   message,
   onClose,
+  title,
+  closeLabel,
 }: {
   message: string;
   onClose: () => void;
+  title: string;
+  closeLabel: string;
 }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
       <div className="w-full max-w-2xl rounded-md border border-red-300 bg-red-50 p-4 shadow-lg">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-base font-semibold text-red-700">Error</h3>
+            <h3 className="text-base font-semibold text-red-700">{title}</h3>
             <p className="text-sm text-red-700 whitespace-pre-wrap">{message}</p>
           </div>
 
           <button
             className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
             onClick={onClose}
+            type="button"
           >
-            Close
+            {closeLabel}
           </button>
         </div>
       </div>
@@ -262,28 +309,36 @@ function DeleteModal({
   onCancel,
   onConfirm,
   loading,
+  title,
+  message,
+  warning,
+  cancelLabel,
+  deleteLabel,
+  deletingLabel,
 }: {
   node: TreeNode;
   onCancel: () => void;
   onConfirm: () => void;
   loading: boolean;
+  title: string;
+  message: string;
+  warning: string;
+  cancelLabel: string;
+  deleteLabel: string;
+  deletingLabel: string;
 }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
       <div className="w-full max-w-2xl rounded-md border border-red-300 bg-red-50 p-4 shadow-lg">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-base font-semibold text-red-700">
-              Confirm deletion
-            </h3>
+            <h3 className="text-base font-semibold text-red-700">{title}</h3>
 
             <p className="text-sm text-red-700 whitespace-pre-wrap">
-              Delete <strong>{node.label}</strong>?
+              {message} <strong>{node.label}</strong>?
             </p>
 
-            <p className="text-sm text-red-700 whitespace-pre-wrap">
-              All related child components of this component will also be deleted.
-            </p>
+            <p className="text-sm text-red-700 whitespace-pre-wrap">{warning}</p>
           </div>
 
           <div className="flex gap-2">
@@ -291,16 +346,18 @@ function DeleteModal({
               className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
               onClick={onCancel}
               disabled={loading}
+              type="button"
             >
-              Cancel
+              {cancelLabel}
             </button>
 
             <button
               className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
               onClick={onConfirm}
               disabled={loading}
+              type="button"
             >
-              {loading ? "Deleting..." : "Delete"}
+              {loading ? deletingLabel : deleteLabel}
             </button>
           </div>
         </div>
@@ -315,12 +372,14 @@ function TreeItem({
   selectedId,
   onToggle,
   onSelect,
+  typeLabel,
 }: {
   node: TreeNode;
   expanded: Set<string>;
   selectedId: string | null;
   onToggle: (id: string) => void;
   onSelect: (node: TreeNode) => void;
+  typeLabel: (type: NodeType) => string;
 }) {
   const hasChildren = node.children.length > 0;
   const isExpanded = expanded.has(node.id);
@@ -347,9 +406,7 @@ function TreeItem({
           onClick={() => onSelect(node)}
         >
           <span className="font-medium">{node.label}</span>
-          <span className="ml-2 text-xs opacity-60">
-            {typeLabel(node.nodeType)}
-          </span>
+          <span className="ml-2 text-xs opacity-60">{typeLabel(node.nodeType)}</span>
         </button>
       </div>
 
@@ -363,6 +420,7 @@ function TreeItem({
               selectedId={selectedId}
               onToggle={onToggle}
               onSelect={onSelect}
+              typeLabel={typeLabel}
             />
           ))}
         </ul>
@@ -374,89 +432,33 @@ function TreeItem({
 function CreateChildForm({
   projectId,
   parent,
-  onSuccess,
   onCancel,
-  onError,
+  typeLabel,
+  title,
+  componentTypeLabel,
+  richFormsMessage,
+  openCreatePageLabel,
+  cancelLabel,
 }: {
   projectId: string;
   parent: TreeNode;
-  onSuccess: () => void;
   onCancel: () => void;
-  onError: (message: string) => void;
+  typeLabel: (type: NodeType) => string;
+  title: string;
+  componentTypeLabel: string;
+  richFormsMessage: string;
+  openCreatePageLabel: string;
+  cancelLabel: string;
 }) {
   const childTypes = allowedChildTypes(parent.nodeType);
   const [nodeType, setNodeType] = useState<NodeType>(childTypes[0]);
-  const [form, setForm] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    switch (nodeType) {
-      case "PROCESS":
-      case "CONTROL":
-      case "AUDIT_AREA":
-        setForm({ name: "" });
-        break;
-      case "TEST_STEP":
-        setForm({ description: "" });
-        break;
-      case "FINDING":
-        setForm({ title: "", description: "", severity: "" });
-        break;
-      case "EVIDENCE":
-        setForm({ title: "", type: "", fileUrl: "" });
-        break;
-    }
-  }, [nodeType]);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-
-    try {
-      const res = await fetch(`/api/projects/${projectId}/structure/item`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nodeType,
-          parentId: parent.id,
-          payload:
-            nodeType === "PROCESS" || nodeType === "CONTROL" || nodeType === "AUDIT_AREA"
-              ? { name: form.name ?? "" }
-              : nodeType === "TEST_STEP"
-              ? { description: form.description ?? "" }
-              : nodeType === "FINDING"
-              ? {
-                  title: form.title ?? "",
-                  description: form.description ?? "",
-                  severity: form.severity ?? "",
-                }
-              : {
-                  title: form.title ?? "",
-                  type: form.type ?? "",
-                  fileUrl: form.fileUrl?.trim() ? form.fileUrl.trim() : undefined,
-                },
-        }),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(toUserFriendlyError(text || "Failed to create component."));
-      }
-
-      onSuccess();
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "Unknown error.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   return (
-    <form onSubmit={handleSubmit} className="border rounded-xl p-4 space-y-3">
-      <h4 className="font-medium">Add child component</h4>
+    <form className="border rounded-xl p-4 space-y-3">
+      <h4 className="font-medium">{title}</h4>
 
       <div className="space-y-1">
-        <label className="block text-sm">Component type</label>
+        <label className="block text-sm">{componentTypeLabel}</label>
         <select
           className="w-full border rounded px-3 py-2"
           value={nodeType}
@@ -470,270 +472,25 @@ function CreateChildForm({
         </select>
       </div>
 
-      {(nodeType === "PROCESS" || nodeType === "CONTROL" || nodeType === "AUDIT_AREA") && (
-        <div className="space-y-1">
-          <label className="block text-sm">Name</label>
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.name ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-            required
-          />
-        </div>
-      )}
-
-      {nodeType === "TEST_STEP" && (
-        <div className="space-y-1">
-          <label className="block text-sm">Description</label>
-          <textarea
-            className="w-full border rounded px-3 py-2 min-h-24"
-            value={form.description ?? ""}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, description: e.target.value }))
-            }
-            required
-          />
-        </div>
-      )}
-
-      {nodeType === "FINDING" && (
-        <>
-          <div className="space-y-1">
-            <label className="block text-sm">Title</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.title ?? ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm">Description</label>
-            <textarea
-              className="w-full border rounded px-3 py-2 min-h-24"
-              value={form.description ?? ""}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, description: e.target.value }))
-              }
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm">Severity</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.severity ?? ""}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, severity: e.target.value }))
-              }
-              required
-            />
-          </div>
-        </>
-      )}
-
-      {nodeType === "EVIDENCE" && (
-        <>
-          <div className="space-y-1">
-            <label className="block text-sm">Title</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.title ?? ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm">Type</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.type ?? ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}
-              required
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm">File URL</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.fileUrl ?? ""}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, fileUrl: e.target.value }))
-              }
-            />
-          </div>
-        </>
-      )}
+      <p className="text-sm opacity-70">{richFormsMessage}</p>
 
       <div className="flex gap-2">
-        <button className="border rounded px-3 py-2" disabled={submitting}>
-          {submitting ? "Creating..." : "Create"}
-        </button>
+        <Link
+          href={`/projects/${projectId}/create-component?nodeType=${nodeType}&parentId=${parent.id}`}
+        >
+          <button type="button" className="border rounded px-3 py-2">
+            {openCreatePageLabel}
+          </button>
+        </Link>
         <button
           type="button"
           className="border rounded px-3 py-2"
           onClick={onCancel}
         >
-          Cancel
+          {cancelLabel}
         </button>
       </div>
     </form>
-  );
-}
-
-function DetailFields({
-  node,
-  editing,
-  form,
-  setForm,
-}: {
-  node: TreeNode;
-  editing: boolean;
-  form: Record<string, string>;
-  setForm: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-}) {
-  if (!node.data) {
-    return null;
-  }
-
-  if (node.nodeType === "AUDIT_AREA" || node.nodeType === "PROCESS" || node.nodeType === "CONTROL") {
-    return (
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Name</label>
-        {editing ? (
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.name ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-          />
-        ) : (
-          <p className="text-sm opacity-80">{node.data.name}</p>
-        )}
-      </div>
-    );
-  }
-
-  if (node.nodeType === "TEST_STEP") {
-    return (
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Description</label>
-        {editing ? (
-          <textarea
-            className="w-full border rounded px-3 py-2 min-h-28"
-            value={form.description ?? ""}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, description: e.target.value }))
-            }
-          />
-        ) : (
-          <p className="text-sm opacity-80 whitespace-pre-wrap">
-            {node.data.description}
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  if (node.nodeType === "FINDING") {
-    return (
-      <div className="space-y-3">
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Title</label>
-          {editing ? (
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.title ?? ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            />
-          ) : (
-            <p className="text-sm opacity-80">{node.data.title}</p>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Description</label>
-          {editing ? (
-            <textarea
-              className="w-full border rounded px-3 py-2 min-h-28"
-              value={form.description ?? ""}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, description: e.target.value }))
-              }
-            />
-          ) : (
-            <p className="text-sm opacity-80 whitespace-pre-wrap">
-              {node.data.description}
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-medium">Severity</label>
-          {editing ? (
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={form.severity ?? ""}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, severity: e.target.value }))
-              }
-            />
-          ) : (
-            <p className="text-sm opacity-80">{node.data.severity}</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Title</label>
-        {editing ? (
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.title ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-          />
-        ) : (
-          <p className="text-sm opacity-80">{node.data.title}</p>
-        )}
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">Type</label>
-        {editing ? (
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.type ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}
-          />
-        ) : (
-          <p className="text-sm opacity-80">{node.data.type}</p>
-        )}
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium">File URL</label>
-        {editing ? (
-          <input
-            className="w-full border rounded px-3 py-2"
-            value={form.fileUrl ?? ""}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, fileUrl: e.target.value }))
-            }
-          />
-        ) : (
-          <p className="text-sm opacity-80 break-all">
-            {node.data.fileUrl || "No file URL"}
-          </p>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -742,12 +499,23 @@ export default function ProjectStructureSection({
 }: {
   projectId: string;
 }) {
+  const t = useT();
+  const { locale } = useLanguage();
+
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [selectedDetails, setSelectedDetails] = useState<
+    | AuditAreaData
+    | ProcessData
+    | ControlData
+    | TestStepData
+    | FindingData
+    | EvidenceData
+    | null
+  >(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -755,8 +523,48 @@ export default function ProjectStructureSection({
 
   const selectedNode = useMemo(
     () => (selectedId ? findNodeById(tree, selectedId) : null),
-    [tree, selectedId]
+    [tree, selectedId],
   );
+
+  const typeLabel = (type: NodeType) => {
+    switch (type) {
+      case "AUDIT_AREA":
+        return t.structure.auditArea;
+      case "PROCESS":
+        return t.structure.process;
+      case "CONTROL":
+        return t.structure.control;
+      case "TEST_STEP":
+        return t.structure.testStep;
+      case "FINDING":
+        return t.structure.finding;
+      case "EVIDENCE":
+        return t.structure.evidence;
+    }
+  };
+
+  const statusLabel = (value?: string | null) => {
+    if (!value) return value;
+    return t.enums.projectStatus[
+      value as keyof typeof t.enums.projectStatus
+    ] ?? value;
+  };
+
+  const riskLabel = (value?: string | null) => {
+    if (!value) return value;
+    return t.structure.riskLevelValues?.[
+      value as keyof typeof t.structure.riskLevelValues
+    ] ?? value;
+  };
+
+  const severityLabel = (value?: string | null) => {
+    if (!value) return value;
+    return t.structure.severityValues?.[
+      value as keyof typeof t.structure.severityValues
+    ] ?? value;
+  };
+
+  const yesNo = (value?: boolean | null) => (value ? t.structure.yes : t.structure.no);
 
   async function loadTree() {
     setLoading(true);
@@ -767,7 +575,9 @@ export default function ProjectStructureSection({
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(toUserFriendlyError(text || "Failed to create component."));
+        throw new Error(
+          toUserFriendlyError(text || "Failed to load structure.", locale),
+        );
       }
 
       const data = (await res.json()) as StructureResponse;
@@ -778,13 +588,17 @@ export default function ProjectStructureSection({
         const stillExists = findNodeById(data.tree, selectedId);
         if (!stillExists) {
           setSelectedId(null);
-          setEditing(false);
+          setSelectedDetails(null);
           setShowAddChild(false);
         }
       }
     } catch (e) {
       setError(
-        e instanceof Error ? toUserFriendlyError(e.message) : "Something went wrong. Please try again."
+        e instanceof Error
+          ? e.message
+          : locale === "lt"
+            ? "Įvyko klaida. Bandykite dar kartą."
+            : "Something went wrong. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -796,12 +610,6 @@ export default function ProjectStructureSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  useEffect(() => {
-    if (selectedNode) {
-      setEditForm(buildInitialForm(selectedNode));
-    }
-  }, [selectedNode]);
-
   function toggleExpanded(id: string) {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -811,33 +619,53 @@ export default function ProjectStructureSection({
     });
   }
 
-  async function saveEdit() {
-    if (!selectedNode) return;
+  async function openNode(node: TreeNode) {
+    setDetailsLoading(true);
 
-    setBusy(true);
     try {
       const res = await fetch(
-        `/api/projects/${projectId}/structure/item/${selectedNode.nodeType}/${selectedNode.id}`,
+        `/api/projects/${projectId}/structure/item/${node.nodeType}/${node.id}`,
         {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(getNodeEditPayload(selectedNode, editForm)),
-        }
+          cache: "no-store",
+        },
       );
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(toUserFriendlyError(text || "Failed to update component."));
+
+        setSelectedId(null);
+        setSelectedDetails(null);
+        setShowAddChild(false);
+
+        throw new Error(
+          toUserFriendlyError(
+            text || t.structure.noPermissionToOpenDetails,
+            locale,
+          ),
+        );
       }
 
-      setEditing(false);
-      await loadTree();
+      const data = (await res.json()) as
+        | AuditAreaData
+        | ProcessData
+        | ControlData
+        | TestStepData
+        | FindingData
+        | EvidenceData;
+
+      setSelectedId(node.id);
+      setSelectedDetails(data);
+      setShowAddChild(false);
     } catch (e) {
       setError(
-        e instanceof Error ? toUserFriendlyError(e.message) : "Something went wrong. Please try again."
+        e instanceof Error
+          ? e.message
+          : locale === "lt"
+            ? "Įvyko klaida. Bandykite dar kartą."
+            : "Something went wrong. Please try again.",
       );
     } finally {
-      setBusy(false);
+      setDetailsLoading(false);
     }
   }
 
@@ -850,25 +678,28 @@ export default function ProjectStructureSection({
         `/api/projects/${projectId}/structure/item/${selectedNode.nodeType}/${selectedNode.id}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(toUserFriendlyError(text || "Failed to delete component."));
+        throw new Error(
+          toUserFriendlyError(text || "Failed to delete component.", locale),
+        );
       }
 
       setShowDelete(false);
       setSelectedId(null);
-      setEditing(false);
       setShowAddChild(false);
       await loadTree();
     } catch (e) {
       setShowDelete(false);
       setError(
         e instanceof Error
-          ? toUserFriendlyError(e.message)
-          : "Something went wrong. Please try again."
+          ? e.message
+          : locale === "lt"
+            ? "Įvyko klaida. Bandykite dar kartą."
+            : "Something went wrong. Please try again.",
       );
     } finally {
       setBusy(false);
@@ -878,23 +709,158 @@ export default function ProjectStructureSection({
   const selectedChildren = selectedNode?.children ?? [];
   const allFlat = useMemo(() => flattenTree(tree), [tree]);
 
+  const renderReadFields = () => {
+    if (!selectedNode || !selectedDetails) return null;
+
+    switch (selectedNode.nodeType) {
+      case "AUDIT_AREA": {
+        const data = selectedDetails as AuditAreaData;
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.name} value={data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.objective} value={data.objective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.scope} value={data.scope} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.riskLevel} value={riskLabel(data.riskLevel)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.residualRisk} value={riskLabel(data.residualRisk)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.areaOwner} value={data.areaOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+      }
+
+      case "PROCESS": {
+        const data = selectedDetails as ProcessData;
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.name} value={data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.objective} value={data.objective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.processOwner} value={data.processOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.frequency} value={data.frequency} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.riskLevel} value={riskLabel(data.riskLevel)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.systemsInvolved} value={data.systemsInvolved} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.keyInputs} value={data.keyInputs} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.keyOutputs} value={data.keyOutputs} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+      }
+
+      case "CONTROL": {
+        const data = selectedDetails as ControlData;
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.name} value={data.name} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlObjective} value={data.controlObjective} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlType} value={data.controlType} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlNature} value={data.controlNature} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.controlOwner} value={data.controlOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.frequency} value={data.frequency} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.keyControl} value={data.keyControl} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.relatedRisk} value={data.relatedRisk} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.expectedEvidence} value={data.expectedEvidence} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.testingStrategy} value={data.testingStrategy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+      }
+
+      case "TEST_STEP": {
+        const data = selectedDetails as TestStepData;
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.stepNo} value={data.stepNo} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.expectedResult} value={data.expectedResult} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.actualResult} value={data.actualResult} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.testMethod} value={data.testMethod} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.sampleReference} value={data.sampleReference} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.performedBy} value={data.performedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.performedAt} value={data.performedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.reviewedBy} value={data.reviewedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.reviewedAt} value={data.reviewedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+      }
+
+      case "FINDING": {
+        const data = selectedDetails as FindingData;
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.title} value={data.title} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.code} value={data.code} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.criteria} value={data.criteria} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.condition} value={data.condition} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.cause} value={data.cause} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.effect} value={data.effect} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.recommendation} value={data.recommendation} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.managementResponse} value={data.managementResponse} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.actionOwner} value={data.actionOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.dueDate} value={data.dueDate?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.severity} value={severityLabel(data.severity)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.identifiedAt} value={data.identifiedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.closedAt} value={data.closedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+      }
+
+      case "EVIDENCE": {
+        const data = selectedDetails as EvidenceData;
+        return (
+          <div className="space-y-2">
+            <Field label={t.structure.title} value={data.title} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.description} value={data.description} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.type} value={data.type} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.source} value={data.source} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.referenceNo} value={data.referenceNo} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.externalUrl} value={data.externalUrl} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.collectedBy} value={data.collectedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.collectedAt} value={data.collectedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.validFrom} value={data.validFrom?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.validTo} value={data.validTo?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.reliabilityLevel} value={data.reliabilityLevel} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.confidentiality} value={data.confidentiality} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.version} value={data.version} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+            <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
+          </div>
+        );
+      }
+    }
+  };
+
   return (
     <>
       <section className="border rounded-xl p-4 space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="font-medium">Project structure</h2>
+          <h2 className="font-medium">{t.structure.projectStructure}</h2>
 
           <Link href={`/projects/${projectId}/create-component`}>
-            <button className="border px-3 py-2 rounded">Create component</button>
+            <button className="border px-3 py-2 rounded">
+              {t.structure.createComponent}
+            </button>
           </Link>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[360px,1fr]">
           <div className="border rounded-xl p-3 min-h-[100px]">
             {loading ? (
-              <p className="text-sm opacity-70">Loading structure...</p>
+              <p className="text-sm opacity-70">{t.structure.loadingStructure}</p>
             ) : tree.length === 0 ? (
-              <p className="text-sm opacity-70">No components in this project yet.</p>
+              <p className="text-sm opacity-70">{t.structure.noComponents}</p>
             ) : (
               <ul className="space-y-2">
                 {tree.map((node) => (
@@ -905,18 +871,9 @@ export default function ProjectStructureSection({
                     selectedId={selectedId}
                     onToggle={toggleExpanded}
                     onSelect={(nodeValue) => {
-                      if (!nodeValue.canRead) {
-                        setSelectedId(null);
-                        setEditing(false);
-                        setShowAddChild(false);
-                        setError("You can see this component in the tree, but you do not have permission to open its details.");
-                        return;
-                      }
-
-                      setSelectedId(nodeValue.id);
-                      setEditing(false);
-                      setShowAddChild(false);
+                      void openNode(nodeValue);
                     }}
+                    typeLabel={typeLabel}
                   />
                 ))}
               </ul>
@@ -926,7 +883,7 @@ export default function ProjectStructureSection({
           <div className="border rounded-xl p-4 min-h-[150px]">
             {!selectedNode ? (
               <div className="h-full flex items-center justify-center text-sm opacity-70">
-                Select a component from the tree.
+                {t.structure.selectComponent}
               </div>
             ) : (
               <div className="space-y-4">
@@ -942,24 +899,24 @@ export default function ProjectStructureSection({
                     className="border rounded px-3 py-1"
                     onClick={() => {
                       setSelectedId(null);
-                      setEditing(false);
+                      setSelectedDetails(null);
                       setShowAddChild(false);
                     }}
+                    type="button"
                   >
-                    Go back
+                    {t.structure.goBack}
                   </button>
                 </div>
 
-                <DetailFields
-                  node={selectedNode}
-                  editing={editing}
-                  form={editForm}
-                  setForm={setEditForm}
-                />
+                {detailsLoading ? (
+                  <div className="text-sm opacity-70">{t.structure.loadingStructure}</div>
+                ) : (
+                  renderReadFields()
+                )}
 
                 {selectedChildren.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="font-medium">Child components</h4>
+                    <h4 className="font-medium">{t.structure.childComponents}</h4>
                     <ul className="space-y-2">
                       {selectedChildren.map((child) => (
                         <li
@@ -979,20 +936,11 @@ export default function ProjectStructureSection({
                               const found =
                                 allFlat.find((item) => item.id === child.id) ?? child;
 
-                              if (!found.canRead) {
-                                setSelectedId(null);
-                                setEditing(false);
-                                setShowAddChild(false);
-                                setError("You can see this component in the tree, but you do not have permission to open its details.");
-                                return;
-                              }
-
-                              setSelectedId(found.id);
-                              setEditing(false);
-                              setShowAddChild(false);
+                              void openNode(found);
                             }}
+                            type="button"
                           >
-                            Open
+                            {t.structure.open}
                           </button>
                         </li>
                       ))}
@@ -1001,49 +949,34 @@ export default function ProjectStructureSection({
                 )}
 
                 <div className="flex flex-wrap gap-2">
-                  {!editing ? (
+                  <Link
+                    href={`/projects/${projectId}/create-component?mode=edit&nodeType=${selectedNode.nodeType}&itemId=${selectedNode.id}`}
+                  >
                     <button
                       className="border rounded px-3 py-2"
-                      onClick={() => setEditing(true)}
+                      type="button"
                     >
-                      Edit
+                      {t.common.edit}
                     </button>
-                  ) : (
-                    <>
-                      <button
-                        className="border rounded px-3 py-2"
-                        onClick={() => void saveEdit()}
-                        disabled={busy}
-                      >
-                        {busy ? "Saving..." : "Save"}
-                      </button>
-                      <button
-                        className="border rounded px-3 py-2"
-                        onClick={() => {
-                          setEditing(false);
-                          setEditForm(buildInitialForm(selectedNode));
-                        }}
-                      >
-                        Cancel edit
-                      </button>
-                    </>
-                  )}
+                  </Link>
 
                   <button
                     className="border rounded px-3 py-2"
                     onClick={() => setShowDelete(true)}
+                    type="button"
                   >
-                    Delete
+                    {t.common.delete}
                   </button>
 
                   {allowedChildTypes(selectedNode.nodeType).length > 0 && (
                     <button
                       className="border rounded px-3 py-2"
                       onClick={() => setShowAddChild((prev) => !prev)}
+                      type="button"
                     >
                       {selectedNode.nodeType === "CONTROL"
-                        ? "Add test step"
-                        : "Add child component"}
+                        ? t.structure.addTestStep
+                        : t.structure.addChildComponent}
                     </button>
                   )}
                 </div>
@@ -1053,11 +986,12 @@ export default function ProjectStructureSection({
                     projectId={projectId}
                     parent={selectedNode}
                     onCancel={() => setShowAddChild(false)}
-                    onSuccess={async () => {
-                      setShowAddChild(false);
-                      await loadTree();
-                    }}
-                    onError={(message) => setError(message)}
+                    typeLabel={typeLabel}
+                    title={t.structure.addChildComponent}
+                    componentTypeLabel={t.structure.componentType}
+                    richFormsMessage={t.structure.richCreateFormsMoved}
+                    openCreatePageLabel={t.structure.openCreatePage}
+                    cancelLabel={t.common.cancel}
                   />
                 )}
               </div>
@@ -1066,7 +1000,14 @@ export default function ProjectStructureSection({
         </div>
       </section>
 
-      {error && <ErrorModal message={error} onClose={() => setError(null)} />}
+      {error && (
+        <ErrorModal
+          message={error}
+          onClose={() => setError(null)}
+          title={t.common.error}
+          closeLabel={t.common.close}
+        />
+      )}
 
       {showDelete && selectedNode && (
         <DeleteModal
@@ -1074,6 +1015,12 @@ export default function ProjectStructureSection({
           loading={busy}
           onCancel={() => setShowDelete(false)}
           onConfirm={() => void deleteNode()}
+          title={t.projects.confirmDeleteTitle}
+          message={t.structure.deleteNodeMessage}
+          warning={t.structure.deleteNodeWarning}
+          cancelLabel={t.common.cancel}
+          deleteLabel={t.common.delete}
+          deletingLabel={t.projects.deleting}
         />
       )}
     </>

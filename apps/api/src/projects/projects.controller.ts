@@ -7,6 +7,7 @@ import {
   Post,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -43,7 +44,7 @@ export class ProjectsController {
 
   @Post()
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateProjectDto) {
-    return this.projects.createProject(userId, dto.name, dto.description);
+    return this.projects.createProject(userId, dto);
   }
 
   @Get()
@@ -63,6 +64,11 @@ export class ProjectsController {
     @Body() dto: UpdateProjectDto,
   ) {
     return this.projects.updateProject(id, userId, dto);
+  }
+
+  @Delete(':id')
+  delete(@Param('id') id: string, @CurrentUser('sub') userId: string) {
+    return this.projects.deleteProject(id, userId);
   }
 
   // =========================
@@ -215,8 +221,26 @@ export class ProjectsController {
   // =========================
 
   @Get(':id/audit')
-  audit(@Param('id') id: string, @CurrentUser('sub') userId: string) {
-    return this.projects.listAudit(id, userId);
+  audit(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('entity') entity?: string,
+    @Query('take') take?: string,
+    @Query('memberId') memberId?: string,
+    @Query('dateMode') dateMode?: string,
+    @Query('date') date?: string,
+  ) {
+    return this.projects.listAudit(id, userId, {
+      page,
+      pageSize,
+      entity,
+      take,
+      memberId,
+      dateMode,
+      date,
+    });
   }
 
   // =========================
@@ -232,7 +256,7 @@ export class ProjectsController {
     @Body() dto: CreateAuditAreaDto,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.auditAreas.create(projectId, userId, dto.name);
+    return this.auditAreas.create(projectId, userId, dto);
   }
 
   @Get(':id/audit-areas')

@@ -1,7 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ProjectPermissionsService } from '../permissions.service';
-import { PermissionAction, ResourceType, AuditAction } from '@prisma/client';
+import {
+  AuditAction,
+  PermissionAction,
+  Prisma,
+  ResourceType,
+} from '@prisma/client';
 import { findingId, auditId } from '../../common/id';
 import { CreateFindingDto, UpdateFindingDto } from '../dto/finding.dto';
 
@@ -11,6 +17,15 @@ export class FindingService {
     private prisma: PrismaService,
     private permissions: ProjectPermissionsService,
   ) {}
+
+  private mapDates(dto: Partial<CreateFindingDto | UpdateFindingDto>) {
+    return {
+      ...dto,
+      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+      identifiedAt: dto.identifiedAt ? new Date(dto.identifiedAt) : undefined,
+      closedAt: dto.closedAt ? new Date(dto.closedAt) : undefined,
+    };
+  }
 
   async resolveProject(findingIdValue: string) {
     const e = await this.prisma.finding.findUnique({
@@ -64,8 +79,27 @@ export class FindingService {
         data: {
           id: findingId(),
           processId: processIdValue,
-          ...dto,
           order: nextOrder,
+
+          title: dto.title,
+          description: dto.description,
+          severity: dto.severity,
+
+          code: dto.code ?? null,
+          criteria: dto.criteria ?? null,
+          condition: dto.condition ?? null,
+          cause: dto.cause ?? null,
+          effect: dto.effect ?? null,
+          recommendation: dto.recommendation ?? null,
+          managementResponse: dto.managementResponse ?? null,
+          actionOwner: dto.actionOwner ?? null,
+          status: dto.status,
+          dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+          identifiedAt: dto.identifiedAt
+            ? new Date(dto.identifiedAt)
+            : undefined,
+          closedAt: dto.closedAt ? new Date(dto.closedAt) : undefined,
+          notes: dto.notes ?? null,
         },
       });
 
@@ -77,7 +111,7 @@ export class FindingService {
           action: AuditAction.FINDING_CREATED,
           entity: 'Finding',
           entityId: finding.id,
-          details: { ...dto },
+          details: dto as unknown as Prisma.InputJsonValue,
         },
       });
 
@@ -101,7 +135,6 @@ export class FindingService {
       p.auditArea.projectId,
       userId,
       ResourceType.PROCESS,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       PermissionAction.SEE,
       processIdValue,
     );
@@ -137,21 +170,23 @@ export class FindingService {
       findingIdValue,
     );
 
+    const mapped = this.mapDates(dto);
+
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.finding.update({
         where: { id: findingIdValue },
-        data: { ...dto },
+        data: mapped,
       });
 
       await tx.auditLog.create({
         data: {
           id: auditId(),
-          projectId: projectId,
+          projectId,
           actorId: userId,
           action: AuditAction.FINDING_UPDATED,
           entity: 'Finding',
           entityId: findingIdValue,
-          details: { ...dto },
+          details: dto as Prisma.InputJsonValue,
         },
       });
 
@@ -176,7 +211,7 @@ export class FindingService {
       await tx.auditLog.create({
         data: {
           id: auditId(),
-          projectId: projectId,
+          projectId,
           actorId: userId,
           action: AuditAction.FINDING_DELETED,
           entity: 'Finding',

@@ -11,7 +11,7 @@ import {
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { CurrentUser } from '../../auth/current-user.decorator';
 import { TestStepService } from './test-step.service';
-import { CreateTestStepDto } from '../dto/test-step.dto';
+import { CreateTestStepDto, UpdateTestStepDto } from '../dto/test-step.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -22,9 +22,9 @@ export class TestStepController {
   create(
     @Param('controlId') controlId: string,
     @CurrentUser('sub') userId: string,
-    @Body() d: CreateTestStepDto,
+    @Body() dto: CreateTestStepDto,
   ) {
-    return this.service.create(controlId, userId, d.description);
+    return this.service.create(controlId, userId, dto);
   }
 
   @Get('controls/:controlId/test-steps')
@@ -47,9 +47,9 @@ export class TestStepController {
   update(
     @Param('testStepId') testStepId: string,
     @CurrentUser('sub') userId: string,
-    @Body() d: { description: string },
+    @Body() dto: UpdateTestStepDto,
   ) {
-    return this.service.update(testStepId, userId, d.description);
+    return this.service.update(testStepId, userId, dto);
   }
 
   @Delete('test-steps/:testStepId')
