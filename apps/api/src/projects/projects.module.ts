@@ -27,6 +27,8 @@ import { FindingController } from './structure/finding.controller';
 import { TestStepService } from './structure/test-step.service';
 import { TestStepController } from './structure/test-step.controller';
 
+import { ReportService } from './report.service';
+
 @Module({
   imports: [PrismaModule],
   controllers: [
@@ -49,6 +51,7 @@ import { TestStepController } from './structure/test-step.controller';
     EvidenceService,
     FindingService,
     TestStepService,
+    ReportService,
   ],
   exports: [ProjectPermissionsService],
 })

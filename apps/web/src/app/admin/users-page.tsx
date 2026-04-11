@@ -287,7 +287,7 @@ export default function AdminUsersPage(props: Props) {
             </h2>
             <p className="text-sm text-red-700 whitespace-pre-wrap">{error}</p>
             <button
-              className="border rounded-md px-3 py-1"
+              className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
               onClick={() => setError(null)}
               type="button"
             >

@@ -9,6 +9,7 @@ import AuditPreview from "./audit-preview";
 import DeleteProjectButton from "./delete-project-button";
 import { getDictionary, type Locale } from "@/i18n/get-dictionary";
 import { withAuthRedirect } from "@/lib/with-auth-redirect";
+import GenerateReportButton from "./generate-report-button";
 
 type Project = {
   id: string;
@@ -132,6 +133,14 @@ export default async function ProjectDetailPage({
                   </Link>
 
                   <DeleteProjectButton projectId={id} />
+
+                  <GenerateReportButton
+                    projectId={id}
+                    label={t.projects.genReport}
+                    errorTitle={t.common.error}
+                    closeLabel={t.common.close}
+                    loadingLabel={t.common.loading}
+                  />
                 </>
               )}
 

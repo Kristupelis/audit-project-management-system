@@ -51,6 +51,7 @@ const lt: TranslationDictionary = {
     saveChanges: "Išsaugoti pakeitimus",
     backToProjects: "Atgal į projektus",
     auditedPeriod: "Audituojamas laikotarpis",
+    genReport: "Generuoti ataskaitą",
   },
   main: {
     projects: "Projektai",
