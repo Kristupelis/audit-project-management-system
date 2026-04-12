@@ -44,9 +44,6 @@ export default function EvidenceFilesPanel({
   closeLabel,
   deleteLabel,
   deletingLabel,
-  confirmDeleteTitle,
-  confirmDeleteMessage,
-  cancelLabel,
   refreshEvidence,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
