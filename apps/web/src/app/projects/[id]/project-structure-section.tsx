@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toUserFriendlyError } from "@/lib/error-message";
 import { useLanguage } from "@/providers/language-provider";
 import { useT } from "@/i18n/use-t";
+import EvidenceFilesPanel from "./evidence-files-panel";
 
 type NodeType =
   | "AUDIT_AREA"
@@ -118,6 +119,16 @@ type FindingData = {
   updatedAt: string;
 };
 
+type EvidenceFileData = {
+  id: string;
+  originalName: string;
+  mimeType?: string | null;
+  extension?: string | null;
+  sizeBytes?: number | null;
+  uploadedAt: string;
+  scanStatus: string;
+};
+
 type EvidenceData = {
   id: string;
   processId: string;
@@ -139,6 +150,7 @@ type EvidenceData = {
   order: number;
   createdAt: string;
   updatedAt: string;
+  files?: EvidenceFileData[];
 };
 
 type TreeNode =
@@ -617,6 +629,25 @@ export default function ProjectStructureSection({
     });
   }
 
+  async function refreshSelectedEvidence() {
+    if (!selectedNode || selectedNode.nodeType !== "EVIDENCE") return;
+
+    const res = await fetch(
+      `/api/projects/${projectId}/structure/item/${selectedNode.nodeType}/${selectedNode.id}`,
+      {
+        cache: "no-store",
+      },
+    );
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(text || "Failed to refresh evidence.");
+    }
+
+    const data = (await res.json()) as EvidenceData;
+    setSelectedDetails(data);
+  }
+
   async function openNode(node: TreeNode) {
     setDetailsLoading(true);
 
@@ -911,6 +942,28 @@ export default function ProjectStructureSection({
                 ) : (
                   renderReadFields()
                 )}
+
+                {!detailsLoading &&
+                  selectedNode?.nodeType === "EVIDENCE" &&
+                  selectedDetails && (
+                    <EvidenceFilesPanel
+                      evidence={selectedDetails as EvidenceData}
+                      uploadLabel={locale === "lt" ? "Įkelti failą" : "Upload file"}
+                      uploadingLabel={locale === "lt" ? "Keliama..." : "Uploading..."}
+                      noFilesLabel={locale === "lt" ? "Failų nėra." : "No files uploaded."}
+                      filesTitle={locale === "lt" ? "Failai" : "Files"}
+                      errorTitle={t.common.error}
+                      closeLabel={t.common.close}
+                      refreshEvidence={refreshSelectedEvidence}
+                      deleteLabel={t.common.delete}
+                      deletingLabel={t.projects.deleting}
+                      confirmDeleteTitle={t.projects.confirmDeleteTitle}
+                      confirmDeleteMessage={
+                        locale === "lt" ? "Ar tikrai norite ištrinti failą?" : "Are you sure you want to delete this file?"
+                      }
+                      cancelLabel={t.common.cancel}
+                    />
+                  )}
 
                 {selectedChildren.length > 0 && (
                   <div className="space-y-2">

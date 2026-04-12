@@ -31,6 +31,10 @@ import { MembersService } from './core/members.service';
 import { RolesService } from './core/roles.service';
 import { ProjectsService } from './core/projects.service';
 
+import { Res } from '@nestjs/common';
+import type { Response } from 'express';
+import { ReportService } from './report.service';
+
 @UseGuards(JwtAuthGuard)
 @Controller('projects')
 export class ProjectsController {
@@ -39,6 +43,7 @@ export class ProjectsController {
     private readonly members: MembersService,
     private readonly roles: RolesService,
     private readonly auditAreas: AuditAreaService,
+    private readonly reports: ReportService,
   ) {}
 
   // =========================
@@ -277,5 +282,26 @@ export class ProjectsController {
     @CurrentUser('sub') userId: string,
   ) {
     return this.auditAreas.list(projectId, userId);
+  }
+
+  // =========================
+  //    REPORT
+  // =========================
+  @Get(':id/report')
+  async downloadReport(
+    @Param('id') projectId: string,
+    @CurrentUser('sub') userId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const pdf = await this.reports.generateProjectReport(projectId, userId);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="project-report-${projectId}.pdf"`,
+    );
+    res.setHeader('Content-Length', String(pdf.length));
+
+    res.end(pdf);
   }
 }

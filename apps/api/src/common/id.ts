@@ -40,6 +40,10 @@ export function evidenceId() {
   return `EVID_${createId()}`;
 }
 
+export function evidenceFileId() {
+  return `EVF_${createId()}`;
+}
+
 export function findingId() {
   return `FIND_${createId()}`;
 }

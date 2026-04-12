@@ -49,6 +49,7 @@ export type TranslationDictionary = {
     saveChanges: string;
     backToProjects: string;
     auditedPeriod: string;
+    genReport: string;
   };
   main: {
     projects: string;
@@ -440,6 +441,7 @@ const en: TranslationDictionary = {
     saveChanges: "Save changes",
     backToProjects: "Back to projects",
     auditedPeriod: "Audited period",
+    genReport: "Generate report",
   },
   main: {
     projects: "Projects",
