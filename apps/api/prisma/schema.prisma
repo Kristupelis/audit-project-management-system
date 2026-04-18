@@ -147,25 +147,30 @@ enum FindingStatus {
 }
 
 model User {
-  id           String   @id //@default(cuid())
+  id           String   @id
   email        String   @unique
   name         String?
   passwordHash String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  systemRole      SystemRole @default(USER)
-  isBlocked   Boolean   @default(false)
-  blockedAt   DateTime?
-  blockedReason String?
+  systemRole   SystemRole @default(USER)
 
-  refreshTokens RefreshToken[] // ✅ opposite relation field
+  isBlocked      Boolean   @default(false)
+  blockedAt      DateTime?
+  blockedReason  String?
+
+  sessionVersion     Int       @default(0)
+  failedLoginAttempts Int      @default(0)
+  firstFailedLoginAt DateTime?
+
+  refreshTokens RefreshToken[]
 
   projectMembers ProjectMember[]
 
   auditLogs AuditLog[]
 
   isTwoFactorEnabled Boolean @default(false)
-  twoFactorSecret    String? // encrypted later if you want
+  twoFactorSecret    String?
 
   evidenceFiles EvidenceFile[]
 }

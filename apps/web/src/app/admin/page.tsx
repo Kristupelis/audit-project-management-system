@@ -22,53 +22,6 @@ export default async function AdminPage() {
   const t = getDictionary(locale);
 
   return (
-    <AdminUsersPage
-      backLabel={t.projects.backToProjects}
-      title={locale === "lt" ? "Administravimo skydas" : "Admin panel"}
-      subtitle={
-        locale === "lt"
-          ? "Naudotojų paskyrų valdymas"
-          : "Manage user accounts"
-      }
-      blockLabel={locale === "lt" ? "Blokuoti" : "Block"}
-      unblockLabel={locale === "lt" ? "Atblokuoti" : "Unblock"}
-      deleteLabel={locale === "lt" ? "Šalinti" : "Delete"}
-      blockedLabel={locale === "lt" ? "UŽBLOKUOTAS" : "BLOCKED"}
-      membershipsLabel={
-        locale === "lt" ? "Projekto narystės" : "Project memberships"
-      }
-      reasonLabel={locale === "lt" ? "Priežastis" : "Reason"}
-      loadingLabel={t.common.loading}
-      cancelLabel={t.common.cancel}
-      confirmLabel={locale === "lt" ? "Patvirtinti" : "Confirm"}
-      errorLabel={t.common.error}
-      closeLabel={t.common.close}
-      blockUserTitle={locale === "lt" ? "Blokuoti naudotoją" : "Block user"}
-      unblockUserTitle={
-        locale === "lt" ? "Atblokuoti naudotoją" : "Unblock user"
-      }
-      deleteUserTitle={
-        locale === "lt" ? "Šalinti naudotoją" : "Delete user"
-      }
-      blockReasonLabel={
-        locale === "lt" ? "Blokavimo priežastis" : "Block reason"
-      }
-      confirmBlockText={
-        locale === "lt"
-          ? "Ar tikrai norite užblokuoti"
-          : "Are you sure you want to block"
-      }
-      confirmUnblockText={
-        locale === "lt"
-          ? "Ar tikrai norite atblokuoti"
-          : "Are you sure you want to unblock"
-      }
-      confirmDeleteText={
-        locale === "lt"
-          ? "Ar tikrai norite pašalinti"
-          : "Are you sure you want to delete"
-      }
-      adminPathLabel={locale === "lt" ? "Administratorius" : "Admin"}
-    />
+    <AdminUsersPage/>
   );
 }

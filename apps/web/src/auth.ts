@@ -8,6 +8,7 @@ interface CustomUser {
   apiAccessToken: string;
   apiAccessExpiresAt: number | null;
   systemRole?: string | null;
+  sessionVersion?: number | null;
 }
 
 interface CustomSession extends Session {
@@ -28,10 +29,10 @@ export const authOptions: NextAuthOptions = {
         userId: { label: 'UserId', type: 'text' },
         name: { label: 'Name', type: 'text' },
         systemRole: { label: 'SystemRole', type: 'text' },
+        sessionVersion: { label: 'SessionVersion', type: 'text' },
         accessExpiresAt: { label: 'AccessExpiresAt', type: 'text' },
       },
       async authorize(credentials) {
-        // Session creation after successful 2FA/setup
         if (
           credentials?.accessToken &&
           credentials?.email &&
@@ -42,8 +43,13 @@ export const authOptions: NextAuthOptions = {
             email: credentials.email,
             name: credentials.name ?? '',
             systemRole: credentials.systemRole ?? null,
+            sessionVersion: credentials.sessionVersion
+              ? Number(credentials.sessionVersion)
+              : 0,
             apiAccessToken: credentials.accessToken,
-            apiAccessExpiresAt: credentials.accessExpiresAt ? Number(credentials.accessExpiresAt) : null,
+            apiAccessExpiresAt: credentials.accessExpiresAt
+              ? Number(credentials.accessExpiresAt)
+              : null,
           } as CustomUser;
         }
 
@@ -97,6 +103,8 @@ export const authOptions: NextAuthOptions = {
           email: String(user.email),
           name: String(user.name ?? ''),
           systemRole: (user.systemRole as string | null | undefined) ?? null,
+          sessionVersion:
+            (user.sessionVersion as number | null | undefined) ?? 0,
           apiAccessToken: String(data.accessToken),
           apiAccessExpiresAt:
             (data.accessExpiresAt as number | null | undefined) ?? null,
@@ -111,6 +119,7 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.systemRole = (user as CustomUser).systemRole ?? null;
+        token.sessionVersion = (user as CustomUser).sessionVersion ?? 0;
         token.apiAccessToken = (user as CustomUser).apiAccessToken;
         token.apiAccessExpiresAt = (user as CustomUser).apiAccessExpiresAt;
       }

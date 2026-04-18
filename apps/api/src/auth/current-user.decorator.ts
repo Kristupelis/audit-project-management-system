@@ -5,6 +5,7 @@ export type RequestUser = {
   sub: string;
   email: string;
   systemRole?: SystemRole;
+  sessionVersion?: number;
 };
 
 export const CurrentUser = createParamDecorator(

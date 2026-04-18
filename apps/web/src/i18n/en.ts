@@ -371,6 +371,12 @@ export type TranslationDictionary = {
         yourName: string;
         createAccountTitle: string;
         passwordRequirements: string;
+        blockedTitle: string;
+        blockedMessage: string;
+        blockedReasonLabel: string;
+        blockedContactMessage: string;
+        sessionEndedTitle: string;
+        sessionEndedMessage: string;
     };
     accountPage: {
         title: string;
@@ -822,6 +828,14 @@ const en: TranslationDictionary = {
         createAccountTitle: "Create account",
         passwordRequirements:
             "Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.",
+        blockedTitle: "Account blocked",
+        blockedMessage: "Your account is blocked.",
+        blockedReasonLabel: "Reason",
+        blockedContactMessage:
+          "For unblock requests, contact ckristupas@gmail.com.",
+        sessionEndedTitle: "Session ended",
+        sessionEndedMessage:
+          "Your session has ended because your account was changed, blocked, deleted, or your sign-in status is no longer valid.",
     },
     accountPage: {
         title: "Account",

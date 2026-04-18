@@ -432,6 +432,14 @@ const lt: TranslationDictionary = {
         createAccountTitle: "Sukurti paskyrą",
         passwordRequirements:
             "Slaptažodis turi būti bent 8 simbolių ilgio ir turėti bent vieną didžiąją raidę, vieną mažąją raidę, vieną skaičių ir vieną specialų simbolį.",
+        blockedTitle: "Paskyra užblokuota",
+        blockedMessage: "Jūsų paskyra yra užblokuota.",
+        blockedReasonLabel: "Priežastis",
+        blockedContactMessage:
+          "Dėl atblokavimo susisiekite: ckristupas@gmail.com.",
+        sessionEndedTitle: "Sesija baigėsi",
+        sessionEndedMessage:
+          "Jūsų sesija baigėsi, nes paskyra buvo pakeista, užblokuota, pašalinta arba jūsų prisijungimo būsena nebegalioja.",
     },
     accountPage: {
         title: "Paskyra",
