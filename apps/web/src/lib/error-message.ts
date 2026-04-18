@@ -3,6 +3,7 @@ type Locale = "en" | "lt";
 const errorTexts = {
   en: {
     somethingWentWrong: "Something went wrong.",
+    projectLocked: "This project is locked. Only the project owner or administrator can open it.",
     fallback: "Something went wrong. Please try again.",
     noPermission: "You do not have permission to perform this action.",
     unauthorized: "Your session has expired or you are not logged in.",
@@ -28,6 +29,7 @@ const errorTexts = {
   },
   lt: {
     somethingWentWrong: "Įvyko klaida.",
+    projectLocked: "Šis projektas yra užrakintas. Jį atidaryti gali tik projekto savininkas arba administratorius.",
     fallback: "Įvyko klaida. Bandykite dar kartą.",
     noPermission: "Jūs neturite teisės atlikti šio veiksmo.",
     unauthorized: "Jūsų sesija pasibaigė arba nesate prisijungę.",
@@ -138,6 +140,10 @@ export function toUserFriendlyError(
 
   if (normalized.includes("missing permission")) {
     return t.noPermission;
+  }
+
+  if (normalized.includes("project_locked")) {
+    return t.projectLocked;
   }
 
   if (normalized.includes("forbidden")) {

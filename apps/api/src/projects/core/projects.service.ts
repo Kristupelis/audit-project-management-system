@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   AuditAction,
   PermissionAction,
-  ResourceType,
   Prisma,
+  ResourceType,
   SystemRole,
 } from '@prisma/client';
 import { ProjectPermissionsService } from '../permissions.service';
@@ -54,6 +57,7 @@ export class ProjectsService {
           status: dto.status,
           auditType: dto.auditType,
           priority: dto.priority,
+          isLocked: false,
           scope: dto.scope ?? null,
           objective: dto.objective ?? null,
           methodology: dto.methodology ?? null,
@@ -109,6 +113,7 @@ export class ProjectsService {
           status: true,
           auditType: true,
           priority: true,
+          isLocked: true,
           scope: true,
           objective: true,
           methodology: true,
@@ -146,6 +151,7 @@ export class ProjectsService {
           status: true,
           auditType: true,
           priority: true,
+          isLocked: true,
           periodStart: true,
           periodEnd: true,
           plannedStartDate: true,
@@ -187,6 +193,7 @@ export class ProjectsService {
             status: true,
             auditType: true,
             priority: true,
+            isLocked: true,
             periodStart: true,
             periodEnd: true,
             plannedStartDate: true,
@@ -201,10 +208,8 @@ export class ProjectsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return memberships.map((m) => ({
       isOwner: m.isOwner,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       roles: m.roles.map((r) => r.role.name),
       ...m.project,
     }));
@@ -227,6 +232,7 @@ export class ProjectsService {
           status: true,
           auditType: true,
           priority: true,
+          isLocked: true,
           scope: true,
           objective: true,
           methodology: true,
@@ -277,6 +283,7 @@ export class ProjectsService {
             status: true,
             auditType: true,
             priority: true,
+            isLocked: true,
             scope: true,
             objective: true,
             methodology: true,
@@ -298,10 +305,12 @@ export class ProjectsService {
 
     if (!member) throw new ForbiddenException('Not a project member');
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    if (member.project.isLocked && !member.isOwner) {
+      throw new ForbiddenException('PROJECT_LOCKED');
+    }
+
     return {
       isOwner: member.isOwner,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       roles: member.roles.map((r) => r.role.name),
       ...member.project,
     };
@@ -333,6 +342,7 @@ export class ProjectsService {
           status: true,
           auditType: true,
           priority: true,
+          isLocked: true,
           scope: true,
           objective: true,
           methodology: true,
@@ -359,6 +369,64 @@ export class ProjectsService {
           entity: 'Project',
           entityId: projectIdValue,
           details: dto as Prisma.InputJsonValue,
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  async lockProject(projectIdValue: string, userId: string) {
+    await this.permissions.requireOwner(projectIdValue, userId);
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.project.update({
+        where: { id: projectIdValue },
+        data: { isLocked: true },
+        select: {
+          id: true,
+          isLocked: true,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectIdValue,
+          actorId: userId,
+          action: AuditAction.PROJECT_UPDATED,
+          entity: 'Project',
+          entityId: projectIdValue,
+          details: { isLocked: true } as Prisma.InputJsonValue,
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  async unlockProject(projectIdValue: string, userId: string) {
+    await this.permissions.requireOwner(projectIdValue, userId);
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.project.update({
+        where: { id: projectIdValue },
+        data: { isLocked: false },
+        select: {
+          id: true,
+          isLocked: true,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          id: auditId(),
+          projectId: projectIdValue,
+          actorId: userId,
+          action: AuditAction.PROJECT_UPDATED,
+          entity: 'Project',
+          entityId: projectIdValue,
+          details: { isLocked: false } as Prisma.InputJsonValue,
         },
       });
 
@@ -402,6 +470,8 @@ export class ProjectsService {
       date?: string;
     },
   ) {
+    await this.permissions.requireProjectOpenAccess(projectIdValue, userId);
+
     await this.permissions.requirePermission(
       projectIdValue,
       userId,
@@ -410,7 +480,6 @@ export class ProjectsService {
     );
 
     const takeOnly = query?.take ? Number(query.take) : undefined;
-
     let createdAtFilter: Prisma.DateTimeFilter | undefined;
 
     if (query?.date) {
@@ -420,17 +489,11 @@ export class ProjectsService {
         if (query.dateMode === 'before') {
           const endOfDay = new Date(selectedDate);
           endOfDay.setHours(23, 59, 59, 999);
-
-          createdAtFilter = {
-            lte: endOfDay,
-          };
+          createdAtFilter = { lte: endOfDay };
         } else if (query.dateMode === 'after') {
           const startOfDay = new Date(selectedDate);
           startOfDay.setHours(0, 0, 0, 0);
-
-          createdAtFilter = {
-            gte: startOfDay,
-          };
+          createdAtFilter = { gte: startOfDay };
         }
       }
     }

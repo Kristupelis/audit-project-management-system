@@ -159,6 +159,11 @@ export class EvidenceService {
 
     if (!p) throw new NotFoundException('Process not found');
 
+    await this.permissions.requireProjectOpenAccess(
+      p.auditArea.projectId,
+      userId,
+    );
+
     await this.permissions.requirePermission(
       p.auditArea.projectId,
       userId,
@@ -181,6 +186,8 @@ export class EvidenceService {
 
   async get(evidenceIdValue: string, userId: string) {
     const projectId = await this.resolveProject(evidenceIdValue);
+
+    await this.permissions.requireProjectOpenAccess(projectId, userId);
 
     await this.permissions.requirePermission(
       projectId,
@@ -350,6 +357,8 @@ export class EvidenceService {
     }
 
     const projectId = file.evidence.process.auditArea.projectId;
+
+    await this.permissions.requireProjectOpenAccess(projectId, userId);
 
     await this.permissions.requirePermission(
       projectId,

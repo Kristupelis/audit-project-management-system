@@ -195,6 +195,7 @@ model Project {
   status            ProjectStatus @default(PLANNING)
   auditType         AuditType     @default(INTERNAL)
   priority          PriorityLevel @default(MEDIUM)
+  isLocked          Boolean       @default(false)
 
   scope             String?
   objective         String?

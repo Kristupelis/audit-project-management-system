@@ -143,6 +143,11 @@ export class TestStepService {
 
     if (!control) throw new NotFoundException('Control not found');
 
+    await this.permissions.requireProjectOpenAccess(
+      control.process.auditArea.projectId,
+      userId,
+    );
+
     await this.permissions.requirePermission(
       control.process.auditArea.projectId,
       userId,
@@ -159,6 +164,8 @@ export class TestStepService {
 
   async get(id: string, userId: string) {
     const projectId = await this.resolveProject(id);
+
+    await this.permissions.requireProjectOpenAccess(projectId, userId);
 
     await this.permissions.requirePermission(
       projectId,

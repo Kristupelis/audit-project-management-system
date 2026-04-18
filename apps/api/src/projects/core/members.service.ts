@@ -16,6 +16,8 @@ export class MembersService {
   ) {}
 
   async listMembers(projectId: string, userId: string) {
+    await this.permissions.requireProjectOpenAccess(projectId, userId);
+
     await this.permissions.requirePermission(
       projectId,
       userId,

@@ -10,6 +10,8 @@ import DeleteProjectButton from "./delete-project-button";
 import { getDictionary, type Locale } from "@/i18n/get-dictionary";
 import { withAuthRedirect } from "@/lib/with-auth-redirect";
 import GenerateReportButton from "./generate-report-button";
+import LockProjectButton from "./lock-project-button";
+import ProjectLockWatcher from "./project-lock-watcher";
 
 type Project = {
   id: string;
@@ -19,6 +21,7 @@ type Project = {
   status: string;
   auditType: string;
   priority: string;
+  isLocked: boolean;
   scope: string | null;
   objective: string | null;
   methodology: string | null;
@@ -95,6 +98,8 @@ export default async function ProjectDetailPage({
 
   return (
     <main className="p-6 space-y-6">
+      <ProjectLockWatcher projectId={id} />
+      
       <header className="space-y-4">
         <Link className="underline text-sm" href="/projects">
           ← {t.projects.backToProjects}
@@ -120,6 +125,11 @@ export default async function ProjectDetailPage({
                 <span className="border rounded-full px-2 py-1">
                   {t.projects.priority}: {priorityLabel}
                 </span>
+                {project.isLocked && (
+                  <span className="border rounded-full px-2 py-1 border-red-400 text-red-700">
+                    {locale === "lt" ? "Užrakintas" : "Locked"}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -141,8 +151,18 @@ export default async function ProjectDetailPage({
                     closeLabel={t.common.close}
                     loadingLabel={t.common.loading}
                   />
+                  <LockProjectButton
+                    projectId={id}
+                    isLocked={project.isLocked}
+                    lockLabel={locale === "lt" ? "Užrakinti projektą" : "Lock project"}
+                    unlockLabel={locale === "lt" ? "Atrakinti projektą" : "Unlock project"}
+                    loadingLabel={t.common.loading}
+                    errorTitle={t.common.error}
+                    closeLabel={t.common.close}
+                  />
                 </>
               )}
+              
 
               {(project.isOwner || session?.user?.systemRole === "SUPER_ADMIN") && (
                 <Link href={`/projects/${id}/roles`}>

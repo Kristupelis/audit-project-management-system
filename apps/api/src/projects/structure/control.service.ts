@@ -116,6 +116,11 @@ export class ControlService {
 
     if (!process) throw new NotFoundException('Process not found');
 
+    await this.permissions.requireProjectOpenAccess(
+      process.auditArea.projectId,
+      userId,
+    );
+
     await this.permissions.requirePermission(
       process.auditArea.projectId,
       userId,
@@ -132,6 +137,8 @@ export class ControlService {
 
   async get(controlIdValue: string, userId: string) {
     const projectId = await this.resolveProject(controlIdValue);
+
+    await this.permissions.requireProjectOpenAccess(projectId, userId);
 
     await this.permissions.requirePermission(
       projectId,

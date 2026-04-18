@@ -131,6 +131,11 @@ export class FindingService {
 
     if (!p) throw new NotFoundException('Process not found');
 
+    await this.permissions.requireProjectOpenAccess(
+      p.auditArea.projectId,
+      userId,
+    );
+
     await this.permissions.requirePermission(
       p.auditArea.projectId,
       userId,
@@ -147,6 +152,8 @@ export class FindingService {
 
   async get(findingIdValue: string, userId: string) {
     const projectId = await this.resolveProject(findingIdValue);
+
+    await this.permissions.requireProjectOpenAccess(projectId, userId);
 
     await this.permissions.requirePermission(
       projectId,
