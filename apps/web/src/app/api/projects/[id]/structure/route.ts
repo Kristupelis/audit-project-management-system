@@ -15,6 +15,7 @@ type Process = {
   id: string;
   auditAreaId: string;
   name: string;
+  status: string;
   order: number;
   createdAt: string;
 };
@@ -150,6 +151,67 @@ async function canReadNode(
   return res.ok;
 }
 
+type ProgressSummary = {
+  totalProcesses: number;
+  percent: number;
+  completed: number;
+  closed: number;
+  inProgress: number;
+  notStarted: number;
+  notApplicable: number;
+};
+
+function getProcessProgressWeight(status?: string): number {
+  switch (status) {
+    case "COMPLETED":
+    case "CLOSED":
+    case "NOT_APPLICABLE":
+      return 100;
+    case "IN_PROGRESS":
+      return 50;
+    case "NOT_STARTED":
+    default:
+      return 0;
+  }
+}
+
+function buildProgressSummary(statuses: string[]): ProgressSummary {
+  const totalProcesses = statuses.length;
+
+  if (totalProcesses === 0) {
+    return {
+      totalProcesses: 0,
+      percent: 0,
+      completed: 0,
+      closed: 0,
+      inProgress: 0,
+      notStarted: 0,
+      notApplicable: 0,
+    };
+  }
+
+  const completed = statuses.filter((s) => s === "COMPLETED").length;
+  const closed = statuses.filter((s) => s === "CLOSED").length;
+  const inProgress = statuses.filter((s) => s === "IN_PROGRESS").length;
+  const notStarted = statuses.filter((s) => s === "NOT_STARTED").length;
+  const notApplicable = statuses.filter((s) => s === "NOT_APPLICABLE").length;
+
+  const totalWeight = statuses.reduce(
+    (sum, status) => sum + getProcessProgressWeight(status),
+    0
+  );
+
+  return {
+    totalProcesses,
+    percent: Math.round(totalWeight / totalProcesses),
+    completed,
+    closed,
+    inProgress,
+    notStarted,
+    notApplicable,
+  };
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -173,12 +235,18 @@ export async function GET(
       token
     );
 
+    const allProcessStatuses: string[] = [];
+
     const areaNodes: TreeNode[] = await Promise.all(
       auditAreas.map(async (area) => {
         const processes = await apiFetch<Process[]>(
           `/audit-areas/${area.id}/processes`,
           token
         );
+
+        processes.forEach((process) => {
+          allProcessStatuses.push(process.status);
+        });
 
         const processNodes: TreeNode[] = await Promise.all(
           processes.map(async (process) => {
@@ -318,12 +386,15 @@ export async function GET(
       })
     );
 
+    const sortedTree = areaNodes.sort((a, b) => {
+    const left = a.data?.order ?? 0;
+    const right = b.data?.order ?? 0;
+    return left - right;
+    });
+
     return NextResponse.json({
-      tree: areaNodes.sort((a, b) => {
-        const left = a.data?.order ?? 0;
-        const right = b.data?.order ?? 0;
-        return left - right;
-      }),
+      tree: sortedTree,
+      progress: buildProgressSummary(allProcessStatuses),
     });
   } catch (error) {
     const message =

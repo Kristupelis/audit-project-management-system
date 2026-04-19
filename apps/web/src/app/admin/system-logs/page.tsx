@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { getDictionary, type Locale } from "@/i18n/get-dictionary";
 import AdminSystemLogsPage from "./system-logs-page";

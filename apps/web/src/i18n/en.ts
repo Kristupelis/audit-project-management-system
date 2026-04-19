@@ -198,6 +198,10 @@ export type TranslationDictionary = {
         version: string;
         riskLevelValues?: Record<string, string>;
         severityValues?: Record<string, string>;
+        nodeStatusValues?: Record<string, string>;
+        testStepStatusValues?: Record<string, string>;
+        findingStatusValues?: Record<string, string>;
+        evidenceStatusValues?: Record<string, string>;
         createComponentPageTitle: string;
         backToProject: string;
         selectParent: string;
@@ -614,6 +618,37 @@ const en: TranslationDictionary = {
             MEDIUM: "Medium",
             HIGH: "High",
             CRITICAL: "Critical",
+        },
+        nodeStatusValues: {
+            NOT_STARTED: "Not started",
+            IN_PROGRESS: "In progress",
+            COMPLETED: "Completed",
+            CLOSED: "Closed",
+            NOT_APPLICABLE: "Not applicable",
+        },
+        testStepStatusValues: {
+            NOT_STARTED: "Not started",
+            IN_PROGRESS: "In progress",
+            PASSED: "Passed",
+            FAILED: "Failed",
+            BLOCKED: "Blocked",
+            NOT_APPLICABLE: "Not applicable",
+        },
+        findingStatusValues: {
+            DRAFT: "Draft",
+            OPEN: "Open",
+            ACCEPTED: "Accepted",
+            IN_PROGRESS: "In progress",
+            RESOLVED: "Resolved",
+            CLOSED: "Closed",
+            REJECTED: "Rejected",
+        },
+        evidenceStatusValues: {
+            REQUESTED: "Requested",
+            RECEIVED: "Received",
+            REVIEWED: "Reviewed",
+            ACCEPTED: "Accepted",
+            REJECTED: "Rejected",
         },
         createComponentPageTitle: "Create component",
         backToProject: "Back to project",
