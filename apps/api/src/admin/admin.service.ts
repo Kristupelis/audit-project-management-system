@@ -8,10 +8,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SystemRole } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { UpdateProfileDto } from '../auth/dto/update-profile.dto';
+import { SystemLogsService } from './system-logs.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly systemLogs: SystemLogsService,
+  ) {}
 
   private async requireSuperAdmin(actorId: string) {
     const actor = await this.prisma.user.findUnique({
@@ -138,6 +142,14 @@ export class AdminService {
     const isEmailChanged =
       nextEmail !== undefined && nextEmail !== existingUser.email;
 
+    await this.systemLogs.write({
+      level: 'INFO',
+      action: 'ADMIN_CHANGE_USER_DATA',
+      message: `User ${targetUserId} had their data changed by admin`,
+      actorUserId: actorId,
+      targetUserId,
+    });
+
     return this.prisma.user.update({
       where: { id: targetUserId },
       data: {
@@ -175,6 +187,14 @@ export class AdminService {
 
     const passwordHash = await argon2.hash(newPassword);
 
+    await this.systemLogs.write({
+      level: 'INFO',
+      action: 'ADMIN_CHANGE_USER_PASSWORD',
+      message: `User ${targetUserId} had their password changed by admin`,
+      actorUserId: actorId,
+      targetUserId,
+    });
+
     await this.prisma.user.update({
       where: { id: targetUserId },
       data: {
@@ -206,6 +226,17 @@ export class AdminService {
       );
     }
 
+    await this.systemLogs.write({
+      level: 'SECURITY',
+      action: 'ADMIN_BLOCK_USER',
+      message: `User ${targetUserId} was blocked by admin`,
+      actorUserId: actorId,
+      targetUserId,
+      details: {
+        reason: reason?.trim() || 'Blocked by administrator',
+      },
+    });
+
     return this.prisma.user.update({
       where: { id: targetUserId },
       data: {
@@ -229,6 +260,14 @@ export class AdminService {
     await this.requireSuperAdmin(actorId);
 
     await this.ensureTargetExists(targetUserId);
+
+    await this.systemLogs.write({
+      level: 'SECURITY',
+      action: 'ADMIN_UNBLOCK_USER',
+      message: `User ${targetUserId} was unblocked by admin`,
+      actorUserId: actorId,
+      targetUserId,
+    });
 
     return this.prisma.user.update({
       where: { id: targetUserId },
@@ -269,10 +308,31 @@ export class AdminService {
       );
     }
 
+    await this.systemLogs.write({
+      level: 'WARNING',
+      action: 'ADMIN_DELETE_USER',
+      message: `User ${targetUserId} was deleted by admin`,
+      actorUserId: actorId,
+      targetUserId,
+    });
+
     await this.prisma.user.delete({
       where: { id: targetUserId },
     });
 
     return { success: true };
+  }
+
+  async listSystemLogs(
+    actorId: string,
+    query?: {
+      page?: string;
+      pageSize?: string;
+      level?: string;
+      action?: string;
+    },
+  ) {
+    await this.requireSuperAdmin(actorId);
+    return this.systemLogs.list(actorId, query);
   }
 }

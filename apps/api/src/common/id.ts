@@ -51,3 +51,7 @@ export function findingId() {
 export function testStepId() {
   return `TS_${createId()}`;
 }
+
+export function systemLogId() {
+  return `SID_${createId()}`;
+}

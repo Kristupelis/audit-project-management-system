@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Patch,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -64,5 +65,21 @@ export class AdminController {
     @Param('id') targetUserId: string,
   ) {
     return this.admin.deleteUser(actorId, targetUserId);
+  }
+
+  @Get('system-logs')
+  listSystemLogs(
+    @CurrentUser('sub') actorId: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('level') level?: string,
+    @Query('action') action?: string,
+  ) {
+    return this.admin.listSystemLogs(actorId, {
+      page,
+      pageSize,
+      level,
+      action,
+    });
   }
 }

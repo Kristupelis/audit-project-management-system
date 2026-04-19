@@ -246,9 +246,18 @@ export default function AdminUsersPage() {
   return (
     <main className="p-6 space-y-6">
       <div className="space-y-4">
-        <Link className="underline text-sm" href="/projects">
-          ← {t.projects.backToProjects}
-        </Link>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <Link className="underline text-sm" href="/projects">
+            ← {t.projects.backToProjects}
+          </Link>
+
+          <Link
+            href="/admin/system-logs"
+            className="border rounded-md px-3 py-2 hover:bg-gray-800"
+          >
+            {locale === "lt" ? "Sistemos žurnalai" : "System logs"}
+          </Link>
+        </div>
 
         <div>
           <h1 className="text-2xl font-semibold">

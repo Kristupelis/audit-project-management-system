@@ -1,0 +1,314 @@
+Date : 2026-04-12 19:31:38
+Directory : c:\Users\ckris\Desktop\Darbai\apms\apps
+Total : 159 files,  20262 codes, 293 comments, 3394 blanks, all 23949 lines
+
+Languages
++--------------------+------------+------------+------------+------------+------------+
+| language           | files      | code       | comment    | blank      | total      |
++--------------------+------------+------------+------------+------------+------------+
+| TypeScript         |         92 |      9,582 |        111 |      1,439 |     11,132 |
+| TypeScript JSX     |         34 |      6,089 |          4 |        770 |      6,863 |
+| YAML               |          2 |      3,354 |          0 |        899 |      4,253 |
+| Prisma             |          1 |        459 |          6 |         90 |        555 |
+| MS SQL             |         15 |        367 |        167 |        132 |        666 |
+| JSON               |          6 |        150 |          0 |          6 |        156 |
+| Markdown           |          2 |         91 |          2 |         43 |        136 |
+| JavaScript         |          4 |         86 |          3 |          8 |         97 |
+| JSON with Comments |          2 |         62 |          0 |          2 |         64 |
+| PostCSS            |          1 |         22 |          0 |          5 |         27 |
++--------------------+------------+------------+------------+------------+------------+
+
+Directories
++-----------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                                  | files      | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                                     |        159 |     20,262 |        293 |      3,394 |     23,949 |
+| api                                                                                                                   |         73 |      6,855 |        259 |      1,268 |      8,382 |
+| api (Files)                                                                                                           |         10 |        294 |          5 |         40 |        339 |
+| api\prisma                                                                                                            |         16 |        826 |        173 |        222 |      1,221 |
+| api\prisma (Files)                                                                                                    |          1 |        459 |          6 |         90 |        555 |
+| api\prisma\migrations                                                                                                 |         15 |        367 |        167 |        132 |        666 |
+| api\prisma\migrations\20260201102826_add_refresh_tokens                                                               |          1 |         23 |          6 |          8 |         37 |
+| api\prisma\migrations\20260207151509_projects_domain                                                                  |          1 |         41 |         23 |         19 |         83 |
+| api\prisma\migrations\20260303191809_add_2fa                                                                          |          1 |          2 |          1 |          1 |          4 |
+| api\prisma\migrations\20260309180934_rbac_model                                                                       |          1 |         57 |         35 |         30 |        122 |
+| api\prisma\migrations\20260315055252_update_resource_enum                                                             |          1 |          8 |          7 |          1 |         16 |
+| api\prisma\migrations\20260315062043_project_structure                                                                |          1 |         54 |         12 |         18 |         84 |
+| api\prisma\migrations\20260322105541_add_cascade_structure                                                            |          1 |         12 |         12 |         12 |         36 |
+| api\prisma\migrations\20260326090417_add_structure_audit_logs                                                         |          1 |         18 |          6 |          3 |         27 |
+| api\prisma\migrations\20260326113852_order_numbers                                                                    |          1 |          4 |          4 |          4 |         12 |
+| api\prisma\migrations\20260329090638_see_permission_type                                                              |          1 |          8 |          7 |          1 |         16 |
+| api\prisma\migrations\20260404091035_add_role_audit_actions                                                           |          1 |          2 |          6 |          3 |         11 |
+| api\prisma\migrations\20260404113323_expand_audit_domain_models                                                       |          1 |        105 |         32 |         21 |        158 |
+| api\prisma\migrations\20260404114225_model_for_file_uploads                                                           |          1 |         28 |          8 |          9 |         45 |
+| api\prisma\migrations\20260404114327_smallchange                                                                      |          1 |          2 |          7 |          1 |         10 |
+| api\prisma\migrations\20260411124947_add_user_blocking                                                                |          1 |          3 |          1 |          1 |          5 |
+| api\src                                                                                                               |         47 |      5,735 |         81 |      1,006 |      6,822 |
+| api\src (Files)                                                                                                       |          2 |         51 |          0 |          7 |         58 |
+| api\src\admin                                                                                                         |          3 |        219 |          0 |         36 |        255 |
+| api\src\auth                                                                                                          |         10 |        520 |          5 |        104 |        629 |
+| api\src\auth (Files)                                                                                                  |          6 |        453 |          5 |         90 |        548 |
+| api\src\auth\dto                                                                                                      |          4 |         67 |          0 |         14 |         81 |
+| api\src\common                                                                                                        |          1 |         40 |          0 |         14 |         54 |
+| api\src\prisma                                                                                                        |          2 |         31 |          1 |          8 |         40 |
+| api\src\projects                                                                                                      |         29 |      4,874 |         75 |        837 |      5,786 |
+| api\src\projects (Files)                                                                                              |          4 |      1,308 |         44 |        231 |      1,583 |
+| api\src\projects\core                                                                                                 |          3 |      1,176 |         25 |        131 |      1,332 |
+| api\src\projects\dto                                                                                                  |         10 |        709 |          0 |        217 |        926 |
+| api\src\projects\structure                                                                                            |         12 |      1,681 |          6 |        258 |      1,945 |
+| web                                                                                                                   |         86 |     13,407 |         34 |      2,126 |     15,567 |
+| web (Files)                                                                                                           |          8 |      3,465 |          3 |        923 |      4,391 |
+| web\src                                                                                                               |         78 |      9,942 |         31 |      1,203 |     11,176 |
+| web\src (Files)                                                                                                       |          1 |        122 |          1 |         24 |        147 |
+| web\src\app                                                                                                           |         64 |      8,034 |          3 |      1,085 |      9,122 |
+| web\src\app (Files)                                                                                                   |          3 |         75 |          0 |         13 |         88 |
+| web\src\app\account                                                                                                   |          1 |        288 |          0 |         43 |        331 |
+| web\src\app\admin                                                                                                     |          2 |        339 |          0 |         36 |        375 |
+| web\src\app\api                                                                                                       |         34 |      2,153 |          0 |        352 |      2,505 |
+| web\src\app\api\admin                                                                                                 |          4 |        113 |          0 |         24 |        137 |
+| web\src\app\api\admin\users                                                                                           |          4 |        113 |          0 |         24 |        137 |
+| web\src\app\api\admin\users (Files)                                                                                   |          1 |         23 |          0 |          5 |         28 |
+| web\src\app\api\admin\users\[id]                                                                                      |          3 |         90 |          0 |         19 |        109 |
+| web\src\app\api\admin\users\[id] (Files)                                                                              |          1 |         27 |          0 |          6 |         33 |
+| web\src\app\api\admin\users\[id]\block                                                                                |          1 |         33 |          0 |          7 |         40 |
+| web\src\app\api\admin\users\[id]\unblock                                                                              |          1 |         30 |          0 |          6 |         36 |
+| web\src\app\api\audit-areas                                                                                           |          2 |        147 |          0 |         22 |        169 |
+| web\src\app\api\audit-areas\[areaId]                                                                                  |          2 |        147 |          0 |         22 |        169 |
+| web\src\app\api\audit-areas\[areaId] (Files)                                                                          |          1 |         87 |          0 |         13 |        100 |
+| web\src\app\api\audit-areas\[areaId]\processes                                                                        |          1 |         60 |          0 |          9 |         69 |
+| web\src\app\api\auth                                                                                                  |          1 |          4 |          0 |          2 |          6 |
+| web\src\app\api\auth\[...nextauth]                                                                                    |          1 |          4 |          0 |          2 |          6 |
+| web\src\app\api\controls                                                                                              |          2 |        147 |          0 |         22 |        169 |
+| web\src\app\api\controls\[controlId]                                                                                  |          2 |        147 |          0 |         22 |        169 |
+| web\src\app\api\controls\[controlId] (Files)                                                                          |          1 |         87 |          0 |         13 |        100 |
+| web\src\app\api\controls\[controlId]\test-steps                                                                       |          1 |         60 |          0 |          9 |         69 |
+| web\src\app\api\evidence                                                                                              |          3 |        187 |          0 |         33 |        220 |
+| web\src\app\api\evidence\[evidenceId]                                                                                 |          2 |        119 |          0 |         20 |        139 |
+| web\src\app\api\evidence\[evidenceId] (Files)                                                                         |          1 |         87 |          0 |         13 |        100 |
+| web\src\app\api\evidence\[evidenceId]\files                                                                           |          1 |         32 |          0 |          7 |         39 |
+| web\src\app\api\evidence\files                                                                                        |          1 |         68 |          0 |         13 |         81 |
+| web\src\app\api\evidence\files\[fileId]                                                                               |          1 |         68 |          0 |         13 |         81 |
+| web\src\app\api\findings                                                                                              |          1 |         87 |          0 |         13 |        100 |
+| web\src\app\api\findings\[findingId]                                                                                  |          1 |         87 |          0 |         13 |        100 |
+| web\src\app\api\processes                                                                                             |          4 |        267 |          0 |         40 |        307 |
+| web\src\app\api\processes\[processId]                                                                                 |          4 |        267 |          0 |         40 |        307 |
+| web\src\app\api\processes\[processId] (Files)                                                                         |          1 |         87 |          0 |         13 |        100 |
+| web\src\app\api\processes\[processId]\controls                                                                        |          1 |         60 |          0 |          9 |         69 |
+| web\src\app\api\processes\[processId]\evidence                                                                        |          1 |         60 |          0 |          9 |         69 |
+| web\src\app\api\processes\[processId]\findings                                                                        |          1 |         60 |          0 |          9 |         69 |
+| web\src\app\api\projects                                                                                              |         16 |      1,114 |          0 |        183 |      1,297 |
+| web\src\app\api\projects (Files)                                                                                      |          1 |         26 |          0 |          6 |         32 |
+| web\src\app\api\projects\[id]                                                                                         |         15 |      1,088 |          0 |        177 |      1,265 |
+| web\src\app\api\projects\[id] (Files)                                                                                 |          1 |         78 |          0 |         19 |         97 |
+| web\src\app\api\projects\[id]\audit                                                                                   |          1 |         32 |          0 |          7 |         39 |
+| web\src\app\api\projects\[id]\audit-areas                                                                             |          1 |         60 |          0 |         11 |         71 |
+| web\src\app\api\projects\[id]\members                                                                                 |          4 |        146 |          0 |         32 |        178 |
+| web\src\app\api\projects\[id]\members (Files)                                                                         |          1 |         55 |          0 |         13 |         68 |
+| web\src\app\api\projects\[id]\members\[memberId]                                                                      |          3 |         91 |          0 |         19 |        110 |
+| web\src\app\api\projects\[id]\members\[memberId] (Files)                                                              |          1 |         28 |          0 |          6 |         34 |
+| web\src\app\api\projects\[id]\members\[memberId]\roles                                                                |          2 |         63 |          0 |         13 |         76 |
+| web\src\app\api\projects\[id]\members\[memberId]\roles (Files)                                                        |          1 |         33 |          0 |          7 |         40 |
+| web\src\app\api\projects\[id]\members\[memberId]\roles\[roleId]                                                       |          1 |         30 |          0 |          6 |         36 |
+| web\src\app\api\projects\[id]\remove-ownership                                                                        |          1 |         33 |          0 |          7 |         40 |
+| web\src\app\api\projects\[id]\report                                                                                  |          1 |         54 |          0 |          7 |         61 |
+| web\src\app\api\projects\[id]\roles                                                                                   |          2 |        147 |          0 |         32 |        179 |
+| web\src\app\api\projects\[id]\roles (Files)                                                                           |          1 |         60 |          0 |         13 |         73 |
+| web\src\app\api\projects\[id]\roles\[roleId]                                                                          |          1 |         87 |          0 |         19 |        106 |
+| web\src\app\api\projects\[id]\structure                                                                               |          3 |        505 |          0 |         55 |        560 |
+| web\src\app\api\projects\[id]\structure (Files)                                                                       |          1 |        304 |          0 |         29 |        333 |
+| web\src\app\api\projects\[id]\structure\item                                                                          |          2 |        201 |          0 |         26 |        227 |
+| web\src\app\api\projects\[id]\structure\item (Files)                                                                  |          1 |         91 |          0 |         11 |        102 |
+| web\src\app\api\projects\[id]\structure\item\[nodeType]                                                               |          1 |        110 |          0 |         15 |        125 |
+| web\src\app\api\projects\[id]\structure\item\[nodeType]\[itemId]                                                      |          1 |        110 |          0 |         15 |        125 |
+| web\src\app\api\projects\[id]\transfer-ownership                                                                      |          1 |         33 |          0 |          7 |         40 |
+| web\src\app\api\test-steps                                                                                            |          1 |         87 |          0 |         13 |        100 |
+| web\src\app\api\test-steps\[stepId]                                                                                   |          1 |         87 |          0 |         13 |        100 |
+| web\src\app\login                                                                                                     |          3 |        332 |          0 |         54 |        386 |
+| web\src\app\login (Files)                                                                                             |          2 |        126 |          0 |         21 |        147 |
+| web\src\app\login\2fa                                                                                                 |          1 |        206 |          0 |         33 |        239 |
+| web\src\app\projects                                                                                                  |         20 |      4,736 |          3 |        571 |      5,310 |
+| web\src\app\projects (Files)                                                                                          |          3 |        544 |          0 |         67 |        611 |
+| web\src\app\projects\[id]                                                                                             |         16 |      4,169 |          3 |        501 |      4,673 |
+| web\src\app\projects\[id] (Files)                                                                                     |          7 |      2,024 |          3 |        230 |      2,257 |
+| web\src\app\projects\[id]\audit                                                                                       |          1 |        254 |          0 |         27 |        281 |
+| web\src\app\projects\[id]\create-component                                                                            |          2 |        908 |          0 |        105 |      1,013 |
+| web\src\app\projects\[id]\edit                                                                                        |          1 |        104 |          0 |         10 |        114 |
+| web\src\app\projects\[id]\roles                                                                                       |          5 |        879 |          0 |        129 |      1,008 |
+| web\src\app\projects\[id]\roles (Files)                                                                               |          3 |        762 |          0 |        109 |        871 |
+| web\src\app\projects\[id]\roles\[roleId]                                                                              |          1 |         62 |          0 |         10 |         72 |
+| web\src\app\projects\[id]\roles\[roleId]\edit                                                                         |          1 |         62 |          0 |         10 |         72 |
+| web\src\app\projects\[id]\roles\create                                                                                |          1 |         55 |          0 |         10 |         65 |
+| web\src\app\projects\create                                                                                           |          1 |         23 |          0 |          3 |         26 |
+| web\src\app\register                                                                                                  |          1 |        111 |          0 |         16 |        127 |
+| web\src\components                                                                                                    |          2 |         60 |          0 |          8 |         68 |
+| web\src\i18n                                                                                                          |          4 |      1,309 |          0 |          9 |      1,318 |
+| web\src\lib                                                                                                           |          3 |        227 |         26 |         41 |        294 |
+| web\src\providers                                                                                                     |          3 |        170 |          1 |         34 |        205 |
+| web\src\types                                                                                                         |          1 |         20 |          0 |          2 |         22 |
++-----------------------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-----------------------------------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| filename                                                                                                              | language           | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\.eslintrc.cjs                                                             | JavaScript         |         33 |          0 |          1 |         34 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\.prettierrc                                                               | JSON               |          4 |          0 |          1 |          5 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\README.md                                                                 | Markdown           |         68 |          2 |         29 |         99 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\eslint.config.mjs                                                         | JavaScript         |         33 |          1 |          2 |         36 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\nest-cli.json                                                             | JSON               |          8 |          0 |          1 |          9 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\package.json                                                              | JSON               |         93 |          0 |          1 |         94 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma.config.ts                                                          | TypeScript         |         11 |          2 |          2 |         15 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260201102826_add_refresh_tokens\migration.sql         | MS SQL             |         23 |          6 |          8 |         37 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260207151509_projects_domain\migration.sql            | MS SQL             |         41 |         23 |         19 |         83 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260303191809_add_2fa\migration.sql                    | MS SQL             |          2 |          1 |          1 |          4 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260309180934_rbac_model\migration.sql                 | MS SQL             |         57 |         35 |         30 |        122 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260315055252_update_resource_enum\migration.sql       | MS SQL             |          8 |          7 |          1 |         16 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260315062043_project_structure\migration.sql          | MS SQL             |         54 |         12 |         18 |         84 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260322105541_add_cascade_structure\migration.sql      | MS SQL             |         12 |         12 |         12 |         36 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260326090417_add_structure_audit_logs\migration.sql   | MS SQL             |         18 |          6 |          3 |         27 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260326113852_order_numbers\migration.sql              | MS SQL             |          4 |          4 |          4 |         12 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260329090638_see_permission_type\migration.sql        | MS SQL             |          8 |          7 |          1 |         16 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260404091035_add_role_audit_actions\migration.sql     | MS SQL             |          2 |          6 |          3 |         11 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260404113323_expand_audit_domain_models\migration.sql | MS SQL             |        105 |         32 |         21 |        158 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260404114225_model_for_file_uploads\migration.sql     | MS SQL             |         28 |          8 |          9 |         45 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260404114327_smallchange\migration.sql                | MS SQL             |          2 |          7 |          1 |         10 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\migrations\20260411124947_add_user_blocking\migration.sql          | MS SQL             |          3 |          1 |          1 |          5 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\prisma\schema.prisma                                                      | Prisma             |        459 |          6 |         90 |        555 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\admin\admin.controller.ts                                             | TypeScript         |         43 |          0 |          6 |         49 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\admin\admin.module.ts                                                 | TypeScript         |         11 |          0 |          2 |         13 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\admin\admin.service.ts                                                | TypeScript         |        165 |          0 |         28 |        193 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\app.module.ts                                                         | TypeScript         |         30 |          0 |          2 |         32 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\auth\auth.controller.ts                                               | TypeScript         |         53 |          0 |         10 |         63 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\auth\auth.module.ts                                                   | TypeScript         |         11 |          0 |          2 |         13 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\auth\auth.service.ts                                                  | TypeScript         |        346 |          3 |         68 |        417 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\auth\current-user.decorator.ts                                        | TypeScript         |         14 |          2 |          4 |         20 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\auth\dto\change-password.dto.ts                                       | TypeScript         |         20 |          0 |          3 |         23 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\auth\dto\login.dto.ts                                                 | TypeScript         |         10 |          0 |          4 |         14 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\auth\dto\register.dto.ts                                              | TypeScript         |         27 |          0 |          4 |         31 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\auth\dto\update-profile.dto.ts                                        | TypeScript         |         10 |          0 |          3 |         13 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\auth\jwt-auth.guard.ts                                                | TypeScript         |          4 |          0 |          2 |          6 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\auth\jwt.strategy.ts                                                  | TypeScript         |         25 |          0 |          4 |         29 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\common\id.ts                                                          | TypeScript         |         40 |          0 |         14 |         54 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\main.ts                                                               | TypeScript         |         21 |          0 |          5 |         26 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\prisma\prisma.module.ts                                               | TypeScript         |          8 |          0 |          2 |         10 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\prisma\prisma.service.ts                                              | TypeScript         |         23 |          1 |          6 |         30 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\core\members.service.ts                                      | TypeScript         |        215 |          0 |         24 |        239 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\core\projects.service.ts                                     | TypeScript         |        456 |          5 |         40 |        501 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\core\roles.service.ts                                        | TypeScript         |        505 |         20 |         67 |        592 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\dto\add-member.dto.ts                                        | TypeScript         |          5 |          0 |          2 |          7 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\dto\audit-area.dto.ts                                        | TypeScript         |         67 |          0 |         21 |         88 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\dto\control.dto.ts                                           | TypeScript         |        103 |          0 |         29 |        132 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\dto\evidence.dto.ts                                          | TypeScript         |         98 |          0 |         31 |        129 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\dto\finding.dto.ts                                           | TypeScript         |         99 |          0 |         33 |        132 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\dto\process.dto.ts                                           | TypeScript         |         79 |          0 |         25 |        104 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\dto\project.dto.ts                                           | TypeScript         |        121 |          0 |         37 |        158 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\dto\role.dto.ts                                              | TypeScript         |         42 |          0 |         11 |         53 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\dto\test-step.dto.ts                                         | TypeScript         |         86 |          0 |         25 |        111 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\dto\transfer-ownership.dto.ts                                | TypeScript         |          9 |          0 |          3 |         12 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\permissions.service.ts                                       | TypeScript         |        454 |          6 |         62 |        522 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\projects.controller.ts                                       | TypeScript         |        239 |         30 |         39 |        308 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\projects.module.ts                                           | TypeScript         |         47 |          1 |         11 |         59 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\report.service.ts                                            | TypeScript         |        568 |          7 |        119 |        694 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\audit-area.controller.ts                           | TypeScript         |         34 |          0 |          5 |         39 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\audit-area.service.ts                              | TypeScript         |        162 |          1 |         26 |        189 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\control.controller.ts                              | TypeScript         |         56 |          0 |          7 |         63 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\control.service.ts                                 | TypeScript         |        198 |          1 |         30 |        229 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\evidence.controller.ts                             | TypeScript         |        116 |          0 |         15 |        131 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\evidence.service.ts                                | TypeScript         |        367 |          1 |         58 |        426 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\finding.controller.ts                              | TypeScript         |         56 |          0 |          7 |         63 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\finding.service.ts                                 | TypeScript         |        191 |          1 |         34 |        226 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\process.controller.ts                              | TypeScript         |         56 |          0 |          7 |         63 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\process.service.ts                                 | TypeScript         |        184 |          1 |         30 |        215 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\test-step.controller.ts                            | TypeScript         |         56 |          0 |          7 |         63 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\src\projects\structure\test-step.service.ts                               | TypeScript         |        205 |          1 |         32 |        238 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\tsconfig.build.json                                                       | JSON               |          4 |          0 |          1 |          5 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\tsconfig.eslint.json                                                      | JSON               |         12 |          0 |          1 |         13 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\api\tsconfig.json                                                             | JSON with Comments |         28 |          0 |          1 |         29 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\README.md                                                                 | Markdown           |         23 |          0 |         14 |         37 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\eslint.config.mjs                                                         | JavaScript         |         14 |          2 |          3 |         19 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\next.config.ts                                                            | TypeScript         |          5 |          1 |          3 |          9 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\package.json                                                              | JSON               |         29 |          0 |          1 |         30 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\pnpm-lock.yaml                                                            | YAML               |      3,351 |          0 |        898 |      4,249 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\pnpm-workspace.yaml                                                       | YAML               |          3 |          0 |          1 |          4 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\postcss.config.mjs                                                        | JavaScript         |          6 |          0 |          2 |          8 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\account\page.tsx                                                  | TypeScript JSX     |        288 |          0 |         43 |        331 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\admin\page.tsx                                                    | TypeScript JSX     |         69 |          0 |          5 |         74 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\admin\users-page.tsx                                              | TypeScript JSX     |        270 |          0 |         31 |        301 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\admin\users\[id]\block\route.ts                               | TypeScript         |         33 |          0 |          7 |         40 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\admin\users\[id]\route.ts                                     | TypeScript         |         27 |          0 |          6 |         33 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\admin\users\[id]\unblock\route.ts                             | TypeScript         |         30 |          0 |          6 |         36 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\admin\users\route.ts                                          | TypeScript         |         23 |          0 |          5 |         28 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\audit-areas\[areaId]\processes\route.ts                       | TypeScript         |         60 |          0 |          9 |         69 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\audit-areas\[areaId]\route.ts                                 | TypeScript         |         87 |          0 |         13 |        100 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\auth\[...nextauth]\route.ts                                   | TypeScript         |          4 |          0 |          2 |          6 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\controls\[controlId]\route.ts                                 | TypeScript         |         87 |          0 |         13 |        100 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\controls\[controlId]\test-steps\route.ts                      | TypeScript         |         60 |          0 |          9 |         69 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\evidence\[evidenceId]\files\route.ts                          | TypeScript         |         32 |          0 |          7 |         39 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\evidence\[evidenceId]\route.ts                                | TypeScript         |         87 |          0 |         13 |        100 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\evidence\files\[fileId]\route.ts                              | TypeScript         |         68 |          0 |         13 |         81 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\findings\[findingId]\route.ts                                 | TypeScript         |         87 |          0 |         13 |        100 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\processes\[processId]\controls\route.ts                       | TypeScript         |         60 |          0 |          9 |         69 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\processes\[processId]\evidence\route.ts                       | TypeScript         |         60 |          0 |          9 |         69 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\processes\[processId]\findings\route.ts                       | TypeScript         |         60 |          0 |          9 |         69 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\processes\[processId]\route.ts                                | TypeScript         |         87 |          0 |         13 |        100 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\audit-areas\route.ts                            | TypeScript         |         60 |          0 |         11 |         71 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\audit\route.ts                                  | TypeScript         |         32 |          0 |          7 |         39 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\members\[memberId]\roles\[roleId]\route.ts      | TypeScript         |         30 |          0 |          6 |         36 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\members\[memberId]\roles\route.ts               | TypeScript         |         33 |          0 |          7 |         40 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\members\[memberId]\route.ts                     | TypeScript         |         28 |          0 |          6 |         34 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\members\route.ts                                | TypeScript         |         55 |          0 |         13 |         68 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\remove-ownership\route.ts                       | TypeScript         |         33 |          0 |          7 |         40 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\report\route.ts                                 | TypeScript         |         54 |          0 |          7 |         61 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\roles\[roleId]\route.ts                         | TypeScript         |         87 |          0 |         19 |        106 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\roles\route.ts                                  | TypeScript         |         60 |          0 |         13 |         73 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\route.ts                                        | TypeScript         |         78 |          0 |         19 |         97 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\structure\item\[nodeType]\[itemId]\route.ts     | TypeScript         |        110 |          0 |         15 |        125 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\structure\item\route.ts                         | TypeScript         |         91 |          0 |         11 |        102 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\structure\route.ts                              | TypeScript         |        304 |          0 |         29 |        333 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\[id]\transfer-ownership\route.ts                     | TypeScript         |         33 |          0 |          7 |         40 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\projects\route.ts                                             | TypeScript         |         26 |          0 |          6 |         32 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\api\test-steps\[stepId]\route.ts                                  | TypeScript         |         87 |          0 |         13 |        100 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\globals.css                                                       | PostCSS            |         22 |          0 |          5 |         27 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\layout.tsx                                                        | TypeScript JSX     |         43 |          0 |          5 |         48 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\login\2fa\page.tsx                                                | TypeScript JSX     |        206 |          0 |         33 |        239 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\login\login-form.tsx                                              | TypeScript JSX     |        115 |          0 |         19 |        134 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\login\page.tsx                                                    | TypeScript JSX     |         11 |          0 |          2 |         13 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\page.tsx                                                          | TypeScript JSX     |         10 |          0 |          3 |         13 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\audit-preview.tsx                                   | TypeScript JSX     |        120 |          1 |         16 |        137 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\audit\page.tsx                                      | TypeScript JSX     |        254 |          0 |         27 |        281 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\create-component\create-component-form.tsx          | TypeScript JSX     |        876 |          0 |        100 |        976 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\create-component\page.tsx                           | TypeScript JSX     |         32 |          0 |          5 |         37 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\delete-project-button.tsx                           | TypeScript JSX     |        122 |          0 |         17 |        139 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\edit\page.tsx                                       | TypeScript JSX     |        104 |          0 |         10 |        114 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\evidence-files-panel.tsx                            | TypeScript JSX     |        175 |          0 |         24 |        199 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\generate-report-button.tsx                          | TypeScript JSX     |         82 |          0 |         12 |         94 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\members.tsx                                         | TypeScript JSX     |        316 |          1 |         41 |        358 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\page.tsx                                            | TypeScript JSX     |        216 |          0 |         35 |        251 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\project-structure-section.tsx                       | TypeScript JSX     |        993 |          1 |         85 |      1,079 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\roles\[roleId]\edit\page.tsx                        | TypeScript JSX     |         62 |          0 |         10 |         72 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\roles\create\page.tsx                               | TypeScript JSX     |         55 |          0 |         10 |         65 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\roles\delete-role-button.tsx                        | TypeScript JSX     |        115 |          0 |         15 |        130 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\roles\page.tsx                                      | TypeScript JSX     |        126 |          0 |         18 |        144 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\[id]\roles\role-form.tsx                                 | TypeScript JSX     |        521 |          0 |         76 |        597 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\create-project-form.tsx                                  | TypeScript JSX     |        319 |          0 |         35 |        354 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\create\page.tsx                                          | TypeScript JSX     |         23 |          0 |          3 |         26 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\page.tsx                                                 | TypeScript JSX     |        134 |          0 |         21 |        155 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\projects\projects-header.tsx                                      | TypeScript JSX     |         91 |          0 |         11 |        102 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\app\register\page.tsx                                                 | TypeScript JSX     |        111 |          0 |         16 |        127 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\auth.ts                                                               | TypeScript         |        122 |          1 |         24 |        147 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\components\error-modal.tsx                                            | TypeScript JSX     |         33 |          0 |          3 |         36 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\components\language-switcher.tsx                                      | TypeScript JSX     |         27 |          0 |          5 |         32 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\i18n\en.ts                                                            | TypeScript         |        843 |          0 |          2 |        845 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\i18n\get-dictionary.ts                                                | TypeScript         |          7 |          0 |          3 |         10 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\i18n\lt.ts                                                            | TypeScript         |        453 |          0 |          2 |        455 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\i18n\use-t.ts                                                         | TypeScript         |          6 |          0 |          2 |          8 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\lib\api.ts                                                            | TypeScript         |         39 |         26 |          8 |         73 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\lib\error-message.ts                                                  | TypeScript         |        176 |          0 |         32 |        208 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\lib\with-auth-redirect.ts                                             | TypeScript         |         12 |          0 |          1 |         13 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\providers\language-provider.tsx                                       | TypeScript JSX     |         44 |          0 |          8 |         52 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\providers\session-expiry-manager.tsx                                  | TypeScript JSX     |        117 |          1 |         24 |        142 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\providers\session-provider.tsx                                        | TypeScript JSX     |          9 |          0 |          2 |         11 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\src\types\next-auth.d.ts                                                  | TypeScript         |         20 |          0 |          2 |         22 |
+| c:\Users\ckris\Desktop\Darbai\apms\apps\web\tsconfig.json                                                             | JSON with Comments |         34 |          0 |          1 |         35 |
+| Total                                                                                                                 |                    |     20,262 |        293 |      3,394 |     23,949 |
++-----------------------------------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+

@@ -301,7 +301,6 @@ export class RolesService {
           id: auditId(),
           projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.ROLE_ASSIGNED_TO_MEMBER,
           entity: 'ProjectMemberRole',
           entityId: assignment.id,
@@ -386,7 +385,6 @@ export class RolesService {
           id: auditId(),
           projectId,
           actorId: userId,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           action: AuditAction.ROLE_REMOVED_FROM_MEMBER,
           entity: 'ProjectMemberRole',
           entityId: existing.id,

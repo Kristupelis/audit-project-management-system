@@ -173,6 +173,9 @@ model User {
   twoFactorSecret    String?
 
   evidenceFiles EvidenceFile[]
+
+  systemLogsAsActor  SystemLog[] @relation("SystemLogActor")
+  systemLogsAsTarget SystemLog[] @relation("SystemLogTarget")
 }
 
 model RefreshToken {
@@ -557,4 +560,33 @@ model Finding {
 
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
+}
+
+enum SystemLogLevel {
+  INFO
+  WARNING
+  ERROR
+  SECURITY
+}
+
+model SystemLog {
+  id          String         @id
+  level       SystemLogLevel
+  action      String
+  message     String
+  details     Json?
+  actorUserId String?
+  targetUserId String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime       @default(now())
+
+  actorUser   User?          @relation("SystemLogActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  targetUser  User?          @relation("SystemLogTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([level])
+  @@index([action])
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([createdAt])
 }

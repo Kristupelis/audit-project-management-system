@@ -4,7 +4,7 @@ services:
     container_name: audit_pms_postgres
     environment:
       POSTGRES_USER: audit
-      POSTGRES_PASSWORD: auditpass
+      POSTGRES_PASSWORD: 21SausasPienas!
       POSTGRES_DB: audit_pms
     ports:
       - "5432:5432"

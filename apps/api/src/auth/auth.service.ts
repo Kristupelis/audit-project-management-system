@@ -17,6 +17,7 @@ import { userId } from '../common/id';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { SystemRole } from '@prisma/client';
+import { SystemLogsService } from '../admin/system-logs.service';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly systemLogs: SystemLogsService,
   ) {}
 
   async register(email: string, password: string, name?: string) {
@@ -47,6 +49,17 @@ export class AuthService {
         passwordHash,
       },
       select: { id: true, email: true, name: true, createdAt: true },
+    });
+
+    await this.systemLogs.write({
+      level: 'INFO',
+      action: 'REGISTER_SUCCESS',
+      message: `New user registered: ${user.email}`,
+      actorUserId: user.id,
+      details: {
+        email: user.email,
+        name: user.name,
+      },
     });
 
     return {
@@ -77,10 +90,30 @@ export class AuthService {
     });
 
     if (!user || !user.passwordHash) {
+      await this.systemLogs.write({
+        level: 'SECURITY',
+        action: 'LOGIN_FAILED',
+        message: `Login failed for email ${normalizedEmail}`,
+        details: {
+          email: normalizedEmail,
+          reason: 'invalid_credentials',
+        },
+      });
+
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (user.isBlocked) {
+      await this.systemLogs.write({
+        level: 'SECURITY',
+        action: 'LOGIN_BLOCKED',
+        message: `Blocked user attempted to log in: ${normalizedEmail}`,
+        actorUserId: user.id,
+        details: {
+          reason: user.blockedReason ?? null,
+        },
+      });
+
       throw new UnauthorizedException({
         code: 'ACCOUNT_BLOCKED',
         reason: user.blockedReason ?? null,
@@ -93,16 +126,43 @@ export class AuthService {
       const updatedUser = await this.registerFailedLoginAttempt(user.id);
 
       if (updatedUser.isBlocked) {
+        await this.systemLogs.write({
+          level: 'SECURITY',
+          action: 'ACCOUNT_AUTO_BLOCKED',
+          message: `User ${normalizedEmail} was automatically blocked after repeated failed login attempts`,
+          actorUserId: user.id,
+          details: {
+            reason: updatedUser.blockedReason ?? null,
+            email: normalizedEmail,
+          },
+        });
+
         throw new UnauthorizedException({
           code: 'ACCOUNT_BLOCKED',
           reason: updatedUser.blockedReason ?? null,
         });
       }
+      await this.systemLogs.write({
+        level: 'SECURITY',
+        action: 'LOGIN_FAILED',
+        message: `Login failed for email ${normalizedEmail}`,
+        details: {
+          email: normalizedEmail,
+          reason: 'invalid_credentials',
+        },
+      });
 
       throw new UnauthorizedException('Invalid credentials');
     }
 
     await this.resetFailedLoginAttempts(user.id);
+
+    await this.systemLogs.write({
+      level: 'INFO',
+      action: 'LOGIN_SUCCESS',
+      message: `Successful login for ${normalizedEmail}`,
+      actorUserId: user.id,
+    });
 
     if (user.isTwoFactorEnabled) {
       return {
@@ -199,6 +259,19 @@ export class AuthService {
       },
     });
 
+    await this.systemLogs.write({
+      level: 'INFO',
+      action: 'ACCOUNT_PROFILE_UPDATED',
+      message: `User ${updated.email} updated account profile`,
+      actorUserId: updated.id,
+      details: {
+        previousEmail: user.email,
+        newEmail: updated.email,
+        previousName: user.name,
+        newName: updated.name,
+      },
+    });
+
     return updated;
   }
 
@@ -238,6 +311,13 @@ export class AuthService {
         passwordHash: newPasswordHash,
         sessionVersion: { increment: 1 },
       },
+    });
+
+    await this.systemLogs.write({
+      level: 'SECURITY',
+      action: 'ACCOUNT_PASSWORD_CHANGED',
+      message: `User password changed successfully`,
+      actorUserId: userIdValue,
     });
 
     return { success: true };
@@ -313,6 +393,13 @@ export class AuthService {
       },
     });
 
+    await this.systemLogs.write({
+      level: 'SECURITY',
+      action: 'TWO_FACTOR_ENABLED',
+      message: `2FA enabled successfully for ${user.email}`,
+      actorUserId: user.id,
+    });
+
     const token = await this.issueAccessToken(
       user.id,
       user.email,
@@ -382,6 +469,13 @@ export class AuthService {
       user.systemRole,
       user.sessionVersion,
     );
+
+    await this.systemLogs.write({
+      level: 'SECURITY',
+      action: 'TWO_FACTOR_LOGIN_SUCCESS',
+      message: `2FA verification successful for ${user.email}`,
+      actorUserId: user.id,
+    });
 
     return {
       user: {
