@@ -46,6 +46,8 @@ export default function LoginPage() {
       redirect: false,
     });
 
+    console.log("SIGNIN_RESPONSE", res);
+
     setLoading(false);
 
     if (!res) {
