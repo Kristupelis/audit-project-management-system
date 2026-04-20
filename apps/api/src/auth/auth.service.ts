@@ -18,6 +18,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { SystemRole } from '@prisma/client';
 import { SystemLogsService } from '../admin/system-logs.service';
+import type { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -581,7 +582,7 @@ export class AuthService {
     const n = Number(trimmed);
 
     if (!Number.isNaN(n) && trimmed !== '') return n;
-    return trimmed;
+    return trimmed as StringValue;
   }
 
   private computeExpiryDate(exp: string) {
