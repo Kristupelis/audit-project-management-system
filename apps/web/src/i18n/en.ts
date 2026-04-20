@@ -50,6 +50,9 @@ export type TranslationDictionary = {
     backToProjects: string;
     auditedPeriod: string;
     genReport: string;
+    locked: string;
+    lockProject: string;
+    unlockProject: string;
   };
   main: {
     projects: string;
@@ -195,6 +198,10 @@ export type TranslationDictionary = {
         version: string;
         riskLevelValues?: Record<string, string>;
         severityValues?: Record<string, string>;
+        nodeStatusValues?: Record<string, string>;
+        testStepStatusValues?: Record<string, string>;
+        findingStatusValues?: Record<string, string>;
+        evidenceStatusValues?: Record<string, string>;
         createComponentPageTitle: string;
         backToProject: string;
         selectParent: string;
@@ -371,6 +378,12 @@ export type TranslationDictionary = {
         yourName: string;
         createAccountTitle: string;
         passwordRequirements: string;
+        blockedTitle: string;
+        blockedMessage: string;
+        blockedReasonLabel: string;
+        blockedContactMessage: string;
+        sessionEndedTitle: string;
+        sessionEndedMessage: string;
     };
     accountPage: {
         title: string;
@@ -442,6 +455,9 @@ const en: TranslationDictionary = {
     backToProjects: "Back to projects",
     auditedPeriod: "Audited period",
     genReport: "Generate report",
+    locked: "Locked",
+    lockProject: "Lock project",
+    unlockProject: "Unlock project",
   },
   main: {
     projects: "Projects",
@@ -602,6 +618,37 @@ const en: TranslationDictionary = {
             MEDIUM: "Medium",
             HIGH: "High",
             CRITICAL: "Critical",
+        },
+        nodeStatusValues: {
+            NOT_STARTED: "Not started",
+            IN_PROGRESS: "In progress",
+            COMPLETED: "Completed",
+            CLOSED: "Closed",
+            NOT_APPLICABLE: "Not applicable",
+        },
+        testStepStatusValues: {
+            NOT_STARTED: "Not started",
+            IN_PROGRESS: "In progress",
+            PASSED: "Passed",
+            FAILED: "Failed",
+            BLOCKED: "Blocked",
+            NOT_APPLICABLE: "Not applicable",
+        },
+        findingStatusValues: {
+            DRAFT: "Draft",
+            OPEN: "Open",
+            ACCEPTED: "Accepted",
+            IN_PROGRESS: "In progress",
+            RESOLVED: "Resolved",
+            CLOSED: "Closed",
+            REJECTED: "Rejected",
+        },
+        evidenceStatusValues: {
+            REQUESTED: "Requested",
+            RECEIVED: "Received",
+            REVIEWED: "Reviewed",
+            ACCEPTED: "Accepted",
+            REJECTED: "Rejected",
         },
         createComponentPageTitle: "Create component",
         backToProject: "Back to project",
@@ -822,6 +869,14 @@ const en: TranslationDictionary = {
         createAccountTitle: "Create account",
         passwordRequirements:
             "Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.",
+        blockedTitle: "Account blocked",
+        blockedMessage: "Your account is blocked.",
+        blockedReasonLabel: "Reason",
+        blockedContactMessage:
+          "For unblock requests, contact ckristupas@gmail.com.",
+        sessionEndedTitle: "Session ended",
+        sessionEndedMessage:
+          "Your session has ended because your account was changed, blocked, deleted, or your sign-in status is no longer valid.",
     },
     accountPage: {
         title: "Account",

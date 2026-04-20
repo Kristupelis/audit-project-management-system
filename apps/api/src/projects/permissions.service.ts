@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PermissionAction, ResourceType, SystemRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -34,17 +35,10 @@ type PermissionCandidate = {
 export class ProjectPermissionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  //private membershipCache = new Map<string, ProjectMemberWithPermissions>();
-
   async getMembership(
     projectId: string,
     userId: string,
   ): Promise<ProjectMemberWithPermissions> {
-    //const cacheKey = `${projectId}:${userId}`;
-
-    //const cached = this.membershipCache.get(cacheKey);
-    //if (cached) return cached;
-
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
       include: {
@@ -72,18 +66,99 @@ export class ProjectPermissionsService {
       throw new ForbiddenException('Not a project member');
     }
 
-    //this.membershipCache.set(cacheKey, member);
     return member;
   }
 
   async isSuperAdmin(userId: string): Promise<boolean> {
-    const user: { systemRole: SystemRole } | null =
-      await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { systemRole: true },
-      });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { systemRole: true },
+    });
 
     return user?.systemRole === SystemRole.SUPER_ADMIN;
+  }
+
+  async isProjectOwner(projectId: string, userId: string): Promise<boolean> {
+    if (await this.isSuperAdmin(userId)) return true;
+
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+      select: { isOwner: true },
+    });
+
+    return !!member?.isOwner;
+  }
+
+  async getProjectLockState(projectId: string): Promise<boolean> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { isLocked: true },
+    });
+    if (!project) {
+      throw new ForbiddenException('Project not found');
+    }
+
+    return project.isLocked;
+  }
+
+  async requireProjectOpenAccess(
+    projectId: string,
+    userId: string,
+  ): Promise<void> {
+    if (await this.isSuperAdmin(userId)) return;
+
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+      select: { isOwner: true },
+    });
+
+    if (!member) {
+      throw new ForbiddenException('Not a project member');
+    }
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { isLocked: true },
+    });
+
+    if (!project) {
+      throw new ForbiddenException('Project not found');
+    }
+
+    if (project.isLocked && !member.isOwner) {
+      throw new ForbiddenException('PROJECT_LOCKED');
+    }
+  }
+
+  async requireUnlockedForNonOwners(
+    projectId: string,
+    userId: string,
+  ): Promise<void> {
+    if (await this.isSuperAdmin(userId)) return;
+
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+      select: { isOwner: true },
+    });
+
+    if (!member) {
+      throw new ForbiddenException('Not a project member');
+    }
+
+    if (member.isOwner) return;
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { isLocked: true },
+    });
+
+    if (!project) {
+      throw new ForbiddenException('Project not found');
+    }
+
+    if (project.isLocked) {
+      throw new ForbiddenException('PROJECT_LOCKED');
+    }
   }
 
   private async getHierarchyCandidates(
@@ -468,6 +543,8 @@ export class ProjectPermissionsService {
     action: PermissionAction,
     scopeId?: string,
   ): Promise<void> {
+    await this.requireUnlockedForNonOwners(projectId, userId);
+
     const allowed = await this.can(
       projectId,
       userId,
@@ -483,7 +560,6 @@ export class ProjectPermissionsService {
     }
   }
 
-  // Nereikalinga - istrinti
   async requireOwner(projectId: string, userId: string) {
     if (await this.isSuperAdmin(userId)) return;
 
@@ -503,15 +579,18 @@ export class ProjectPermissionsService {
       where: { projectId_userId: { projectId, userId } },
       select: { isOwner: true },
     });
+
     if (!member) throw new ForbiddenException('Not a project member');
 
-    return !!member?.isOwner;
+    return !!member.isOwner;
   }
 
   async requireCanManageMembers(
     projectId: string,
     userId: string,
   ): Promise<void> {
+    await this.requireUnlockedForNonOwners(projectId, userId);
+
     const allowed = await this.canManageMembers(projectId, userId);
 
     if (!allowed) {

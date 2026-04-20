@@ -52,6 +52,9 @@ const lt: TranslationDictionary = {
     backToProjects: "Atgal į projektus",
     auditedPeriod: "Audituojamas laikotarpis",
     genReport: "Generuoti ataskaitą",
+    locked: "Užrakintas",
+    lockProject: "Užrakinti projektą",
+    unlockProject: "Atrakinti projektą",
   },
   main: {
     projects: "Projektai",
@@ -212,6 +215,37 @@ const lt: TranslationDictionary = {
             MEDIUM: "Vidutinis",
             HIGH: "Aukštas",
             CRITICAL: "Kritinis",
+        },
+        nodeStatusValues: {
+            NOT_STARTED: "Nepradėta",
+            IN_PROGRESS: "Vykdoma",
+            COMPLETED: "Baigta",
+            CLOSED: "Uždaryta",
+            NOT_APPLICABLE: "Netaikoma",
+        },
+        testStepStatusValues: {
+            NOT_STARTED: "Nepradėta",
+            IN_PROGRESS: "Vykdoma",
+            PASSED: "Išlaikyta",
+            FAILED: "Neišlaikyta",
+            BLOCKED: "Užblokuota",
+            NOT_APPLICABLE: "Netaikoma",
+        },
+        findingStatusValues: {
+            DRAFT: "Juodraštis",
+            OPEN: "Atvira",
+            ACCEPTED: "Priimta",
+            IN_PROGRESS: "Vykdoma",
+            RESOLVED: "Išspręsta",
+            CLOSED: "Uždaryta",
+            REJECTED: "Atmesta",
+        },
+        evidenceStatusValues: {
+            REQUESTED: "Paprašyta",
+            RECEIVED: "Gauta",
+            REVIEWED: "Peržiūrėta",
+            ACCEPTED: "Priimta",
+            REJECTED: "Atmesta",
         },
         createComponentPageTitle: "Kurti komponentą",
         backToProject: "Atgal į projektą",
@@ -432,6 +466,14 @@ const lt: TranslationDictionary = {
         createAccountTitle: "Sukurti paskyrą",
         passwordRequirements:
             "Slaptažodis turi būti bent 8 simbolių ilgio ir turėti bent vieną didžiąją raidę, vieną mažąją raidę, vieną skaičių ir vieną specialų simbolį.",
+        blockedTitle: "Paskyra užblokuota",
+        blockedMessage: "Jūsų paskyra yra užblokuota.",
+        blockedReasonLabel: "Priežastis",
+        blockedContactMessage:
+          "Dėl atblokavimo susisiekite: ckristupas@gmail.com.",
+        sessionEndedTitle: "Sesija baigėsi",
+        sessionEndedMessage:
+          "Jūsų sesija baigėsi, nes paskyra buvo pakeista, užblokuota, pašalinta arba jūsų prisijungimo būsena nebegalioja.",
     },
     accountPage: {
         title: "Paskyra",

@@ -209,8 +209,19 @@ type TreeNode =
       data: EvidenceData | null;
     };
 
+type ProgressSummary = {
+  totalProcesses: number;
+  percent: number;
+  completed: number;
+  closed: number;
+  inProgress: number;
+  notStarted: number;
+  notApplicable: number;
+};
+
 type StructureResponse = {
   tree: TreeNode[];
+  progress: ProgressSummary;
 };
 
 function allowedChildTypes(type: NodeType): NodeType[] {
@@ -251,6 +262,32 @@ function findNodeById(nodes: TreeNode[], id: string): TreeNode | null {
     if (child) return child;
   }
   return null;
+}
+
+function fallbackEnumLabel(value?: string | null) {
+  if (!value) return value;
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getSelectedStatus(
+  details:
+    | AuditAreaData
+    | ProcessData
+    | ControlData
+    | TestStepData
+    | FindingData
+    | EvidenceData
+    | null,
+): string | null {
+  if (!details || typeof details !== "object" || !("status" in details)) {
+    return null;
+  }
+
+  return details.status ?? null;
 }
 
 function Field({
@@ -515,6 +552,15 @@ export default function ProjectStructureSection({
   const { locale } = useLanguage();
 
   const [tree, setTree] = useState<TreeNode[]>([]);
+  const [progress, setProgress] = useState<ProgressSummary>({
+    totalProcesses: 0,
+    percent: 0,
+    completed: 0,
+    closed: 0,
+    inProgress: 0,
+    notStarted: 0,
+    notApplicable: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -538,6 +584,10 @@ export default function ProjectStructureSection({
     [tree, selectedId],
   );
 
+  const selectedChildren = selectedNode?.children ?? [];
+  const allFlat = useMemo(() => flattenTree(tree), [tree]);
+  const selectedStatus = getSelectedStatus(selectedDetails);
+
   const typeLabel = (type: NodeType) => {
     switch (type) {
       case "AUDIT_AREA":
@@ -555,11 +605,38 @@ export default function ProjectStructureSection({
     }
   };
 
-  const statusLabel = (value?: string | null) => {
+  const statusLabel = (value?: string | null, nodeType?: NodeType) => {
     if (!value) return value;
-    return t.enums.projectStatus[
-      value as keyof typeof t.enums.projectStatus
-    ] ?? value;
+
+    if (nodeType === "TEST_STEP") {
+      return (
+        t.structure.testStepStatusValues?.[
+          value as keyof typeof t.structure.testStepStatusValues
+        ] ?? fallbackEnumLabel(value)
+      );
+    }
+
+    if (nodeType === "FINDING") {
+      return (
+        t.structure.findingStatusValues?.[
+          value as keyof typeof t.structure.findingStatusValues
+        ] ?? fallbackEnumLabel(value)
+      );
+    }
+
+    if (nodeType === "EVIDENCE") {
+      return (
+        t.structure.evidenceStatusValues?.[
+          value as keyof typeof t.structure.evidenceStatusValues
+        ] ?? fallbackEnumLabel(value)
+      );
+    }
+
+    return (
+      t.structure.nodeStatusValues?.[
+        value as keyof typeof t.structure.nodeStatusValues
+      ] ?? fallbackEnumLabel(value)
+    );
   };
 
   const riskLabel = (value?: string | null) => {
@@ -592,6 +669,7 @@ export default function ProjectStructureSection({
 
       const data = (await res.json()) as StructureResponse;
       setTree(data.tree);
+      setProgress(data.progress);
       setExpanded(new Set(collectExpandedIds(data.tree)));
 
       if (selectedId) {
@@ -735,9 +813,6 @@ export default function ProjectStructureSection({
     }
   }
 
-  const selectedChildren = selectedNode?.children ?? [];
-  const allFlat = useMemo(() => flattenTree(tree), [tree]);
-
   const renderReadFields = () => {
     if (!selectedNode || !selectedDetails) return null;
 
@@ -753,7 +828,6 @@ export default function ProjectStructureSection({
             <Field label={t.structure.scope} value={data.scope} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.riskLevel} value={riskLabel(data.riskLevel)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.residualRisk} value={riskLabel(data.residualRisk)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.areaOwner} value={data.areaOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
           </div>
@@ -771,7 +845,6 @@ export default function ProjectStructureSection({
             <Field label={t.structure.processOwner} value={data.processOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.frequency} value={data.frequency} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.riskLevel} value={riskLabel(data.riskLevel)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.systemsInvolved} value={data.systemsInvolved} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.keyInputs} value={data.keyInputs} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.keyOutputs} value={data.keyOutputs} yesLabel={t.structure.yes} noLabel={t.structure.no} />
@@ -796,7 +869,6 @@ export default function ProjectStructureSection({
             <Field label={t.structure.relatedRisk} value={data.relatedRisk} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.expectedEvidence} value={data.expectedEvidence} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.testingStrategy} value={data.testingStrategy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
           </div>
         );
@@ -811,7 +883,6 @@ export default function ProjectStructureSection({
             <Field label={t.structure.expectedResult} value={data.expectedResult} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.actualResult} value={data.actualResult} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.testMethod} value={data.testMethod} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.sampleReference} value={data.sampleReference} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.performedBy} value={data.performedBy} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.performedAt} value={data.performedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
@@ -838,7 +909,6 @@ export default function ProjectStructureSection({
             <Field label={t.structure.actionOwner} value={data.actionOwner} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.dueDate} value={data.dueDate?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.severity} value={severityLabel(data.severity)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.identifiedAt} value={data.identifiedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.closedAt} value={data.closedAt?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
@@ -862,7 +932,6 @@ export default function ProjectStructureSection({
             <Field label={t.structure.validTo} value={data.validTo?.slice(0, 10)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.reliabilityLevel} value={data.reliabilityLevel} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.confidentiality} value={data.confidentiality} yesLabel={t.structure.yes} noLabel={t.structure.no} />
-            <Field label={t.structure.status} value={statusLabel(data.status)} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.version} value={data.version} yesLabel={t.structure.yes} noLabel={t.structure.no} />
             <Field label={t.structure.notes} value={data.notes} yesLabel={t.structure.yes} noLabel={t.structure.no} />
           </div>
@@ -882,6 +951,48 @@ export default function ProjectStructureSection({
               {t.structure.createComponent}
             </button>
           </Link>
+        </div>
+
+        <div className="border rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-sm font-medium">
+                {locale === "lt" ? "Projekto pažanga" : "Project progress"}
+              </div>
+              <div className="text-xs opacity-70">
+                {locale === "lt"
+                  ? `Pagal procesų būsenas (${progress.totalProcesses})`
+                  : `Based on process statuses (${progress.totalProcesses})`}
+              </div>
+            </div>
+
+            <div className="text-lg font-semibold">{progress.percent}%</div>
+          </div>
+
+          <div className="h-3 w-full overflow-hidden rounded-full bg-black/10">
+            <div
+              className="h-full rounded-full bg-black transition-all"
+              style={{ width: `${progress.percent}%` }}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-xs opacity-80">
+            <span className="border rounded-full px-2 py-1">
+              {locale === "lt" ? "Nepradėta" : "Not started"}: {progress.notStarted}
+            </span>
+            <span className="border rounded-full px-2 py-1">
+              {locale === "lt" ? "Vykdoma" : "In progress"}: {progress.inProgress}
+            </span>
+            <span className="border rounded-full px-2 py-1">
+              {locale === "lt" ? "Užbaigta" : "Completed"}: {progress.completed}
+            </span>
+            <span className="border rounded-full px-2 py-1">
+              {locale === "lt" ? "Uždaryta" : "Closed"}: {progress.closed}
+            </span>
+            <span className="border rounded-full px-2 py-1">
+              {locale === "lt" ? "Netaikoma" : "Not applicable"}: {progress.notApplicable}
+            </span>
+          </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[360px,1fr]">
@@ -940,7 +1051,20 @@ export default function ProjectStructureSection({
                 {detailsLoading ? (
                   <div className="text-sm opacity-70">{t.structure.loadingStructure}</div>
                 ) : (
-                  renderReadFields()
+                  <div className="space-y-4">
+                    {selectedStatus && selectedNode && (
+                      <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-red-700">
+                          {t.structure.status}
+                        </div>
+                        <div className="text-lg font-semibold text-red-700">
+                          {statusLabel(selectedStatus, selectedNode.nodeType)}
+                        </div>
+                      </div>
+                    )}
+
+                    {renderReadFields()}
+                  </div>
                 )}
 
                 {!detailsLoading &&
@@ -959,7 +1083,9 @@ export default function ProjectStructureSection({
                       deletingLabel={t.projects.deleting}
                       confirmDeleteTitle={t.projects.confirmDeleteTitle}
                       confirmDeleteMessage={
-                        locale === "lt" ? "Ar tikrai norite ištrinti failą?" : "Are you sure you want to delete this file?"
+                        locale === "lt"
+                          ? "Ar tikrai norite ištrinti failą?"
+                          : "Are you sure you want to delete this file?"
                       }
                       cancelLabel={t.common.cancel}
                     />

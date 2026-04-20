@@ -16,6 +16,8 @@ export class MembersService {
   ) {}
 
   async listMembers(projectId: string, userId: string) {
+    await this.permissions.requireProjectOpenAccess(projectId, userId);
+
     await this.permissions.requirePermission(
       projectId,
       userId,
@@ -63,14 +65,42 @@ export class MembersService {
   async addMember(projectId: string, actorId: string, email: string) {
     await this.permissions.requireCanManageMembers(projectId, actorId);
 
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) throw new NotFoundException('User not found');
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(
+        'MEMBER_USER_NOT_FOUND: The account was not found. The user must register first.',
+      );
+    }
+
+    const existingMember = await this.prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId: user.id,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (existingMember) {
+      throw new ForbiddenException(
+        'MEMBER_ALREADY_EXISTS: This user is already a project member.',
+      );
+    }
 
     return this.prisma.$transaction(async (tx) => {
-      const member = await tx.projectMember.upsert({
-        where: { projectId_userId: { projectId, userId: user.id } },
-        update: {},
-        create: {
+      const member = await tx.projectMember.create({
+        data: {
           id: memberId(),
           projectId,
           userId: user.id,
@@ -141,7 +171,7 @@ export class MembersService {
           action: AuditAction.MEMBER_ADDED,
           entity: 'ProjectMember',
           entityId: member.id,
-          details: { addedUserId: user.id, email },
+          details: { addedUserId: user.id, email: user.email },
         },
       });
 

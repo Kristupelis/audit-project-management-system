@@ -3,6 +3,7 @@ type Locale = "en" | "lt";
 const errorTexts = {
   en: {
     somethingWentWrong: "Something went wrong.",
+    projectLocked: "This project is locked. Only the project owner or administrator can open it.",
     fallback: "Something went wrong. Please try again.",
     noPermission: "You do not have permission to perform this action.",
     unauthorized: "Your session has expired or you are not logged in.",
@@ -16,6 +17,11 @@ const errorTexts = {
       "New password must be different from the current password.",
     invalidEmail: "Please enter a valid email address.",
     userNotFound: "User was not found.",
+    memberUserNotFound:
+      "The account was not found. The user must register first.",
+    memberAlreadyExists: "This user is already a project member.",
+    useOwnAccountPage:
+      "Use your account page to update your own profile or password.",
     mustBeAtLeast: (field: string, count: string) =>
       `${field} must be at least ${count} characters long.`,
     isRequired: (field: string) => `${field} is required.`,
@@ -23,6 +29,7 @@ const errorTexts = {
   },
   lt: {
     somethingWentWrong: "Įvyko klaida.",
+    projectLocked: "Šis projektas yra užrakintas. Jį atidaryti gali tik projekto savininkas arba administratorius.",
     fallback: "Įvyko klaida. Bandykite dar kartą.",
     noPermission: "Jūs neturite teisės atlikti šio veiksmo.",
     unauthorized: "Jūsų sesija pasibaigė arba nesate prisijungę.",
@@ -36,6 +43,11 @@ const errorTexts = {
       "Naujas slaptažodis turi skirtis nuo dabartinio slaptažodžio.",
     invalidEmail: "Įveskite teisingą el. pašto adresą.",
     userNotFound: "Naudotojas nerastas.",
+    memberUserNotFound:
+      "Paskyra nerasta. Naudotojas pirmiausia turi užsiregistruoti.",
+    memberAlreadyExists: "Šis naudotojas jau yra projekto narys.",
+    useOwnAccountPage:
+      "Savo profilio duomenis ar slaptažodį keiskite paskyros puslapyje.",
     mustBeAtLeast: (field: string, count: string) =>
       `${field} turi būti bent ${count} simbolių ilgio.`,
     isRequired: (field: string) => `Laukas „${field}“ yra privalomas.`,
@@ -111,8 +123,27 @@ export function toUserFriendlyError(
 
   const normalized = parsedMessage.toLowerCase();
 
+  if (normalized.includes("member_user_not_found")) {
+    return t.memberUserNotFound;
+  }
+
+  if (normalized.includes("member_already_exists")) {
+    return t.memberAlreadyExists;
+  }
+
+  if (
+    normalized.includes("use your account page to update your own profile") ||
+    normalized.includes("use your account page to change your own password")
+  ) {
+    return t.useOwnAccountPage;
+  }
+
   if (normalized.includes("missing permission")) {
     return t.noPermission;
+  }
+
+  if (normalized.includes("project_locked")) {
+    return t.projectLocked;
   }
 
   if (normalized.includes("forbidden")) {

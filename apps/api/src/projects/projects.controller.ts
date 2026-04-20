@@ -79,6 +79,22 @@ export class ProjectsController {
     return this.projects.deleteProject(id, userId);
   }
 
+  @Patch(':id/lock')
+  lockProject(
+    @Param('id') projectId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.projects.lockProject(projectId, userId);
+  }
+
+  @Patch(':id/unlock')
+  unlockProject(
+    @Param('id') projectId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.projects.unlockProject(projectId, userId);
+  }
+
   // =========================
   // MEMBERS
   // =========================

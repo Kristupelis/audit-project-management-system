@@ -81,6 +81,8 @@ export class AuditAreaService {
   }
 
   async list(projectId: string, userId: string) {
+    await this.permissions.requireProjectOpenAccess(projectId, userId);
+
     await this.permissions.requirePermission(
       projectId,
       userId,
@@ -96,6 +98,8 @@ export class AuditAreaService {
 
   async get(areaId: string, userId: string) {
     const projectId = await this.resolveProject(areaId);
+
+    await this.permissions.requireProjectOpenAccess(projectId, userId);
 
     await this.permissions.requirePermission(
       projectId,

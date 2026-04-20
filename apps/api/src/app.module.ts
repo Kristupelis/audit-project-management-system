@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { AdminModule } from './admin/admin.module';
+import { SystemLogsExceptionFilter } from './common/system-logs-exception.filter';
+import { SystemLogsService } from './admin/system-logs.service';
 
 @Module({
   imports: [
@@ -23,12 +23,16 @@ import { AdminModule } from './admin/admin.module';
       },
     ]),
   ],
-  controllers: [AppController],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useFactory: (systemLogs: SystemLogsService) =>
+        new SystemLogsExceptionFilter(systemLogs),
+      inject: [SystemLogsService],
     },
   ],
 })

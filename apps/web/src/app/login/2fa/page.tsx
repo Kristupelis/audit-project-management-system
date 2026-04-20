@@ -16,6 +16,7 @@ type AuthResult = {
     email: string;
     name?: string | null;
     systemRole?: string | null;
+    sessionVersion?: number | null;
   };
   accessToken: string;
   accessExpiresAt: number | null;
@@ -81,6 +82,7 @@ export default function TwoFactorPage() {
       email: data.user.email,
       name: data.user.name ?? "",
       systemRole: data.user.systemRole ?? "",
+      sessionVersion: String(data.user.sessionVersion ?? 0),
       accessToken: data.accessToken,
       accessExpiresAt: String(data.accessExpiresAt ?? ""),
     });

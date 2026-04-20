@@ -1,23 +1,42 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useT } from "@/i18n/use-t";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useT();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
+  const [blockedReason, setBlockedReason] = useState<string | null>(null);
+  const [showSessionEnded, setShowSessionEnded] = useState(false);
+
+  useEffect(() => {
+    const blocked = searchParams.get("blocked");
+    const sessionEnded = searchParams.get("sessionEnded");
+    const reason = searchParams.get("reason");
+
+    if (blocked === "1") {
+      setBlockedReason(reason ? decodeURIComponent(reason) : null);
+      return;
+    }
+
+    if (sessionEnded === "1") {
+      setShowSessionEnded(true);
+    }
+  }, [searchParams]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setBlockedMessage(null);
+    setBlockedReason(null);
+    setShowSessionEnded(false);
     setError(null);
     setLoading(true);
 
@@ -50,16 +69,22 @@ export default function LoginPage() {
       return;
     }
 
-    if (res.error?.startsWith("BLOCKED:")) {
-      const reason = res.error.slice("BLOCKED:".length).trim();
-
-      setBlockedMessage(
-        `Your account is blocked.${reason ? ` Reason: ${reason}.` : ""} For unblock requests, contact ckristupas@gmail.com.`,
-      );
-      return;
-    }
-
     if (res.error) {
+      try {
+        const parsed = JSON.parse(res.error) as {
+          code?: string;
+          reason?: string | null;
+          message?: string;
+        };
+
+        if (parsed.code === "ACCOUNT_BLOCKED") {
+          setBlockedReason(parsed.reason ?? null);
+          return;
+        }
+      } catch {
+        // ignore parse errors
+      }
+
       setError(t.authPages.invalidEmailOrPassword);
       return;
     }
@@ -114,18 +139,65 @@ export default function LoginPage() {
           {t.authPages.register}
         </button>
       </form>
-      {blockedMessage && (
+
+      {blockedReason !== null && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-md rounded-xl border border-red-700 bg-white p-6 shadow-xl space-y-4">
-            <h2 className="text-lg font-semibold text-red-700">Account blocked</h2>
-            <p className="text-sm text-red-700">{blockedMessage}</p>
-            <button
-              type="button"
-              className="w-full rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
-              onClick={() => setBlockedMessage(null)}
-            >
-              Close
-            </button>
+          <div className="w-full max-w-2xl rounded-md border border-red-300 bg-red-50 p-4 shadow-lg">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-red-700">
+                  {t.authPages.blockedTitle}
+                </h3>
+
+                <p className="text-sm text-red-700 whitespace-pre-wrap">
+                  {t.authPages.blockedMessage}
+                </p>
+
+                {blockedReason && (
+                  <p className="text-sm text-red-700 whitespace-pre-wrap">
+                    {t.authPages.blockedReasonLabel}: {blockedReason}
+                  </p>
+                )}
+
+                <p className="text-sm text-red-700 whitespace-pre-wrap">
+                  {t.authPages.blockedContactMessage}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
+                onClick={() => setBlockedReason(null)}
+              >
+                {t.common.close}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSessionEnded && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-2xl rounded-md border border-red-300 bg-red-50 p-4 shadow-lg">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-red-700">
+                  {t.authPages.sessionEndedTitle}
+                </h3>
+
+                <p className="text-sm text-red-700 whitespace-pre-wrap">
+                  {t.authPages.sessionEndedMessage}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
+                onClick={() => setShowSessionEnded(false)}
+              >
+                {t.common.close}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -17,13 +17,18 @@ import { userId } from '../common/id';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { SystemRole } from '@prisma/client';
+import { SystemLogsService } from '../admin/system-logs.service';
 
 @Injectable()
 export class AuthService {
+  private readonly MAX_FAILED_ATTEMPTS = 6;
+  private readonly FAILED_WINDOW_MS = 5 * 60 * 1000;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly systemLogs: SystemLogsService,
   ) {}
 
   async register(email: string, password: string, name?: string) {
@@ -44,6 +49,17 @@ export class AuthService {
         passwordHash,
       },
       select: { id: true, email: true, name: true, createdAt: true },
+    });
+
+    await this.systemLogs.write({
+      level: 'INFO',
+      action: 'REGISTER_SUCCESS',
+      message: `New user registered: ${user.email}`,
+      actorUserId: user.id,
+      details: {
+        email: user.email,
+        name: user.name,
+      },
     });
 
     return {
@@ -67,23 +83,86 @@ export class AuthService {
         systemRole: true,
         isBlocked: true,
         blockedReason: true,
+        failedLoginAttempts: true,
+        firstFailedLoginAt: true,
+        sessionVersion: true,
       },
     });
 
     if (!user || !user.passwordHash) {
+      await this.systemLogs.write({
+        level: 'SECURITY',
+        action: 'LOGIN_FAILED',
+        message: `Login failed for email ${normalizedEmail}`,
+        details: {
+          email: normalizedEmail,
+          reason: 'invalid_credentials',
+        },
+      });
+
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (user.isBlocked) {
-      throw new UnauthorizedException(
-        `BLOCKED:${user.blockedReason ?? 'Your account has been blocked'}`,
-      );
+      await this.systemLogs.write({
+        level: 'SECURITY',
+        action: 'LOGIN_BLOCKED',
+        message: `Blocked user attempted to log in: ${normalizedEmail}`,
+        actorUserId: user.id,
+        details: {
+          reason: user.blockedReason ?? null,
+        },
+      });
+
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_BLOCKED',
+        reason: user.blockedReason ?? null,
+      });
     }
 
     const ok = await argon2.verify(user.passwordHash, password);
+
     if (!ok) {
+      const updatedUser = await this.registerFailedLoginAttempt(user.id);
+
+      if (updatedUser.isBlocked) {
+        await this.systemLogs.write({
+          level: 'SECURITY',
+          action: 'ACCOUNT_AUTO_BLOCKED',
+          message: `User ${normalizedEmail} was automatically blocked after repeated failed login attempts`,
+          actorUserId: user.id,
+          details: {
+            reason: updatedUser.blockedReason ?? null,
+            email: normalizedEmail,
+          },
+        });
+
+        throw new UnauthorizedException({
+          code: 'ACCOUNT_BLOCKED',
+          reason: updatedUser.blockedReason ?? null,
+        });
+      }
+      await this.systemLogs.write({
+        level: 'SECURITY',
+        action: 'LOGIN_FAILED',
+        message: `Login failed for email ${normalizedEmail}`,
+        details: {
+          email: normalizedEmail,
+          reason: 'invalid_credentials',
+        },
+      });
+
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.resetFailedLoginAttempts(user.id);
+
+    await this.systemLogs.write({
+      level: 'INFO',
+      action: 'LOGIN_SUCCESS',
+      message: `Successful login for ${normalizedEmail}`,
+      actorUserId: user.id,
+    });
 
     if (user.isTwoFactorEnabled) {
       return {
@@ -113,11 +192,19 @@ export class AuthService {
         updatedAt: true,
         isBlocked: true,
         blockedReason: true,
+        sessionVersion: true,
       },
     });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
+    }
+
+    if (user.isBlocked) {
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_BLOCKED',
+        reason: user.blockedReason ?? null,
+      });
     }
 
     return user;
@@ -130,12 +217,6 @@ export class AuthService {
         id: true,
         email: true,
         name: true,
-        systemRole: true,
-        isTwoFactorEnabled: true,
-        createdAt: true,
-        updatedAt: true,
-        isBlocked: true,
-        blockedReason: true,
       },
     });
 
@@ -171,6 +252,23 @@ export class AuthService {
         isTwoFactorEnabled: true,
         createdAt: true,
         updatedAt: true,
+        systemRole: true,
+        isBlocked: true,
+        blockedReason: true,
+        sessionVersion: true,
+      },
+    });
+
+    await this.systemLogs.write({
+      level: 'INFO',
+      action: 'ACCOUNT_PROFILE_UPDATED',
+      message: `User ${updated.email} updated account profile`,
+      actorUserId: updated.id,
+      details: {
+        previousEmail: user.email,
+        newEmail: updated.email,
+        previousName: user.name,
+        newName: updated.name,
       },
     });
 
@@ -211,7 +309,15 @@ export class AuthService {
       where: { id: userIdValue },
       data: {
         passwordHash: newPasswordHash,
+        sessionVersion: { increment: 1 },
       },
+    });
+
+    await this.systemLogs.write({
+      level: 'SECURITY',
+      action: 'ACCOUNT_PASSWORD_CHANGED',
+      message: `User password changed successfully`,
+      actorUserId: userIdValue,
     });
 
     return { success: true };
@@ -247,6 +353,7 @@ export class AuthService {
         systemRole: true,
         isBlocked: true,
         blockedReason: true,
+        sessionVersion: true,
       },
     });
 
@@ -255,9 +362,10 @@ export class AuthService {
     }
 
     if (user.isBlocked) {
-      throw new UnauthorizedException(
-        `BLOCKED:${user.blockedReason ?? 'Your account has been blocked'}`,
-      );
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_BLOCKED',
+        reason: user.blockedReason ?? null,
+      });
     }
 
     const normalizedCode = code.trim();
@@ -285,10 +393,18 @@ export class AuthService {
       },
     });
 
+    await this.systemLogs.write({
+      level: 'SECURITY',
+      action: 'TWO_FACTOR_ENABLED',
+      message: `2FA enabled successfully for ${user.email}`,
+      actorUserId: user.id,
+    });
+
     const token = await this.issueAccessToken(
       user.id,
       user.email,
       user.systemRole,
+      user.sessionVersion,
     );
 
     return {
@@ -298,6 +414,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         systemRole: user.systemRole,
+        sessionVersion: user.sessionVersion,
       },
       ...token,
     };
@@ -314,6 +431,7 @@ export class AuthService {
         systemRole: true,
         isBlocked: true,
         blockedReason: true,
+        sessionVersion: true,
       },
     });
 
@@ -322,9 +440,10 @@ export class AuthService {
     }
 
     if (user.isBlocked) {
-      throw new UnauthorizedException(
-        `BLOCKED:${user.blockedReason ?? 'Your account has been blocked'}`,
-      );
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_BLOCKED',
+        reason: user.blockedReason ?? null,
+      });
     }
 
     const normalizedCode = code.trim();
@@ -348,7 +467,15 @@ export class AuthService {
       user.id,
       user.email,
       user.systemRole,
+      user.sessionVersion,
     );
+
+    await this.systemLogs.write({
+      level: 'SECURITY',
+      action: 'TWO_FACTOR_LOGIN_SUCCESS',
+      message: `2FA verification successful for ${user.email}`,
+      actorUserId: user.id,
+    });
 
     return {
       user: {
@@ -356,15 +483,79 @@ export class AuthService {
         email: user.email,
         name: user.name,
         systemRole: user.systemRole,
+        sessionVersion: user.sessionVersion,
       },
       ...token,
     };
+  }
+
+  private async registerFailedLoginAttempt(userIdValue: string) {
+    const now = new Date();
+
+    const current = await this.prisma.user.findUnique({
+      where: { id: userIdValue },
+      select: {
+        id: true,
+        failedLoginAttempts: true,
+        firstFailedLoginAt: true,
+      },
+    });
+
+    if (!current) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isWindowExpired =
+      !current.firstFailedLoginAt ||
+      now.getTime() - current.firstFailedLoginAt.getTime() >
+        this.FAILED_WINDOW_MS;
+
+    const nextAttempts = isWindowExpired ? 1 : current.failedLoginAttempts + 1;
+
+    const firstFailedLoginAt = isWindowExpired
+      ? now
+      : current.firstFailedLoginAt;
+
+    const shouldBlock = nextAttempts >= this.MAX_FAILED_ATTEMPTS;
+
+    return this.prisma.user.update({
+      where: { id: userIdValue },
+      data: {
+        failedLoginAttempts: shouldBlock ? 0 : nextAttempts,
+        firstFailedLoginAt: shouldBlock ? null : firstFailedLoginAt,
+        ...(shouldBlock
+          ? {
+              isBlocked: true,
+              blockedAt: now,
+              blockedReason:
+                'Automatically blocked after 6 failed login attempts within 5 minutes',
+              sessionVersion: { increment: 1 },
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        isBlocked: true,
+        blockedReason: true,
+      },
+    });
+  }
+
+  private async resetFailedLoginAttempts(userIdValue: string) {
+    await this.prisma.user.update({
+      where: { id: userIdValue },
+      data: {
+        failedLoginAttempts: 0,
+        firstFailedLoginAt: null,
+      },
+    });
   }
 
   private async issueAccessToken(
     userIdValue: string,
     email: string,
     systemRole: SystemRole,
+    sessionVersion: number,
   ) {
     const accessSecret = this.config.get<string>('JWT_ACCESS_SECRET');
     if (!accessSecret) throw new Error('JWT_ACCESS_SECRET missing');
@@ -373,7 +564,7 @@ export class AuthService {
       this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '1h';
     const accessExp = this.asExpiresIn(accessExpRaw);
 
-    const payload = { sub: userIdValue, email, systemRole };
+    const payload = { sub: userIdValue, email, systemRole, sessionVersion };
 
     const accessToken = await this.jwt.signAsync(payload, {
       secret: accessSecret,

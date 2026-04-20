@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,18 +6,20 @@ import { signOut, useSession } from "next-auth/react";
 import { useT } from "@/i18n/use-t";
 
 const WARNING_MS = 5 * 60 * 1000;
+const SESSION_CHECK_INTERVAL_MS = 10000;
 
 export default function SessionExpiryManager() {
   const { data: session, status } = useSession();
   const accessExpiresAt = session?.apiAccessExpiresAt ?? null;
+  const accessToken = session?.apiAccessToken ?? null;
 
   const [showWarning, setShowWarning] = useState(false);
   const [showExpired, setShowExpired] = useState(false);
+  const [forceHandling, setForceHandling] = useState(false);
   const t = useT();
 
   useEffect(() => {
     if (status !== "authenticated" || accessExpiresAt === null) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowWarning(false);
       setShowExpired(false);
       return;
@@ -67,11 +70,86 @@ export default function SessionExpiryManager() {
     };
   }, [accessExpiresAt, status]);
 
+  useEffect(() => {
+    if (status !== "authenticated" || !accessToken || forceHandling) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function validateSession() {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          cache: "no-store",
+        });
+
+        if (cancelled) return;
+
+        if (res.ok) return;
+
+        const text = await res.text().catch(() => "");
+
+        let parsed: { code?: string; reason?: string | null } = {};
+
+        try {
+          parsed = text ? (JSON.parse(text) as { code?: string; reason?: string | null }) : {};
+        } catch {
+          parsed = {};
+        }
+
+        if (parsed.code === "ACCOUNT_BLOCKED") {
+          const reason = parsed.reason?.trim() ?? "";
+          setForceHandling(true);
+          await signOut({
+            callbackUrl: `/login?blocked=1&reason=${encodeURIComponent(reason)}`,
+          });
+          return;
+        }
+
+        if (
+          parsed.code === "ACCOUNT_NOT_FOUND" ||
+          parsed.code === "SESSION_INVALIDATED" ||
+          res.status === 401
+        ) {
+          setForceHandling(true);
+          await signOut({
+            callbackUrl: "/login?sessionEnded=1",
+          });
+        }
+      } catch {
+        // ignore temporary network errors here
+      }
+    }
+
+    void validateSession();
+
+    const interval = window.setInterval(() => {
+      void validateSession();
+    }, SESSION_CHECK_INTERVAL_MS);
+
+    const handleFocus = () => {
+      void validateSession();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, [accessToken, forceHandling, status]);
+
   if (status !== "authenticated" || accessExpiresAt === null) {
     return null;
   }
 
-    return (
+  return (
     <>
       {showWarning && !showExpired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -103,7 +181,7 @@ export default function SessionExpiryManager() {
                   className="rounded border border-red-300 bg-white px-3 py-1 text-sm text-red-700"
                   onClick={() => signOut({ callbackUrl: "/login" })}
                 >
-                  { t.sessionExpiry.logOut}
+                  {t.sessionExpiry.logOut}
                 </button>
               </div>
             </div>

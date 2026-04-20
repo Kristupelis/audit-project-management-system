@@ -102,6 +102,8 @@ export class ProcessService {
 
     if (!area) throw new NotFoundException('Audit area not found');
 
+    await this.permissions.requireProjectOpenAccess(area.projectId, userId);
+
     await this.permissions.requirePermission(
       area.projectId,
       userId,
@@ -118,6 +120,8 @@ export class ProcessService {
 
   async get(processIdValue: string, userId: string) {
     const projectId = await this.resolveProject(processIdValue);
+
+    await this.permissions.requireProjectOpenAccess(projectId, userId);
 
     await this.permissions.requirePermission(
       projectId,

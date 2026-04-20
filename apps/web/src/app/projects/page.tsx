@@ -14,6 +14,7 @@ type Project = {
   status?: keyof ReturnType<typeof getDictionary>["enums"]["projectStatus"] | string | null;
   auditType?: keyof ReturnType<typeof getDictionary>["enums"]["auditType"] | string | null;
   priority?: keyof ReturnType<typeof getDictionary>["enums"]["priority"] | string | null;
+  isLocked?: boolean;
   isOwner: boolean;
   roles: string[];
   updatedAt: string;
@@ -91,12 +92,13 @@ export default async function ProjectsPage() {
             <li key={p.id} className="border rounded-xl p-4 space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2 flex-1">
-                  <Link
-                    href={`/projects/${p.id}`}
-                    className="font-medium underline"
-                  >
-                    {p.name}
-                  </Link>
+                  {p.isLocked && !p.isOwner && session.user?.systemRole !== "SUPER_ADMIN" ? (
+                    <span className="font-medium opacity-70 cursor-not-allowed">{p.name}</span>
+                  ) : (
+                    <Link href={`/projects/${p.id}`} className="font-medium underline">
+                      {p.name}
+                    </Link>
+                  )}
 
                   <div className="flex flex-wrap gap-2 text-xs">
                     {p.code && (
@@ -117,6 +119,11 @@ export default async function ProjectsPage() {
                     {p.priority && (
                       <span className="border rounded-full px-2 py-1">
                         {priorityLabel(p.priority)}
+                      </span>
+                    )}
+                    {p.isLocked && (
+                      <span className="border rounded-full px-2 py-1 border-red-400 text-red-700">
+                        {locale === "lt" ? "Užrakintas" : "Locked"}
                       </span>
                     )}
                   </div>
