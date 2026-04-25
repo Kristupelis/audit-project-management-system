@@ -6,223 +6,21 @@ import { toUserFriendlyError } from "@/lib/error-message";
 import { useLanguage } from "@/providers/language-provider";
 import { useT } from "@/i18n/use-t";
 import EvidenceFilesPanel from "./evidence-files-panel";
-
-type NodeType =
-  | "AUDIT_AREA"
-  | "PROCESS"
-  | "CONTROL"
-  | "TEST_STEP"
-  | "FINDING"
-  | "EVIDENCE";
-
-type AuditAreaData = {
-  id: string;
-  projectId: string;
-  name: string;
-  code?: string | null;
-  description?: string | null;
-  objective?: string | null;
-  scope?: string | null;
-  riskLevel?: string | null;
-  residualRisk?: string | null;
-  status: string;
-  areaOwner?: string | null;
-  notes?: string | null;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type ProcessData = {
-  id: string;
-  auditAreaId: string;
-  name: string;
-  code?: string | null;
-  description?: string | null;
-  objective?: string | null;
-  processOwner?: string | null;
-  frequency?: string | null;
-  riskLevel?: string | null;
-  status: string;
-  systemsInvolved?: string | null;
-  keyInputs?: string | null;
-  keyOutputs?: string | null;
-  notes?: string | null;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type ControlData = {
-  id: string;
-  processId: string;
-  name: string;
-  code?: string | null;
-  description?: string | null;
-  controlObjective?: string | null;
-  controlType?: string | null;
-  controlNature?: string | null;
-  controlOwner?: string | null;
-  frequency?: string | null;
-  keyControl: boolean;
-  relatedRisk?: string | null;
-  expectedEvidence?: string | null;
-  testingStrategy?: string | null;
-  status: string;
-  notes?: string | null;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type TestStepData = {
-  id: string;
-  controlId: string;
-  stepNo?: number | null;
-  description: string;
-  expectedResult?: string | null;
-  actualResult?: string | null;
-  testMethod?: string | null;
-  status: string;
-  sampleReference?: string | null;
-  performedBy?: string | null;
-  performedAt?: string | null;
-  reviewedBy?: string | null;
-  reviewedAt?: string | null;
-  notes?: string | null;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type FindingData = {
-  id: string;
-  processId: string;
-  title: string;
-  code?: string | null;
-  description: string;
-  criteria?: string | null;
-  condition?: string | null;
-  cause?: string | null;
-  effect?: string | null;
-  recommendation?: string | null;
-  managementResponse?: string | null;
-  actionOwner?: string | null;
-  dueDate?: string | null;
-  severity: string;
-  status: string;
-  identifiedAt?: string | null;
-  closedAt?: string | null;
-  notes?: string | null;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-};
-
-type EvidenceFileData = {
-  id: string;
-  originalName: string;
-  mimeType?: string | null;
-  extension?: string | null;
-  sizeBytes?: number | null;
-  uploadedAt: string;
-  scanStatus: string;
-};
-
-type EvidenceData = {
-  id: string;
-  processId: string;
-  title: string;
-  description?: string | null;
-  type: string;
-  source?: string | null;
-  referenceNo?: string | null;
-  externalUrl?: string | null;
-  collectedBy?: string | null;
-  collectedAt?: string | null;
-  validFrom?: string | null;
-  validTo?: string | null;
-  reliabilityLevel?: string | null;
-  confidentiality?: string | null;
-  status: string;
-  version?: string | null;
-  notes?: string | null;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-  files?: EvidenceFileData[];
-};
-
-type TreeNode =
-  | {
-      id: string;
-      nodeType: "AUDIT_AREA";
-      label: string;
-      parentId: null;
-      children: TreeNode[];
-      canRead: boolean;
-      data: AuditAreaData | null;
-    }
-  | {
-      id: string;
-      nodeType: "PROCESS";
-      label: string;
-      parentId: string;
-      children: TreeNode[];
-      canRead: boolean;
-      data: ProcessData | null;
-    }
-  | {
-      id: string;
-      nodeType: "CONTROL";
-      label: string;
-      parentId: string;
-      children: TreeNode[];
-      canRead: boolean;
-      data: ControlData | null;
-    }
-  | {
-      id: string;
-      nodeType: "TEST_STEP";
-      label: string;
-      parentId: string;
-      children: TreeNode[];
-      canRead: boolean;
-      data: TestStepData | null;
-    }
-  | {
-      id: string;
-      nodeType: "FINDING";
-      label: string;
-      parentId: string;
-      children: TreeNode[];
-      canRead: boolean;
-      data: FindingData | null;
-    }
-  | {
-      id: string;
-      nodeType: "EVIDENCE";
-      label: string;
-      parentId: string;
-      children: TreeNode[];
-      canRead: boolean;
-      data: EvidenceData | null;
-    };
-
-type ProgressSummary = {
-  totalProcesses: number;
-  percent: number;
-  completed: number;
-  closed: number;
-  inProgress: number;
-  notStarted: number;
-  notApplicable: number;
-};
-
-type StructureResponse = {
-  tree: TreeNode[];
-  progress: ProgressSummary;
-};
+import ProjectStructureGraph from "./project-structure-graph";
+import type {
+  AuditAreaData,
+  ControlData,
+  EvidenceData,
+  EvidenceFileData,
+  FindingData,
+  NodeType,
+  ProcessData,
+  ProgressSummary,
+  SelectedDetails,
+  StructureResponse,
+  TestStepData,
+  TreeNode,
+} from "./project-structure-types";
 
 function allowedChildTypes(type: NodeType): NodeType[] {
   switch (type) {
@@ -564,20 +362,13 @@ export default function ProjectStructureSection({
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedDetails, setSelectedDetails] = useState<
-    | AuditAreaData
-    | ProcessData
-    | ControlData
-    | TestStepData
-    | FindingData
-    | EvidenceData
-    | null
-  >(null);
+  const [selectedDetails, setSelectedDetails] = useState<SelectedDetails>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [structureView, setStructureView] = useState<"tree" | "graph">("tree");
 
   const selectedNode = useMemo(
     () => (selectedId ? findNodeById(tree, selectedId) : null),
@@ -995,13 +786,47 @@ export default function ProjectStructureSection({
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[360px,1fr]">
-          <div className="border rounded-xl p-3 min-h-[100px]">
+        <div
+          className={`grid gap-4 ${
+            structureView === "graph"
+              ? "lg:grid-cols-[minmax(0,1fr),420px]"
+              : "lg:grid-cols-[360px,1fr]"
+          }`}
+        >
+          <div className="border rounded-xl p-3 min-h-[100px] space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-sm font-medium">
+                {locale === "lt" ? "Struktūros vaizdas" : "Structure view"}
+              </div>
+
+              <div className="flex rounded-lg border p-1 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setStructureView("tree")}
+                  className={`rounded-md px-3 py-1 ${
+                    structureView === "tree" ? "bg-black text-white" : "hover:bg-black/5"
+                  }`}
+                >
+                  {locale === "lt" ? "Medis" : "Tree"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStructureView("graph")}
+                  className={`rounded-md px-3 py-1 ${
+                    structureView === "graph" ? "bg-black text-white" : "hover:bg-black/5"
+                  }`}
+                >
+                  {locale === "lt" ? "Grafas" : "Graph"}
+                </button>
+              </div>
+            </div>
+
             {loading ? (
               <p className="text-sm opacity-70">{t.structure.loadingStructure}</p>
             ) : tree.length === 0 ? (
               <p className="text-sm opacity-70">{t.structure.noComponents}</p>
-            ) : (
+            ) : structureView === "tree" ? (
               <ul className="space-y-2">
                 {tree.map((node) => (
                   <TreeItem
@@ -1017,6 +842,15 @@ export default function ProjectStructureSection({
                   />
                 ))}
               </ul>
+            ) : (
+              <ProjectStructureGraph
+                tree={tree}
+                selectedId={selectedId}
+                onSelect={(nodeValue) => {
+                  void openNode(nodeValue);
+                }}
+                typeLabel={typeLabel}
+              />
             )}
           </div>
 

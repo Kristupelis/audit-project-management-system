@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
 
 :root {
   --background: #ffffff;
@@ -23,4 +24,35 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.react-flow__controls {
+  background: #020617;
+  border: 1px solid #374151;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+}
+
+.react-flow__controls-button {
+  background: #111827;
+  border-bottom: 1px solid #374151;
+  color: #f9fafb;
+  fill: #f9fafb;
+}
+
+.react-flow__controls-button:hover {
+  background: #1f2937;
+}
+
+.react-flow__controls-button svg {
+  fill: #f9fafb;
+}
+
+.react-flow__controls-button:disabled {
+  background: #111827;
+  color: #6b7280;
+  fill: #6b7280;
+}
+
+.react-flow__controls-button:disabled svg {
+  fill: #6b7280;
 }
