@@ -1,0 +1,35 @@
+//*************
+//   Back end
+//*************
+
+Run backend:
+cd apps/api
+pnpm start:dev
+
+http://localhost:4000
+
+//*************
+//  Front end
+//*************
+
+Run frontend:
+cd apps/web
+pnpm dev
+
+http://localhost:3000
+
+//**************
+//   DB
+//**************
+
+Edit DB:
+
+pnpm prisma studio
+
+//**************
+//    Tree
+//**************
+
+Print tree:
+
+git ls-files
