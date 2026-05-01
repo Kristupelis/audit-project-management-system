@@ -22,10 +22,26 @@ export class SystemLogsExceptionFilter implements ExceptionFilter {
       ? exception.getStatus()
       : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    const exceptionResponse = isHttpException ? exception.getResponse() : null;
+
+    const responseBody =
+      typeof exceptionResponse === 'object' && exceptionResponse !== null
+        ? (exceptionResponse as Record<string, unknown>)
+        : {
+            message:
+              typeof exceptionResponse === 'string'
+                ? exceptionResponse
+                : exception instanceof Error
+                  ? exception.message
+                  : 'Unhandled server exception',
+          };
+
     const message =
-      exception instanceof Error
-        ? exception.message
-        : 'Unhandled server exception';
+      typeof responseBody.message === 'string'
+        ? responseBody.message
+        : exception instanceof Error
+          ? exception.message
+          : 'Unhandled server exception';
 
     void this.systemLogs.write({
       level: status >= 500 ? 'ERROR' : 'WARNING',
@@ -43,8 +59,13 @@ export class SystemLogsExceptionFilter implements ExceptionFilter {
 
     response.status(status).json({
       statusCode: status,
-      message,
-      error: isHttpException ? 'Request failed' : 'Internal Server Error',
+      ...responseBody,
+      error:
+        typeof responseBody.error === 'string'
+          ? responseBody.error
+          : isHttpException
+            ? 'Request failed'
+            : 'Internal Server Error',
     });
   }
 }
