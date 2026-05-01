@@ -586,7 +586,8 @@ export class AuthService {
     const n = Number(trimmed);
 
     if (!Number.isNaN(n) && trimmed !== '') return n;
-    return trimmed;
+
+    return trimmed as SignOptions['expiresIn'];
   }
 
   private computeExpiryDate(exp: string) {
