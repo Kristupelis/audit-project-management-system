@@ -74,12 +74,16 @@ export const authOptions: NextAuthOptions = {
         }
 
         if (!res.ok) {
-          const message =
-            typeof data.message === 'string'
-              ? data.message
-              : text || 'Login failed';
+          if (data.code === 'ACCOUNT_BLOCKED' || data.message === 'ACCOUNT_BLOCKED') {
+            throw new Error(
+              JSON.stringify({
+                code: 'ACCOUNT_BLOCKED',
+                reason: typeof data.reason === 'string' ? data.reason : null,
+              }),
+            );
+          }
 
-          throw new Error(message);
+          throw new Error('INVALID_CREDENTIALS');
         }
 
         if (data.requiresTwoFactorSetup) {
