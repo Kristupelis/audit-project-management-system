@@ -115,6 +115,7 @@ export class AuthService {
       });
 
       throw new UnauthorizedException({
+        message: 'ACCOUNT_BLOCKED',
         code: 'ACCOUNT_BLOCKED',
         reason: user.blockedReason ?? null,
       });
@@ -138,6 +139,7 @@ export class AuthService {
         });
 
         throw new UnauthorizedException({
+          message: 'ACCOUNT_BLOCKED',
           code: 'ACCOUNT_BLOCKED',
           reason: updatedUser.blockedReason ?? null,
         });
@@ -202,6 +204,7 @@ export class AuthService {
 
     if (user.isBlocked) {
       throw new UnauthorizedException({
+        message: 'ACCOUNT_BLOCKED',
         code: 'ACCOUNT_BLOCKED',
         reason: user.blockedReason ?? null,
       });
@@ -363,6 +366,7 @@ export class AuthService {
 
     if (user.isBlocked) {
       throw new UnauthorizedException({
+        message: 'ACCOUNT_BLOCKED',
         code: 'ACCOUNT_BLOCKED',
         reason: user.blockedReason ?? null,
       });
@@ -441,6 +445,7 @@ export class AuthService {
 
     if (user.isBlocked) {
       throw new UnauthorizedException({
+        message: 'ACCOUNT_BLOCKED',
         code: 'ACCOUNT_BLOCKED',
         reason: user.blockedReason ?? null,
       });

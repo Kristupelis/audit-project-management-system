@@ -85,7 +85,12 @@ export default function LoginPage() {
         // ignore parse errors
       }
 
-      setError(t.authPages.invalidEmailOrPassword);
+      if (res.error === "INVALID_CREDENTIALS") {
+        setError(t.authPages.invalidEmailOrPassword);
+        return;
+      }
+
+      setError(t.authPages.loginFailed);
       return;
     }
 
