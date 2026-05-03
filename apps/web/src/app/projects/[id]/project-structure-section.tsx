@@ -760,9 +760,9 @@ export default function ProjectStructureSection({
             <div className="text-lg font-semibold">{progress.percent}%</div>
           </div>
 
-          <div className="h-3 w-full overflow-hidden rounded-full bg-black/10">
+          <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
             <div
-              className="h-full rounded-full bg-black transition-all"
+              className="h-full rounded-full bg-slate-900 transition-all dark:bg-slate-100"
               style={{ width: `${progress.percent}%` }}
             />
           </div>
