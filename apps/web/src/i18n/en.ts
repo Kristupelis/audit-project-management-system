@@ -53,6 +53,16 @@ export type TranslationDictionary = {
     locked: string;
     lockProject: string;
     unlockProject: string;
+    lockFilter: string;
+    allProjects: string;
+    lockedProjects: string;
+    unlockedProjects: string;
+    sortBy: string;
+    updatedNewestFirst: string;
+    plannedEndClosestFirst: string;
+    plannedEndLatestFirst: string;
+    applyFilters: string;
+    resetFilters: string;
   };
   main: {
     projects: string;
@@ -458,6 +468,16 @@ const en: TranslationDictionary = {
     locked: "Locked",
     lockProject: "Lock project",
     unlockProject: "Unlock project",
+    lockFilter: "Lock status",
+    allProjects: "All projects",
+    lockedProjects: "Locked projects",
+    unlockedProjects: "Unlocked projects",
+    sortBy: "Sort by",
+    updatedNewestFirst: "Recently updated first",
+    plannedEndClosestFirst: "Closest planned end date first",
+    plannedEndLatestFirst: "Latest planned end date first",
+    applyFilters: "Apply filters",
+    resetFilters: "Reset",
   },
   main: {
     projects: "Projects",

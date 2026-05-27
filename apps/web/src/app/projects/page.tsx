@@ -17,6 +17,7 @@ type Project = {
   isLocked?: boolean;
   isOwner: boolean;
   roles: string[];
+  plannedEndDate?: string | null;
   updatedAt: string;
 };
 
@@ -31,7 +32,14 @@ async function fetchProjects(token: string) {
   return res.json();
 }
 
-export default async function ProjectsPage() {
+export default async function ProjectsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    lockStatus?: string;
+    sort?: string;
+  }>;
+}) {
   const cookieStore = await cookies();
   const localeCookie = cookieStore.get("locale")?.value;
   const locale: Locale = localeCookie === "lt" ? "lt" : "en";
@@ -50,7 +58,45 @@ export default async function ProjectsPage() {
     );
   }
 
+  const resolvedSearchParams = await searchParams;
+  const lockStatus = resolvedSearchParams?.lockStatus ?? "all";
+  const sort = resolvedSearchParams?.sort ?? "updatedDesc";
+
   const projects = await fetchProjects(session.apiAccessToken);
+
+  const visibleProjects = [...projects]
+    .filter((project: Project) => {
+      if (lockStatus === "locked") return project.isLocked;
+      if (lockStatus === "unlocked") return !project.isLocked;
+      return true;
+    })
+    .sort((a: Project, b: Project) => {
+      if (sort === "plannedEndAsc") {
+        const aTime = a.plannedEndDate
+          ? new Date(a.plannedEndDate).getTime()
+          : Number.POSITIVE_INFINITY;
+
+        const bTime = b.plannedEndDate
+          ? new Date(b.plannedEndDate).getTime()
+          : Number.POSITIVE_INFINITY;
+
+        return aTime - bTime;
+      }
+
+      if (sort === "plannedEndDesc") {
+        const aTime = a.plannedEndDate
+          ? new Date(a.plannedEndDate).getTime()
+          : Number.NEGATIVE_INFINITY;
+
+        const bTime = b.plannedEndDate
+          ? new Date(b.plannedEndDate).getTime()
+          : Number.NEGATIVE_INFINITY;
+
+        return bTime - aTime;
+      }
+
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
 
   function statusLabel(value?: string | null) {
     if (!value) return null;
@@ -82,13 +128,51 @@ export default async function ProjectsPage() {
         </Link>
       </div>
 
-      {projects.length === 0 ? (
+      <form className="border rounded-xl p-4 grid gap-4 md:grid-cols-3 items-end">
+        <div className="space-y-1">
+          <label className="text-sm">{t.projects.lockFilter}</label>
+          <select
+            name="lockStatus"
+            defaultValue={lockStatus}
+            className="w-full border rounded-md p-2"
+          >
+            <option value="all">{t.projects.allProjects}</option>
+            <option value="locked">{t.projects.lockedProjects}</option>
+            <option value="unlocked">{t.projects.unlockedProjects}</option>
+          </select>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm">{t.projects.sortBy}</label>
+          <select
+            name="sort"
+            defaultValue={sort}
+            className="w-full border rounded-md p-2"
+          >
+            <option value="updatedDesc">{t.projects.updatedNewestFirst}</option>
+            <option value="plannedEndAsc">{t.projects.plannedEndClosestFirst}</option>
+            <option value="plannedEndDesc">{t.projects.plannedEndLatestFirst}</option>
+          </select>
+        </div>
+
+        <div className="flex gap-2">
+          <button type="submit" className="border rounded-md px-3 py-2">
+            {t.projects.applyFilters}
+          </button>
+
+          <Link href="/projects" className="border rounded-md px-3 py-2">
+            {t.projects.resetFilters}
+          </Link>
+        </div>
+      </form>
+
+      {visibleProjects.length === 0 ? (
         <section className="border rounded-xl p-4">
           <p className="text-sm opacity-80">{t.main.noProjects}</p>
         </section>
       ) : (
         <ul className="space-y-2">
-          {projects.map((p: Project) => (
+          {visibleProjects.map((p: Project) => (
             <li key={p.id} className="border rounded-xl p-4 space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2 flex-1">
@@ -119,6 +203,12 @@ export default async function ProjectsPage() {
                     {p.priority && (
                       <span className="border rounded-full px-2 py-1">
                         {priorityLabel(p.priority)}
+                      </span>
+                    )}
+                    {p.plannedEndDate && (
+                      <span className="border rounded-full px-2 py-1">
+                        {t.projects.plannedEndDate}:{" "}
+                        {new Date(p.plannedEndDate).toLocaleDateString()}
                       </span>
                     )}
                     {p.isLocked && (
